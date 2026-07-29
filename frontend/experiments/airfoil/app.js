@@ -1,5 +1,5 @@
 /**
- * Galleria del vento — the airfoil experiment.
+ * Wind tunnel — the airfoil experiment.
  *
  * Everything simulation-related is Fenix Spoon's: `<fs-geometry-2d>` produces protocol
  * geometry, `@fenix-spoon/client` submits the job and streams progress, `<fs-viewer>`
@@ -284,9 +284,9 @@ function isUsable(value, spec) {
 
 function renderParam(config, spec, value, onChange) {
   const id = `param-${config.name}`;
-  // The solver's own `description` is the authoritative English wording; it goes on the
-  // control as a tooltip rather than into the visible hint, which is the lab's Italian
-  // explanation. Showing both inline just prints the same sentence twice.
+  // The solver's own `description` is upstream's wording for the parameter; it goes on
+  // the control as a tooltip rather than into the visible hint, which is the lab's own
+  // explanation aimed at a visitor. Showing both inline prints the same thing twice.
   const title = spec.description ?? null;
 
   if (typeof spec.default === 'boolean') {

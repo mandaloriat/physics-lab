@@ -57,46 +57,71 @@ jobs:
 
       - name: Essential documentation is present and honest
         # Documentation that quietly loses its deployment section is how a project becomes
-        # un-deployable by anyone but its author.
-        run: |
-          set -euo pipefail
-          for file in README.md LICENSE .env.example docs/architecture-decisions.md; do
-            test -s "$file" || { echo "missing or empty: $file" >&2; exit 1; }
-          done
-          for heading in "Quick start" "Production" "Current experiments" \
-                         "The pinned dependency" "Security and the limits of a public demo"; do
-            grep -q "$heading" README.md || { echo "README lost its '$heading' section" >&2; exit 1; }
-          done
-          # Attribution, and no claim of affiliation.
-          grep -q "Built with Fenix Spoon" README.md
-          grep -q "not affiliated" README.md
-
-      - name: The educational disclaimer is present everywhere it must be
-        # Whitespace-collapsed rather than grepped: the sentence is wrapped across lines in
-        # every one of these files, so a literal grep would pass or fail on where the line
-        # break happens to fall rather than on whether the disclaimer is there.
+        # un-deployable by anyone but its author, and the disclaimer is a requirement of
+        # the project rather than a nicety.
+        #
+        # Every assertion runs against *rendered* text, not raw source. `grep` was the
+        # obvious tool and the wrong one: the attribution reads
+        # "Built with [Fenix Spoon](…)" in Markdown, so `grep "Built with Fenix Spoon"`
+        # failed on a README that says exactly that to a reader. The same trap caught the
+        # disclaimer, which is line-wrapped and inside a blockquote. Flattening first means
+        # these check meaning, and stop depending on where a line break happens to fall.
         run: |
           python3 - <<'PY'
           import pathlib, re, sys
 
+          REQUIRED_FILES = ["README.md", "LICENSE", ".env.example", "docs/architecture-decisions.md"]
+
+          REQUIRED_SECTIONS = [
+              "Quick start",
+              "Production",
+              "Current experiments",
+              "The pinned dependency",
+              "Security and the limits of a public demo",
+          ]
+
           DISCLAIMER = "not a substitute for professional engineering verification"
-          FILES = [
+          DISCLAIMER_FILES = [
               "README.md",
               "frontend/index.html",
               "frontend/experiments/airfoil/index.html",
           ]
 
-          def flatten(path):
-              # Drop per-line markup first — the README carries the disclaimer in a
-              # blockquote, so a bare whitespace collapse would leave a ">" in the middle
-              # of the sentence — then collapse the wrapping.
+          def rendered(path: str) -> str:
+              """Roughly what a reader sees: no link syntax, no blockquote markers, no wrapping."""
               text = pathlib.Path(path).read_text(encoding="utf-8")
-              return re.sub(r"\s+", " ", re.sub(r"(?m)^\s*>\s?", "", text))
+              text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)   # [label](url) -> label
+              text = re.sub(r"(?m)^\s*>\s?", "", text)               # blockquote markers
+              text = re.sub(r"[*`_]", "", text)                      # emphasis and code ticks
+              return re.sub(r"\s+", " ", text)                       # unwrap
 
-          missing = [f for f in FILES if DISCLAIMER not in flatten(f)]
-          if missing:
-              sys.exit("missing the educational disclaimer: " + ", ".join(missing))
-          print(f"disclaimer present in {len(FILES)} files")
+          problems = []
+
+          for path in REQUIRED_FILES:
+              file = pathlib.Path(path)
+              if not file.is_file() or not file.stat().st_size:
+                  problems.append(f"missing or empty: {path}")
+
+          if not problems:
+              readme = rendered("README.md")
+              for section in REQUIRED_SECTIONS:
+                  if section not in readme:
+                      problems.append(f"README lost its {section!r} section")
+              # Attribution is owed to Fenix Spoon and FEniCSx; affiliation is not claimed.
+              if "Built with Fenix Spoon" not in readme:
+                  problems.append("README no longer attributes Fenix Spoon")
+              if "not affiliated" not in readme:
+                  problems.append("README no longer disclaims affiliation with the FEniCS Project")
+              for path in DISCLAIMER_FILES:
+                  if DISCLAIMER not in rendered(path):
+                      problems.append(f"missing the educational disclaimer: {path}")
+
+          if problems:
+              sys.exit("\n".join(problems))
+          print(
+              f"{len(REQUIRED_FILES)} documents present, {len(REQUIRED_SECTIONS)} README sections, "
+              f"attribution intact, disclaimer in {len(DISCLAIMER_FILES)} files"
+          )
           PY
 
   # ────────────────────────────────────────────────────────────────── python tests
