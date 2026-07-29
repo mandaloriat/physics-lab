@@ -7,7 +7,6 @@ Fenix Spoon app, that the site is served from the same origin as the API, and th
 lab's own additions (``/health``, the maintenance switch) behave.
 """
 
-import os
 import tempfile
 
 import pytest
@@ -31,7 +30,10 @@ def client(monkeypatch):
         # Keep the suite honest about budgets without making it slow.
         monkeypatch.setenv("FENIXSPOON_MAX_CELLS", "200000")
         monkeypatch.setenv("FENIXSPOON_JOB_TIMEOUT", "90")
-        os.environ.pop("FENIXSPOON_REDIS_URL", None)
+        # delenv, not os.environ.pop: pop mutates the real environment and is never
+        # undone, so on a runner that sets FENIXSPOON_REDIS_URL the first test to use this
+        # fixture would delete it for the rest of the session.
+        monkeypatch.delenv("FENIXSPOON_REDIS_URL", raising=False)
 
         from physics_lab.main import create_app
 

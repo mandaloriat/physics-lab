@@ -48,12 +48,15 @@ JOBS_ENABLED=$(printf '%s' "$HEALTH" | json "['jobs_enabled']")
 
 # ---------------------------------------------------------------- 2. solver catalogue
 SOLVERS=$(curl -fsS --max-time 15 "$BASE_URL/api/v1/solvers" 2>&1)
-COUNT=$(printf '%s' "$SOLVERS" | json "" | python3 -c "import sys; print(len(eval(sys.stdin.read())))" 2>/dev/null)
-MOCK=$(printf '%s' "$SOLVERS" | python3 -c "
-import json,sys
-names = [s['name'] for s in json.load(sys.stdin)]
-print(next((n for n in names if n.startswith('mock.') and 'laplace' in n), ''))
-" 2>/dev/null)
+# One parse, one pass: the count and the solver name come out together rather than
+# round-tripping the payload through a Python repr and eval()-ing it back.
+read -r COUNT MOCK <<< "$(printf '%s' "$SOLVERS" | python3 -c "
+import json, sys
+solvers = json.load(sys.stdin)
+names = [s['name'] for s in solvers]
+mock = next((n for n in names if n.startswith('mock.') and 'laplace' in n), '')
+print(len(solvers), mock)
+" 2>/dev/null)"
 if [ -n "$MOCK" ]; then
   pass "solver catalogue is not empty (${COUNT} solvers, using ${MOCK})"
 else
