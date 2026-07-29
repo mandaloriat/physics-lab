@@ -1,0 +1,146 @@
+# Production overlay for lab.andolfatto.eu.
+#
+#   docker compose -f compose.yaml -f compose.production.yaml up -d --build
+#
+# What changes relative to the base stack:
+#
+#   * Caddy terminates HTTPS and is the only container with a published port.
+#   * The API stops solving. `FENIXSPOON_REDIS_URL` switches both its execution backend
+#     and its event bus to Redis in one variable, so a half-distributed deployment — one
+#     that dispatches jobs but listens on an in-process bus, whose only symptom is a
+#     progress bar that never moves — is not reachable by misconfiguration.
+#   * Solves run in worker containers, one job per container, so `memory` below is a real
+#     per-job ceiling the kernel enforces. In-process solving cannot express that at all:
+#     threads share a process, and a memory limit is a property of a process.
+#   * The API and the workers share the data volume. That is the one thing they genuinely
+#     must have in common: workers write result payloads and artifacts there, the API
+#     serves them. Redis carries only the queue and live progress and needs no volume.
+#
+# The API and the workers run the *same image*, built from the FEniCSx base. It is
+# tempting to give the API the 100 MB slim image since it no longer solves — but it still
+# has to advertise the catalogue, validate parameters against each solver's schema and
+# estimate cell counts at submit time, so it needs every adapter the workers have
+# registered. A slim API in front of FEniCSx workers would answer `404 unknown solver`.
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data      # ACME account key and issued certificates — persist this
+      - caddy-config:/config
+    environment:
+      LAB_DOMAIN: ${LAB_DOMAIN:-lab.andolfatto.eu}
+      LAB_ACME_EMAIL: ${LAB_ACME_EMAIL:-}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  api:
+    build:
+      args:
+        FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-7c89be3}
+    image: ${LAB_IMAGE:-physics-lab:prod}
+    # No `ports`. Caddy reaches it over the compose network; nothing else can.
+    environment:
+      FENIXSPOON_REDIS_URL: redis://redis:6379
+      # Origins never come into it — Caddy serves the site and proxies the API under one
+      # hostname, so every request the browser makes is same-origin. Left explicit
+      # because an empty CORS policy is a decision, not an oversight.
+      FENIXSPOON_CORS_ORIGINS: ${FENIXSPOON_CORS_ORIGINS:-https://lab.andolfatto.eu}
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "${LAB_API_CPUS:-1.0}"
+          memory: ${LAB_API_MEMORY:-768M}
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # No published port: Redis is reachable only from the compose network. It also holds
+    # nothing worth keeping — the queue and the progress channel are both recoverable,
+    # job state lives in the store — so persistence is switched off rather than mounted.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  worker:
+    build:
+      context: .
+      args:
+        FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-7c89be3d9641c382017931be407e5d6ba8ca9826}
+        FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-7c89be3}
+    image: ${LAB_IMAGE:-physics-lab:prod}
+    restart: unless-stopped
+    # arq drains the queue the API dispatches to. The lab's own adapters are registered
+    # because `physics_lab.solvers` is imported by the package the worker also has
+    # installed — same image, same catalogue, by construction.
+    command: ["arq", "fenixspoon.worker.WorkerSettings"]
+    environment:
+      FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-7c89be3d9641c382017931be407e5d6ba8ca9826}
+      FENIXSPOON_DATA_DIR: /data
+      FENIXSPOON_REDIS_URL: redis://redis:6379
+      # One solve per container. Keep it at 1 and scale containers instead, so the memory
+      # limit below applies to a single job rather than to several sharing it.
+      FENIXSPOON_WORKER_CONCURRENCY: ${FENIXSPOON_WORKER_CONCURRENCY:-1}
+      FENIXSPOON_JOB_TIMEOUT: ${FENIXSPOON_JOB_TIMEOUT:-90}
+      FENIXSPOON_MAX_CELLS: ${FENIXSPOON_MAX_CELLS:-200000}
+    volumes:
+      # The same volume as the API. Not sharing it means results that exist on disk and a
+      # 404 when the browser asks for them.
+      - lab-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          # A hard per-job ceiling, enforceable only because a solve is its own process
+          # here. A FEniCSx solve that runs away is killed instead of taking the box down.
+          cpus: "${LAB_WORKER_CPUS:-1.5}"
+          memory: ${LAB_WORKER_MEMORY:-2G}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  caddy-data:
+  caddy-config:

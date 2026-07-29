@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Andolfatto Physics Lab</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="An interactive laboratory for exploring physical phenomena by changing geometries, materials and boundary conditions, with fast previews and FEniCSx computations.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/shared/lab.css">
+</head>
+<body>
+
+<div id="header"></div>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1>A physics laboratory you can change</h1>
+    <p class="lede">
+      Change a geometry, a material or a boundary condition, press <em>Run</em>, and watch how
+      the field responds. Every experiment really runs: there is a solver behind it, not a
+      recorded animation.
+    </p>
+    <p class="disclaimer">
+      <strong>Note.</strong>
+      The simulations are demonstrative and educational. They are not a substitute for
+      professional engineering verification.
+    </p>
+  </section>
+
+  <section aria-labelledby="experiments">
+    <h2 id="experiments">Experiments</h2>
+    <ul class="card-grid">
+
+      <li class="card card--available">
+        <span class="badge badge--available">Available</span>
+        <h3><a href="/experiments/airfoil/">Wind tunnel</a></h3>
+        <p>
+          Potential flow around an airfoil. Drag the control points, or set camber, thickness
+          and angle of attack, and watch how the streamlines and the speed redistribute
+          themselves.
+        </p>
+        <p class="card__foot"><a href="/experiments/airfoil/">Open the experiment →</a></p>
+      </li>
+
+      <li class="card card--planned">
+        <span class="badge badge--planned">In preparation</span>
+        <h3>Magnetics lab</h3>
+        <p>
+          The cross-section of a solenoid: an iron core, current-carrying windings, and the
+          magnetic flux concentrating where the permeability is high.
+        </p>
+        <p class="card__foot">The solver already exists in Fenix Spoon; the teaching page does not.</p>
+      </li>
+
+      <li class="card card--planned">
+        <span class="badge badge--planned">In preparation</span>
+        <h3>Heat sink</h3>
+        <p>
+          Conduction through a finned body with convective exchange at its surfaces: how many
+          fins actually help, and when they stop helping.
+        </p>
+        <p class="card__foot">Waiting on a dedicated adapter in the lab.</p>
+      </li>
+
+    </ul>
+  </section>
+
+  <section id="modes" aria-labelledby="modes-title">
+    <h2 id="modes-title">Two ways to compute the same thing</h2>
+    <p class="prose">
+      The same problem can be solved quickly and approximately, or slowly and more faithfully.
+      The lab offers both routes and always tells you which one you are looking at — because
+      the difference between them <em>is</em> part of what there is to learn.
+    </p>
+
+    <div class="modes">
+      <div class="mode">
+        <h3><span class="badge badge--mock">Preview</span> Fast preview</h3>
+        <ul>
+          <li>A regular Cartesian grid, solved in NumPy.</li>
+          <li>Near-instant response: ideal while you are reshaping the profile.</li>
+          <li>Approximate by construction — the grid does not follow the body's outline.</li>
+        </ul>
+      </div>
+      <div class="mode">
+        <h3><span class="badge badge--fenics">FEniCSx</span> FEniCSx computation</h3>
+        <ul>
+          <li>An unstructured triangular mesh generated with Gmsh.</li>
+          <li>P1 finite elements: slower, more faithful close to the profile.</li>
+          <li>Produces a downloadable VTK file that opens in ParaView.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p id="capability" class="notice">Checking what is installed on this server…</p>
+  </section>
+
+  <section aria-labelledby="how-its-made">
+    <h2 id="how-its-made">How it is made</h2>
+    <p class="prose">
+      The lab is an application built on
+      <a href="https://github.com/mandaloriat/fenix-spoon">Fenix Spoon</a>, an open-source
+      toolkit that puts a finite-element solver behind a web page: the protocol, the job
+      handling, the solvers and the browser widgets all come from there. What you find here is
+      the teaching experience built on top — the texts, the experiments, the design and the
+      public deployment.
+    </p>
+    <p class="prose">
+      The code for this lab is on
+      <a href="https://github.com/mandaloriat/physics-lab">GitHub</a> under the MIT
+      licence. The real computations are carried out by
+      <a href="https://fenicsproject.org/">FEniCSx</a>.
+    </p>
+  </section>
+
+</main>
+
+<div id="footer"></div>
+
+<script type="module">
+import { mountChrome, health } from '/shared/components.js';
+
+mountChrome('home');
+
+// Say what this deployment can actually do rather than describing an ideal one. A slim
+// server has no FEniCSx solver, and pretending otherwise would send visitors to a mode
+// that isn't there.
+const capability = document.getElementById('capability');
+try {
+  const info = await health();
+  const solvers = info.solvers ?? [];
+  const hasFenics = solvers.some((name) => name.startsWith('dolfinx.'));
+  const parts = [];
+  parts.push(
+    hasFenics
+      ? 'Both modes are active on this server.'
+      : 'Only the fast preview is active on this server: no FEniCSx solver is installed. The experiments remain fully usable.',
+  );
+  if (info.jobs_enabled === false) {
+    parts.push('New simulations are temporarily suspended for maintenance.');
+    capability.classList.add('notice--warn');
+  }
+  capability.textContent = parts.join(' ');
+} catch {
+  capability.textContent =
+    'The server cannot be reached at the moment; the experiments may be unavailable.';
+  capability.classList.add('notice--warn');
+}
+</script>
+
+</body>
+</html>

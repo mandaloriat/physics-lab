@@ -1,0 +1,58 @@
+{
+  "id": "airfoil",
+  "title": "Wind tunnel",
+  "subtitle": "Potential flow around an airfoil",
+  "intro": "An airfoil sitting in a uniform stream that arrives from the left. You can reshape it two ways: with the sliders, which rebuild a four-digit NACA profile, or by dragging the control points on the drawing directly. Then press Run and watch what happens to the field.",
+  "sections": [
+    {
+      "id": "question",
+      "heading": "The question",
+      "lead": "How does the flow field change as you increase the camber of the profile?",
+      "body": [
+        "A symmetric profile splits the stream into two equal halves. The moment you introduce camber the two faces stop being equivalent: one becomes longer than the other, and the flow has to cover it faster. It is from this asymmetry that, in a more complete model than ours, lift arises."
+      ]
+    },
+    {
+      "id": "what-to-change",
+      "heading": "What to change",
+      "body": [
+        "**Camber** moves the mean line of the profile: at 0 % the profile is symmetric, at 6 % it curves distinctly upward.",
+        "**Thickness** inflates the profile around that same mean line, without changing its camber.",
+        "**Angle of attack** rotates the whole profile about the quarter-chord point.",
+        "**Resolution** (preview) or **mesh size** (FEniCSx) decide how fine the discretisation is: finer means more accurate and slower.",
+        "The white **control points** on the drawing can be dragged with the mouse or, once selected with Tab, with the arrow keys. From then on the shape is yours and the sliders no longer govern it until you press Reset."
+      ]
+    },
+    {
+      "id": "what-to-watch",
+      "heading": "What to watch",
+      "body": [
+        "In the **speed** field, look for where the colour brightens: that is where the flow accelerates. On a cambered profile the bright region over the upper surface is larger and more intense than the one underneath.",
+        "In the **psi** field (the streamfunction) the contour lines **are** the streamlines. Watch where they crowd together: close lines mean fast flow, widely spaced lines mean slow flow.",
+        "Follow the leading edge: the point where the stream divides in two shifts as you increase camber or angle of attack.",
+        "Hover over the field to read the value at the point under the cursor."
+      ]
+    },
+    {
+      "id": "try-this",
+      "heading": "Try this",
+      "steps": [
+        "Set camber to 0 % and run. Then take it to 6 % without touching anything else. Compare how far the fast region extends above and below the profile: how much has the symmetry changed?",
+        "Put camber back to 0 % and raise the angle of attack to 8° instead. Does the field resemble the cambered profile's? Where does it differ?",
+        "If the server has FEniCSx, compute the same geometry in both modes and compare the statistics below, and how the field looks near the leading edge — where the preview's regular grid struggles most."
+      ]
+    },
+    {
+      "id": "limits",
+      "heading": "Limits of the model",
+      "caution": true,
+      "body": [
+        "This is **potential flow**: it solves the Laplace equation for the streamfunction. The fluid is taken to be incompressible, inviscid and irrotational.",
+        "There is no viscosity, so there is no boundary layer, no wall friction and no aerodynamic drag.",
+        "There is no turbulence, no flow separation and no stall: you can push the angle of attack to values at which a real wing would already be in trouble, and the model will keep producing an orderly, plausible field that does not correspond to reality.",
+        "No Kutta condition is imposed, so there is no circulation and the computed lift would be **zero** at any angle of attack. What you are looking at is how the body deflects and accelerates the stream, not how much lift it generates.",
+        "The result is not a complete aerodynamic simulation and must not be used to size anything."
+      ]
+    }
+  ]
+}

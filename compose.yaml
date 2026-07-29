@@ -1,0 +1,66 @@
+# Andolfatto Physics Lab — base stack.
+#
+#   docker compose up -d --build
+#       Development. `compose.override.yaml` is picked up automatically and adds the
+#       published port and the fast mock-only image.
+#
+#   docker compose -f compose.yaml -f compose.production.yaml up -d --build
+#       Production. Naming the files explicitly skips the override, which is *why* the
+#       development conveniences live there: Compose merges `ports` by appending, so a
+#       published port in this file could not be taken away by the production one.
+#
+# Every value below comes from `.env` (copy `.env.example`). Nothing secret belongs in
+# either file — the lab has no credentials to hold.
+
+name: physics-lab
+
+services:
+  api:
+    build:
+      context: .
+      args:
+        FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-7c89be3d9641c382017931be407e5d6ba8ca9826}
+        FENIX_SPOON_IMAGE: ${FENIX_SPOON_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-7c89be3-slim}
+    image: ${LAB_IMAGE:-physics-lab:dev}
+    restart: unless-stopped
+    environment:
+      # --- what this deployment is, reported by /health
+      FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-7c89be3d9641c382017931be407e5d6ba8ca9826}
+      PHYSICS_LAB_JOBS_ENABLED: ${PHYSICS_LAB_JOBS_ENABLED:-true}
+
+      # --- Fenix Spoon: persistence
+      FENIXSPOON_DATA_DIR: /data
+      FENIXSPOON_STORE: ${FENIXSPOON_STORE:-sqlite}
+      FENIXSPOON_JOB_TTL: ${FENIXSPOON_JOB_TTL:-86400}
+
+      # --- Fenix Spoon: limits for an anonymous public demo
+      FENIXSPOON_MAX_CELLS: ${FENIXSPOON_MAX_CELLS:-200000}
+      FENIXSPOON_JOB_TIMEOUT: ${FENIXSPOON_JOB_TIMEOUT:-90}
+      FENIXSPOON_MAX_CONCURRENT_JOBS: ${FENIXSPOON_MAX_CONCURRENT_JOBS:-2}
+      FENIXSPOON_MAX_JOBS_PER_HOUR: ${FENIXSPOON_MAX_JOBS_PER_HOUR:-100}
+      FENIXSPOON_MAX_ARTIFACT_BYTES: ${FENIXSPOON_MAX_ARTIFACT_BYTES:-500000000}
+      FENIXSPOON_MAX_WORKERS: ${FENIXSPOON_MAX_WORKERS:-2}
+    volumes:
+      - lab-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status == 200 else 1)"
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    logging:
+      # Without this a long-lived container's log grows until the disk is full. Rotation
+      # belongs in the compose file rather than in a runbook nobody reads.
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  # Job records, result payloads and artifacts. Fenix Spoon's durable unit is this one
+  # directory, so backing the lab up means backing this volume up — nothing else.
+  lab-data:

@@ -1,0 +1,199 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A red build should never be a queued build behind an obsolete one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The one place CI names the pin. Kept in step with everything else by check-pins.
+  FENIX_SPOON_SLIM_IMAGE: ghcr.io/mandaloriat/fenix-spoon:sha-7c89be3-slim
+
+jobs:
+  # ────────────────────────────────────────────────────────────────── static checks
+  checks:
+    name: Lint, types, pins, secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # gitleaks needs history to scan commits, not just the tree.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - run: ruff check .
+
+      - run: mypy
+
+      - name: Fenix Spoon pin is consistent
+        # Before the tests, not after: a pin that disagrees with itself makes every other
+        # result meaningless, and the message is more useful than a mysterious failure.
+        run: ./scripts/check-pins.sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - name: Front-end formatting
+        run: npm run lint
+
+      - name: No committed secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Essential documentation is present and honest
+        # Documentation that quietly loses its deployment section is how a project becomes
+        # un-deployable by anyone but its author.
+        run: |
+          set -euo pipefail
+          for file in README.md LICENSE .env.example docs/architecture-decisions.md; do
+            test -s "$file" || { echo "missing or empty: $file" >&2; exit 1; }
+          done
+          for heading in "Quick start" "Production" "Current experiments" \
+                         "The pinned dependency" "Security and the limits of a public demo"; do
+            grep -q "$heading" README.md || { echo "README lost its '$heading' section" >&2; exit 1; }
+          done
+          # Attribution, and no claim of affiliation.
+          grep -q "Built with Fenix Spoon" README.md
+          grep -q "not affiliated" README.md
+
+      - name: The educational disclaimer is present everywhere it must be
+        # Whitespace-collapsed rather than grepped: the sentence is wrapped across lines in
+        # every one of these files, so a literal grep would pass or fail on where the line
+        # break happens to fall rather than on whether the disclaimer is there.
+        run: |
+          python3 - <<'PY'
+          import pathlib, re, sys
+
+          DISCLAIMER = "not a substitute for professional engineering verification"
+          FILES = [
+              "README.md",
+              "frontend/index.html",
+              "frontend/experiments/airfoil/index.html",
+          ]
+
+          def flatten(path):
+              # Drop per-line markup first — the README carries the disclaimer in a
+              # blockquote, so a bare whitespace collapse would leave a ">" in the middle
+              # of the sentence — then collapse the wrapping.
+              text = pathlib.Path(path).read_text(encoding="utf-8")
+              return re.sub(r"\s+", " ", re.sub(r"(?m)^\s*>\s?", "", text))
+
+          missing = [f for f in FILES if DISCLAIMER not in flatten(f)]
+          if missing:
+              sys.exit("missing the educational disclaimer: " + ", ".join(missing))
+          print(f"disclaimer present in {len(FILES)} files")
+          PY
+
+  # ────────────────────────────────────────────────────────────────── python tests
+  tests:
+    name: Python tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The floor from pyproject's requires-python, and the version the images run.
+        python: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Build the Fenix Spoon widgets from the pinned commit
+        # The suite asserts the vendored bundles are served, because a checkout that
+        # skipped this step produces a page whose only symptom is that nothing happens.
+        run: ./scripts/fetch-widgets.sh
+
+      - run: pytest -q
+
+  # ─────────────────────────────────────────────────── the image, and a real browser
+  container:
+    name: Image build, smoke test, browser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the slim image
+        # Slim on purpose. The FEniCSx base is ~3 GB and the code path it adds belongs to
+        # Fenix Spoon, which tests its own adapters inside that exact image. What CI here
+        # has to prove is the part this repository wrote — the app, the site, the widget
+        # build stage, the protocol integration — and all of it runs on the mock solvers.
+        # A FEniCSx job would triple the build time to re-test someone else's code.
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: physics-lab:ci
+          build-args: |
+            FENIX_SPOON_IMAGE=${{ env.FENIX_SPOON_SLIM_IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start the container
+        run: |
+          docker run -d --name lab -p 8000:8000 physics-lab:ci
+          for _ in $(seq 1 60); do
+            curl -sf http://127.0.0.1:8000/health > /dev/null && break
+            sleep 2
+          done
+
+      - name: Logs on failure
+        if: failure()
+        run: docker logs lab
+
+      - name: Smoke test
+        run: ./scripts/smoke-test.sh http://127.0.0.1:8000
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+
+      - name: Browser smoke test
+        # The only thing that proves the import map resolves, the custom elements upgrade
+        # and the WebSocket carries progress. The Python suite cannot.
+        run: BASE_URL=http://127.0.0.1:8000 npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      - name: Container logs
+        if: always()
+        run: docker logs lab 2>&1 | tail -50
+
+      - name: Stop
+        if: always()
+        run: docker rm -f lab

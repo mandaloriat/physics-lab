@@ -1,0 +1,23 @@
+{
+  "name": "andolfatto-physics-lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Front-end tooling for the Andolfatto Physics Lab. The pages themselves need no build step.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "widgets": "./scripts/fetch-widgets.sh",
+    "build": "./scripts/fetch-widgets.sh",
+    "test:e2e": "playwright test",
+    "lint": "prettier --check 'frontend/**/*.{js,css,json}' 'e2e/**/*.mjs' playwright.config.mjs",
+    "format": "prettier --write 'frontend/**/*.{js,css,json}' 'e2e/**/*.mjs' playwright.config.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "prettier": "^3.4.0"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "printWidth": 100
+  }
+}

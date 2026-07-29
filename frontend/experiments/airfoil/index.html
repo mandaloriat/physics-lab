@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wind tunnel — Andolfatto Physics Lab</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Potential flow around an airfoil: reshape the geometry, run the solver, and watch how the field changes.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/shared/lab.css">
+<!-- The Fenix Spoon browser packages, vendored from the pinned commit by
+     scripts/fetch-widgets.sh (or by the Docker build's node stage). Bare specifiers are
+     resolved here rather than by a bundler: three ES modules with one shared dependency
+     do not need a build step. See docs/architecture-decisions.md, ADR-009. -->
+<script type="importmap">
+{
+  "imports": {
+    "@fenix-spoon/client": "/vendor/fenix-spoon/client/index.js",
+    "@fenix-spoon/geometry-2d": "/vendor/fenix-spoon/geometry-2d/index.js",
+    "@fenix-spoon/viewer": "/vendor/fenix-spoon/viewer/index.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="header"></div>
+
+<main class="wrap">
+
+  <h1>Wind tunnel</h1>
+  <p class="lede prose" id="intro"></p>
+
+  <p id="widgets-missing" class="notice notice--warn" hidden>
+    The browser widgets have not been built. Run
+    <code>./scripts/fetch-widgets.sh</code> and reload the page.
+  </p>
+  <p id="maintenance" class="notice notice--warn" hidden></p>
+
+  <div class="experiment">
+
+    <div>
+      <div class="stage">
+        <fs-viewer id="viewer" field="speed" colormap="viridis" contours="10"></fs-viewer>
+        <fs-geometry-2d id="editor" bounds="-1,-1,2,1" mode="spline" samples="10"
+                        aria-label="Airfoil profile: draggable control points"></fs-geometry-2d>
+      </div>
+
+      <div class="status-bar">
+        <span class="status-dot" id="dot" data-state="idle"></span>
+        <span id="status" role="status">Press <strong>Run</strong> to start the first simulation.</span>
+        <progress id="progress" value="0" max="1" hidden></progress>
+      </div>
+
+      <div class="panel" style="margin-top: 1rem;">
+        <h3>Result</h3>
+        <dl class="stats" id="stats"><span class="field__hint">Nothing computed yet.</span></dl>
+        <p class="artifacts" id="artifacts"></p>
+      </div>
+
+      <div class="panel">
+        <h3>Display</h3>
+        <div class="field">
+          <label class="field__label" for="field">Field shown</label>
+          <select id="field" aria-label="Field shown"></select>
+          <p class="field__hint" id="field-hint"></p>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h3>Computation mode</h3>
+        <div class="field">
+          <select id="solver" aria-label="Solver"></select>
+          <p class="field__hint" id="solver-hint"></p>
+        </div>
+        <div class="button-row">
+          <button id="run" class="primary" type="button">Run</button>
+          <button id="cancel" type="button" hidden>Cancel</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Geometry</h3>
+        <div id="shape-controls"></div>
+        <div class="button-row">
+          <button id="reset" type="button">Reset geometry</button>
+        </div>
+        <p class="field__hint" id="shape-note" style="margin-top:0.6rem"></p>
+      </div>
+
+      <div class="panel">
+        <h3>Solver parameters</h3>
+        <div id="solver-params"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="disclaimer">
+    <strong>Note.</strong>
+    The simulations are demonstrative and educational. They are not a substitute for
+    professional engineering verification.
+  </p>
+
+  <div class="lesson" id="lesson"></div>
+
+</main>
+
+<div id="footer"></div>
+
+<script type="module" src="/experiments/airfoil/app.js"></script>
+<script type="module">
+// If the widget bundles are missing, the module above throws on its first bare import and
+// the page would just sit there. Custom elements upgrade synchronously once defined, so
+// one microtask is enough to tell the difference.
+queueMicrotask(() => {
+  if (!customElements.get('fs-viewer')) {
+    document.getElementById('widgets-missing').hidden = false;
+  }
+});
+</script>
+
+</body>
+</html>
