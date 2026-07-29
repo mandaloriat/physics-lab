@@ -49,7 +49,7 @@ ARG FENIX_SPOON_COMMIT
 ARG FENIX_SPOON_IMAGE
 
 LABEL org.opencontainers.image.title="Andolfatto Physics Lab" \
-      org.opencontainers.image.source="https://github.com/mandaloriat/andolfatto-physics-lab" \
+      org.opencontainers.image.source="https://github.com/mandaloriat/physics-lab" \
       org.opencontainers.image.licenses="MIT" \
       eu.andolfatto.lab.fenix-spoon-commit="${FENIX_SPOON_COMMIT}" \
       eu.andolfatto.lab.fenix-spoon-image="${FENIX_SPOON_IMAGE}"

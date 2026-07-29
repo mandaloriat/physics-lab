@@ -7,7 +7,7 @@
  * code than the lab itself — see docs/architecture-decisions.md, ADR-009.
  */
 
-export const REPO_URL = 'https://github.com/mandaloriat/andolfatto-physics-lab';
+export const REPO_URL = 'https://github.com/mandaloriat/physics-lab';
 export const FENIX_SPOON_URL = 'https://github.com/mandaloriat/fenix-spoon';
 
 /**

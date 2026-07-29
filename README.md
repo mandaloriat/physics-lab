@@ -181,8 +181,8 @@ sudo ufw allow 80,443/tcp && sudo ufw allow 443/udp
 ### 3. Deploy
 
 ```bash
-git clone https://github.com/mandaloriat/andolfatto-physics-lab.git
-cd andolfatto-physics-lab
+git clone https://github.com/mandaloriat/physics-lab.git
+cd physics-lab
 cp .env.example .env          # set LAB_DOMAIN; everything else has a working default
 docker compose -f compose.yaml -f compose.production.yaml up -d --build
 ```

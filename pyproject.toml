@@ -28,7 +28,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://lab.andolfatto.eu"
-Source = "https://github.com/mandaloriat/andolfatto-physics-lab"
+Source = "https://github.com/mandaloriat/physics-lab"
 "Built with" = "https://github.com/mandaloriat/fenix-spoon"
 
 [tool.setuptools.packages.find]

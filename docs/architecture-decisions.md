@@ -8,7 +8,7 @@ made, not reconstructed afterwards.
 
 ## ADR-001 — The lab is a separate repository from Fenix Spoon
 
-**Decision.** `andolfatto-physics-lab` is its own repository. It is not a fork of
+**Decision.** `mandaloriat/physics-lab` is its own repository. It is not a fork of
 `fenix-spoon`, not a directory inside it, and not a branch of it.
 
 **Why.** The two have different jobs and different audiences. Fenix Spoon is a general
