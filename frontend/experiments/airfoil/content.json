@@ -1,57 +1,57 @@
 {
   "id": "airfoil",
-  "title": "Galleria del vento",
-  "subtitle": "Flusso potenziale attorno a un profilo alare",
-  "intro": "Un profilo alare immerso in una corrente uniforme che arriva da sinistra. Puoi cambiarne la forma in due modi: con i cursori, che ricostruiscono un profilo NACA a quattro cifre, oppure trascinando direttamente i punti di controllo sul disegno. Poi premi Calcola e guarda cosa succede al campo.",
+  "title": "Wind tunnel",
+  "subtitle": "Potential flow around an airfoil",
+  "intro": "An airfoil sitting in a uniform stream that arrives from the left. You can reshape it two ways: with the sliders, which rebuild a four-digit NACA profile, or by dragging the control points on the drawing directly. Then press Run and watch what happens to the field.",
   "sections": [
     {
-      "id": "domanda",
-      "heading": "Domanda",
-      "lead": "Come cambia il campo del flusso quando aumenti la curvatura del profilo?",
+      "id": "question",
+      "heading": "The question",
+      "lead": "How does the flow field change as you increase the camber of the profile?",
       "body": [
-        "Un profilo simmetrico divide la corrente in due metà uguali. Appena introduci curvatura, le due facce smettono di essere equivalenti: una diventa più lunga dell'altra e la corrente deve percorrerla più in fretta. È da questa asimmetria che, in un modello più completo del nostro, nasce la portanza."
+        "A symmetric profile splits the stream into two equal halves. The moment you introduce camber the two faces stop being equivalent: one becomes longer than the other, and the flow has to cover it faster. It is from this asymmetry that, in a more complete model than ours, lift arises."
       ]
     },
     {
-      "id": "cosa-modificare",
-      "heading": "Cosa modificare",
+      "id": "what-to-change",
+      "heading": "What to change",
       "body": [
-        "**Curvatura** sposta la linea media del profilo: a 0 % il profilo è simmetrico, a 6 % è nettamente ricurvo verso l'alto.",
-        "**Spessore** gonfia il profilo attorno alla stessa linea media, senza cambiarne la curvatura.",
-        "**Incidenza** ruota tutto il profilo attorno al punto a un quarto della corda.",
-        "**Risoluzione** (anteprima) o **dimensione mesh** (FEniCSx) decidono quanto è fine la discretizzazione: più fine significa più preciso e più lento.",
-        "I **punti di controllo** bianchi sul disegno si trascinano con il mouse o, dopo averli selezionati con Tab, con le frecce. Da lì in poi la forma è tua e i cursori non la governano più finché non premi Ripristina."
+        "**Camber** moves the mean line of the profile: at 0 % the profile is symmetric, at 6 % it curves distinctly upward.",
+        "**Thickness** inflates the profile around that same mean line, without changing its camber.",
+        "**Angle of attack** rotates the whole profile about the quarter-chord point.",
+        "**Resolution** (preview) or **mesh size** (FEniCSx) decide how fine the discretisation is: finer means more accurate and slower.",
+        "The white **control points** on the drawing can be dragged with the mouse or, once selected with Tab, with the arrow keys. From then on the shape is yours and the sliders no longer govern it until you press Reset."
       ]
     },
     {
-      "id": "cosa-osservare",
-      "heading": "Cosa osservare",
+      "id": "what-to-watch",
+      "heading": "What to watch",
       "body": [
-        "Nel campo **speed** cerca dove il colore si accende: è lì che la corrente accelera. Su un profilo ricurvo la zona chiara sul dorso è più estesa e più intensa di quella sul ventre.",
-        "Nel campo **psi** (la funzione di corrente) le linee di livello **sono** le linee di corrente. Guarda dove si stringono: linee vicine significano corrente veloce, linee larghe corrente lenta.",
-        "Segui il bordo d'attacco: il punto in cui la corrente si divide in due si sposta man mano che aumenti curvatura o incidenza.",
-        "Passa il mouse sul campo per leggere il valore puntuale sotto il cursore."
+        "In the **speed** field, look for where the colour brightens: that is where the flow accelerates. On a cambered profile the bright region over the upper surface is larger and more intense than the one underneath.",
+        "In the **psi** field (the streamfunction) the contour lines **are** the streamlines. Watch where they crowd together: close lines mean fast flow, widely spaced lines mean slow flow.",
+        "Follow the leading edge: the point where the stream divides in two shifts as you increase camber or angle of attack.",
+        "Hover over the field to read the value at the point under the cursor."
       ]
     },
     {
-      "id": "prova-questo",
-      "heading": "Prova questo",
+      "id": "try-this",
+      "heading": "Try this",
       "steps": [
-        "Porta la curvatura a 0 % e calcola. Poi portala a 6 % senza toccare nient'altro. Confronta l'estensione della zona veloce sopra e sotto il profilo: quanto è cambiata la simmetria?",
-        "Rimetti la curvatura a 0 % e alza invece l'incidenza a 8°. Il campo somiglia a quello del profilo ricurvo? In che cosa differisce?",
-        "Se il server ha FEniCSx, calcola la stessa geometria nelle due modalità e confronta le statistiche in basso e l'aspetto del campo vicino al bordo d'attacco, dove la griglia regolare dell'anteprima fatica di più."
+        "Set camber to 0 % and run. Then take it to 6 % without touching anything else. Compare how far the fast region extends above and below the profile: how much has the symmetry changed?",
+        "Put camber back to 0 % and raise the angle of attack to 8° instead. Does the field resemble the cambered profile's? Where does it differ?",
+        "If the server has FEniCSx, compute the same geometry in both modes and compare the statistics below, and how the field looks near the leading edge — where the preview's regular grid struggles most."
       ]
     },
     {
-      "id": "limiti",
-      "heading": "Limiti del modello",
+      "id": "limits",
+      "heading": "Limits of the model",
       "caution": true,
       "body": [
-        "Questo è **flusso potenziale**: risolve l'equazione di Laplace per la funzione di corrente. Il fluido è considerato incomprimibile, non viscoso e irrotazionale.",
-        "Non c'è viscosità, quindi non c'è strato limite, non c'è attrito di parete e non c'è resistenza aerodinamica.",
-        "Non c'è turbolenza, non c'è separazione della vena fluida e non c'è stallo: puoi portare l'incidenza a valori a cui un'ala vera sarebbe già in crisi, e il modello continuerà a produrre un campo ordinato e plausibile che non corrisponde alla realtà.",
-        "Non è imposta la condizione di Kutta, quindi non c'è circolazione e la portanza calcolata sarebbe **zero** a qualsiasi incidenza. Quello che vedi è come il corpo devia e accelera la corrente, non quanta portanza genera.",
-        "Il risultato non è una simulazione aerodinamica completa e non va usato per dimensionare alcunché."
+        "This is **potential flow**: it solves the Laplace equation for the streamfunction. The fluid is taken to be incompressible, inviscid and irrotational.",
+        "There is no viscosity, so there is no boundary layer, no wall friction and no aerodynamic drag.",
+        "There is no turbulence, no flow separation and no stall: you can push the angle of attack to values at which a real wing would already be in trouble, and the model will keep producing an orderly, plausible field that does not correspond to reality.",
+        "No Kutta condition is imposed, so there is no circulation and the computed lift would be **zero** at any angle of attack. What you are looking at is how the body deflects and accelerates the stream, not how much lift it generates.",
+        "The result is not a complete aerodynamic simulation and must not be used to size anything."
       ]
     }
   ]

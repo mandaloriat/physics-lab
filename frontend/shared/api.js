@@ -29,19 +29,19 @@ export const client = new FenixSpoonClient('');
 export const MODES = {
   preview: {
     id: 'preview',
-    label: 'Anteprima rapida',
+    label: 'Fast preview',
     prefix: 'mock.',
     summary:
-      'Griglia cartesiana risolta in NumPy. Risposta in un istante, ideale mentre modifichi la geometria.',
-    caveat: 'È un’approssimazione: griglia regolare, nessuna mesh adattata al profilo.',
+      'A Cartesian grid solved in NumPy. Answers in an instant — ideal while you reshape the geometry.',
+    caveat: 'It is an approximation: a regular grid, with no mesh fitted to the profile.',
   },
   accurate: {
     id: 'accurate',
-    label: 'Calcolo FEniCSx',
+    label: 'FEniCSx computation',
     prefix: 'dolfinx.',
     summary:
-      'Mesh non strutturata generata con Gmsh e risolta agli elementi finiti. Più lento, più fedele vicino al bordo.',
-    caveat: 'Richiede un worker con dolfinx installato.',
+      'An unstructured Gmsh mesh solved with finite elements. Slower, and more faithful near the boundary.',
+    caveat: 'Requires a worker with dolfinx installed.',
   },
 };
 

@@ -5,11 +5,8 @@ materials and boundary conditions, with fast previews and FEniCSx computations.*
 
 Live at **[lab.andolfatto.eu](https://lab.andolfatto.eu)**.
 
-> Le simulazioni sono dimostrative e didattiche. Non sostituiscono una verifica
-> ingegneristica professionale.
->
-> *The simulations are demonstrative and educational. They are not a substitute for
-> professional engineering verification.*
+> The simulations are demonstrative and educational. They are not a substitute for
+> professional engineering verification.
 
 The lab is an **application** built on
 [Fenix Spoon](https://github.com/mandaloriat/fenix-spoon), which is the **toolkit**: the
@@ -19,8 +16,8 @@ Nothing from it is copied into this repository. What this repository contains is
 teaching experience on top — the experiments, the explanations, the visual identity, the
 public deployment and the service limits.
 
-The site is in Italian; the code and this documentation are in English. See
-[ADR-011](docs/architecture-decisions.md#adr-011--the-site-is-in-italian-the-repository-is-in-english).
+Everything — pages, experiment content, code and documentation — is in English. See
+[ADR-011](docs/architecture-decisions.md#adr-011--english-throughout-site-included).
 
 ---
 
@@ -28,7 +25,7 @@ The site is in Italian; the code and this documentation are in English. See
 
 | Experiment | Physics | Status |
 |---|---|---|
-| **Airfoil potential flow** — *Galleria del vento* | Laplace equation for the streamfunction around an editable NACA profile | **Available** |
+| **Airfoil potential flow** — *Wind tunnel* | Laplace equation for the streamfunction around an editable NACA profile | **Available** |
 | **Solenoid magnetostatics** | Iron core, current-carrying coils, flux redistribution | Planned |
 | **Heat sink conduction and convection** | Conduction in a finned body with convective surfaces | Planned |
 

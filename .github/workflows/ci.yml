@@ -67,13 +67,37 @@ jobs:
                          "The pinned dependency" "Security and the limits of a public demo"; do
             grep -q "$heading" README.md || { echo "README lost its '$heading' section" >&2; exit 1; }
           done
-          # The disclaimer is a requirement of the project, not a nicety.
-          grep -q "Non sostituiscono una verifica ingegneristica professionale" README.md
-          grep -rq "Non sostituiscono una verifica" frontend/index.html
-          grep -rq "Non sostituiscono una verifica" frontend/experiments/airfoil/index.html
           # Attribution, and no claim of affiliation.
           grep -q "Built with Fenix Spoon" README.md
           grep -q "not affiliated" README.md
+
+      - name: The educational disclaimer is present everywhere it must be
+        # Whitespace-collapsed rather than grepped: the sentence is wrapped across lines in
+        # every one of these files, so a literal grep would pass or fail on where the line
+        # break happens to fall rather than on whether the disclaimer is there.
+        run: |
+          python3 - <<'PY'
+          import pathlib, re, sys
+
+          DISCLAIMER = "not a substitute for professional engineering verification"
+          FILES = [
+              "README.md",
+              "frontend/index.html",
+              "frontend/experiments/airfoil/index.html",
+          ]
+
+          def flatten(path):
+              # Drop per-line markup first — the README carries the disclaimer in a
+              # blockquote, so a bare whitespace collapse would leave a ">" in the middle
+              # of the sentence — then collapse the wrapping.
+              text = pathlib.Path(path).read_text(encoding="utf-8")
+              return re.sub(r"\s+", " ", re.sub(r"(?m)^\s*>\s?", "", text))
+
+          missing = [f for f in FILES if DISCLAIMER not in flatten(f)]
+          if missing:
+              sys.exit("missing the educational disclaimer: " + ", ".join(missing))
+          print(f"disclaimer present in {len(FILES)} files")
+          PY
 
   # ────────────────────────────────────────────────────────────────── python tests
   tests:

@@ -31,10 +31,10 @@ def test_homepage_names_the_experiments_and_carries_the_disclaimer(client):
     assert "Andolfatto Physics Lab" in body
     assert "/experiments/airfoil/" in body
     # The two planned experiments are listed honestly rather than linked to nothing.
-    assert "In preparazione" in body
-    assert "Laboratorio magnetico" in body
-    assert "Dissipatore termico" in body
-    assert "Non sostituiscono una verifica ingegneristica professionale" in body
+    assert "In preparation" in body
+    assert "Magnetics lab" in body
+    assert "Heat sink" in body
+    assert "not a substitute for professional engineering verification" in body
     assert "fenix-spoon" in body
 
 

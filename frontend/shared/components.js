@@ -59,10 +59,10 @@ function siteHeader(current = '') {
       ),
       el(
         'nav',
-        { class: 'site-nav', 'aria-label': 'Sezioni del laboratorio' },
-        link('/', 'Esperimenti', 'home'),
-        link('/#modalita', 'Come funziona', 'modes'),
-        link(REPO_URL, 'Codice', 'repo'),
+        { class: 'site-nav', 'aria-label': 'Lab sections' },
+        link('/', 'Experiments', 'home'),
+        link('/#modes', 'How it works', 'modes'),
+        link(REPO_URL, 'Code', 'repo'),
       ),
     ),
   );
@@ -81,7 +81,7 @@ function siteFooter() {
   );
 
   const source = el('p', {});
-  source.append(el('a', { href: REPO_URL, text: 'Sorgenti su GitHub' }), ' · MIT');
+  source.append(el('a', { href: REPO_URL, text: 'Source on GitHub' }), ' · MIT');
 
   return el('footer', { class: 'site-footer' }, el('div', { class: 'wrap' }, attribution, source));
 }
@@ -104,10 +104,10 @@ export function mountChrome(current) {
  * still has a duration, and "absent" and "zero" are different things.
  */
 const STAT_LABELS = [
-  ['seconds', 'durata', (v) => `${v.toFixed(2)} s`],
-  ['cells', 'celle', (v) => v.toLocaleString('it-IT')],
-  ['dofs', 'gradi di libertà', (v) => v.toLocaleString('it-IT')],
-  ['iterations', 'iterazioni', (v) => v.toLocaleString('it-IT')],
+  ['seconds', 'duration', (v) => `${v.toFixed(2)} s`],
+  ['cells', 'cells', (v) => v.toLocaleString('en-US')],
+  ['dofs', 'degrees of freedom', (v) => v.toLocaleString('en-US')],
+  ['iterations', 'iterations', (v) => v.toLocaleString('en-US')],
 ];
 
 export function statEntries(stats = {}) {

@@ -82,9 +82,19 @@
 			read_timeout 900s
 			write_timeout 900s
 		}
-		health_uri /health
-		health_interval 30s
-		health_timeout 5s
+
+		# No active health check, deliberately. There is exactly one upstream, so marking it
+		# down cannot route around anything — it can only replace the API's own answer with
+		# `503 no upstreams available`, and keep doing so for a full health_interval *after*
+		# the API has recovered. Measured: with `health_interval 30s`, an API that came up a
+		# second late stayed unreachable through the proxy for the next 29, and the log said
+		# "no upstreams available" rather than anything about the API.
+		#
+		# Passing the request through instead means a broken API produces its own error, or
+		# a connection failure Caddy reports as itself, and recovery is immediate.
+		# The container health check in compose.yaml is what actually watches the API;
+		# `depends_on: condition: service_healthy` is what orders startup. Add active checks
+		# here the day there is a second upstream to fail over to.
 	}
 
 	log {

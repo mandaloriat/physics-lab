@@ -23,9 +23,9 @@ test('the homepage introduces the lab and links the airfoil experiment', async (
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
   // The educational disclaimer is a requirement, not decoration.
-  await expect(page.locator('.disclaimer')).toContainText('Non sostituiscono una verifica');
+  await expect(page.locator('.disclaimer')).toContainText('not a substitute for');
 
-  await expect(page.getByRole('link', { name: /Apri l'esperimento/ })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: /Open the experiment/ })).toHaveAttribute(
     'href',
     '/experiments/airfoil/',
   );
@@ -33,7 +33,7 @@ test('the homepage introduces the lab and links the airfoil experiment', async (
   await expect(page.locator('.card--planned')).toHaveCount(2);
 
   // The capability notice is filled in from /health, so its text proves the API answered.
-  await expect(page.locator('#capability')).not.toContainText('Verifico cosa è installato');
+  await expect(page.locator('#capability')).not.toContainText('Checking what is installed');
 
   expect(errors).toEqual([]);
 });
@@ -67,12 +67,12 @@ test('the airfoil page runs a solve and renders the field', async ({ page }) => 
   await page.locator('#param-resolution').fill('64');
   await page.locator('#param-iterations').fill('200');
 
-  await page.getByRole('button', { name: 'Calcola' }).click();
-  await expect(page.locator('#status')).toContainText('Calcolo completato', { timeout: 60_000 });
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   // Progress, stats and the artifact link are all part of the experience.
   await expect(page.locator('#stats dt')).not.toHaveCount(0);
-  await expect(page.locator('#stats')).toContainText('durata');
+  await expect(page.locator('#stats')).toContainText('duration');
   await expect(page.locator('#artifacts a')).toContainText('solution.vtk');
 
   // The viewer actually painted something: a canvas with a non-empty field list.
@@ -98,6 +98,6 @@ test('the geometry can be reshaped and restored', async ({ page }) => {
   const cambered = await camberOf();
   expect(cambered).toBeGreaterThan(initial);
 
-  await page.getByRole('button', { name: 'Ripristina geometria' }).click();
+  await page.getByRole('button', { name: 'Reset geometry' }).click();
   expect(await camberOf()).toBeCloseTo(initial, 6);
 });

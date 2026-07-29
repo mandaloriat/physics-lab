@@ -139,37 +139,37 @@ function applyShape() {
 
 function updateShapeNote() {
   dom.shapeNote.textContent = shapeIsCustom
-    ? 'Stai modificando i punti a mano: i cursori qui sopra non descrivono più questa forma. Ripristina per tornare al profilo NACA.'
-    : `Profilo NACA a quattro cifre: curvatura ${shape.camber} %, spessore ${shape.thickness} %, incidenza ${shape.angle}°.`;
+    ? 'You are editing the points by hand: the sliders above no longer describe this shape. Reset to go back to the NACA profile.'
+    : `Four-digit NACA profile: camber ${shape.camber} %, thickness ${shape.thickness} %, angle of attack ${shape.angle}°.`;
 }
 
 const SHAPE_CONTROLS = [
   {
     key: 'camber',
-    label: 'Curvatura',
+    label: 'Camber',
     min: 0,
     max: 9,
     step: 0.5,
     unit: '%',
-    hint: 'Quanto la linea media si scosta dalla corda. A 0 il profilo è simmetrico.',
+    hint: 'How far the mean line departs from the chord. At 0 the profile is symmetric.',
   },
   {
     key: 'thickness',
-    label: 'Spessore',
+    label: 'Thickness',
     min: 6,
     max: 20,
     step: 1,
     unit: '%',
-    hint: 'Spessore massimo in percentuale della corda.',
+    hint: 'Maximum thickness as a percentage of the chord.',
   },
   {
     key: 'angle',
-    label: 'Incidenza',
+    label: 'Angle of attack',
     min: -10,
     max: 12,
     step: 1,
     unit: '°',
-    hint: 'Rotazione del profilo attorno al quarto di corda.',
+    hint: 'Rotation of the profile about the quarter-chord point.',
   },
 ];
 
@@ -223,24 +223,24 @@ function buildShapeControls() {
 const PARAM_UI = [
   {
     name: 'resolution',
-    label: 'Risoluzione',
-    hint: 'Punti di griglia sul lato lungo del dominio.',
+    label: 'Resolution',
+    hint: 'Grid points along the longer edge of the domain.',
   },
   {
     name: 'mesh_size',
-    label: 'Dimensione mesh',
-    hint: 'Lunghezza di riferimento degli elementi. Più piccola significa più elementi: il server rifiuta i valori che sforano il suo budget di celle.',
+    label: 'Mesh size',
+    hint: 'Reference element length. Smaller means more elements: the server refuses values that overrun its cell budget.',
     step: 0.005,
   },
-  { name: 'iterations', label: 'Iterazioni', hint: 'Passi dell’iterazione di Jacobi.' },
-  { name: 'u_inf', label: 'Velocità della corrente', hint: 'Velocità indisturbata a monte.' },
+  { name: 'iterations', label: 'Iterations', hint: 'Steps of the Jacobi iteration.' },
+  { name: 'u_inf', label: 'Free-stream velocity', hint: 'Undisturbed velocity upstream.' },
   {
     name: 'output',
-    label: 'Tipo di risultato',
-    hint: 'La mesh triangolare mostra la discretizzazione vera e propria.',
-    optionLabels: { grid2d: 'griglia regolare', mesh2d: 'mesh triangolare' },
+    label: 'Result kind',
+    hint: 'The triangular mesh shows the actual discretisation.',
+    optionLabels: { grid2d: 'regular grid', mesh2d: 'triangular mesh' },
   },
-  { name: 'write_vtk', label: 'Allega file VTK', hint: 'Scaricabile e apribile in ParaView.' },
+  { name: 'write_vtk', label: 'Attach VTK file', hint: 'Downloadable, and opens in ParaView.' },
 ];
 
 /** Current parameter values, keyed by name. Rebuilt whenever the solver changes. */
@@ -401,7 +401,7 @@ function onSolverChange() {
   dom.solverHint.textContent = [
     mode ? `${mode.summary} ${mode.caveat}` : solver.description,
     missing.length
-      ? `Non disponibile su questo server: ${missing.map((m) => m.label).join(', ')}.`
+      ? `Not available on this server: ${missing.map((m) => m.label).join(', ')}.`
       : '',
   ]
     .filter(Boolean)
@@ -423,7 +423,7 @@ async function run() {
   if (running) return;
   const solver = selectedSolver();
   if (!solver) {
-    setStatus('Nessun solutore disponibile su questo server.', 'error');
+    setStatus('No solver is available on this server.', 'error');
     return;
   }
 
@@ -433,7 +433,7 @@ async function run() {
   dom.progress.hidden = false;
   dom.progress.value = 0;
   dom.artifacts.replaceChildren();
-  setStatus('Invio del calcolo…', 'running');
+  setStatus('Submitting…', 'running');
 
   try {
     currentJob = await client.submit({
@@ -449,11 +449,11 @@ async function run() {
         if (event.total) dom.progress.value = event.iteration / event.total;
         const detail = event.message
           ? event.message
-          : `iterazione ${event.iteration}${event.total ? ` di ${event.total}` : ''}` +
-            (event.residual != null ? ` — residuo ${event.residual.toExponential(2)}` : '');
+          : `iteration ${event.iteration}${event.total ? ` of ${event.total}` : ''}` +
+            (event.residual != null ? ` — residual ${event.residual.toExponential(2)}` : '');
         setStatus(detail, 'running');
       } else if (event.type === 'status' && event.status === 'running') {
-        setStatus('Calcolo in corso…', 'running');
+        setStatus('Solving…', 'running');
       }
     });
 
@@ -461,10 +461,10 @@ async function run() {
     syncFieldOptions();
     showStats(result);
     showArtifacts(result.artifacts);
-    setStatus('Calcolo completato.', 'done');
+    setStatus('Done.', 'done');
   } catch (error) {
     if (error instanceof JobFailedError && error.status === 'cancelled') {
-      setStatus('Calcolo annullato.', 'idle');
+      setStatus('Cancelled.', 'idle');
     } else {
       setStatus(describeError(error), 'error');
     }
@@ -481,8 +481,8 @@ function showStats(result) {
   const entries = statEntries(result.stats);
   const topology =
     result.kind === 'mesh2d'
-      ? { label: 'elementi', value: (result.data.triangles?.length ?? 0).toLocaleString('it-IT') }
-      : { label: 'griglia', value: (result.data.shape ?? []).join(' × ') };
+      ? { label: 'elements', value: (result.data.triangles?.length ?? 0).toLocaleString('en-US') }
+      : { label: 'grid', value: (result.data.shape ?? []).join(' × ') };
 
   dom.stats.replaceChildren(
     ...[...entries, topology]
@@ -496,7 +496,7 @@ function showStats(result) {
 function showArtifacts(artifacts = []) {
   dom.artifacts.replaceChildren();
   if (!artifacts.length) return;
-  dom.artifacts.append('Scarica: ');
+  dom.artifacts.append('Download: ');
   artifacts.forEach((artifact, index) => {
     if (index) dom.artifacts.append(' · ');
     dom.artifacts.append(
@@ -510,8 +510,8 @@ function showArtifacts(artifacts = []) {
 }
 
 const FIELD_HINTS = {
-  speed: 'Modulo della velocità. Le zone chiare sono quelle in cui la corrente accelera.',
-  psi: 'Funzione di corrente: le linee di livello sono le linee di corrente.',
+  speed: 'Velocity magnitude. The bright regions are where the flow accelerates.',
+  psi: 'Streamfunction: its contour lines are the streamlines.',
 };
 
 function syncFieldOptions() {
@@ -595,7 +595,7 @@ try {
   catalogue = solvers;
 
   if (!catalogue.all.length) {
-    setStatus('Questo server non espone solutori compatibili con questa geometria.', 'error');
+    setStatus('This server exposes no solver compatible with this geometry.', 'error');
     dom.run.disabled = true;
   } else {
     buildSolverPicker();
@@ -604,10 +604,10 @@ try {
   if (info?.jobs_enabled === false) {
     dom.maintenance.hidden = false;
     dom.maintenance.textContent =
-      'Il laboratorio non sta accettando nuove simulazioni in questo momento. Puoi comunque esplorare la pagina e modificare la geometria.';
+      'The lab is not accepting new simulations right now. You can still explore the page and reshape the geometry.';
     dom.run.disabled = true;
   }
 } catch (error) {
-  setStatus(`Non riesco a contattare il server — ${describeError(error)}`, 'error');
+  setStatus(`Cannot reach the server — ${describeError(error)}`, 'error');
   dom.run.disabled = true;
 }

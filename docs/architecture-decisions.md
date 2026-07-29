@@ -15,9 +15,9 @@ made, not reconstructed afterwards.
 toolkit: a protocol, a simulation server, a job lifecycle, a solver-adapter contract,
 browser widgets, an SDK. Its users are people putting *their own* physics behind a web
 page. The lab is one such application: it has opinions about pedagogy, a visual identity,
-Italian-language explanations, a public domain name, and service limits chosen for
-anonymous visitors. None of that belongs in a toolkit, and a toolkit that acquired it
-would be harder to reuse.
+written explanations, a public domain name, and service limits chosen for anonymous
+visitors. None of that belongs in a toolkit, and a toolkit that acquired it would be
+harder to reuse.
 
 They also change at different rates and for different reasons. A better explanation of
 camber is a lab change; a new result kind is a toolkit change. Keeping them apart means
@@ -298,22 +298,39 @@ pre-solved.
 
 ---
 
-## ADR-011 — The site is in Italian, the repository is in English
+## ADR-011 — English throughout, site included
 
-**Decision.** Visitor-facing text — pages, experiment content, error messages — is Italian.
-Code, comments, tests, README and these records are English.
+**Decision.** One language everywhere: the pages, the experiment content, the status
+messages, the code, the tests and these records are all in English.
 
-**Why.** The lab is at `lab.andolfatto.eu` for an Italian-speaking audience, and the
-didactic sections were specified in Italian. The repository is read by a different audience
-and sits next to Fenix Spoon, which is English throughout; solver names, protocol fields
-and upstream documentation are English, and a codebase that translated them would make
-every cross-reference a small puzzle.
+The first draft of the kickstart split them — an Italian site over an English repository,
+on the reasoning that `lab.andolfatto.eu` addresses an Italian-speaking audience. That was
+reversed before anything was published, and it is worth recording why, because the split
+is a tempting default for a project with a national domain.
 
-The seam is `content.json` and the page templates. Full internationalisation is explicitly
-out of scope for the kickstart, but the split above is what makes adding it later a matter
-of a second content file rather than a rewrite.
+**Why one language.** The lab's subject matter is not national. Its vocabulary is the
+vocabulary of Fenix Spoon and FEniCSx: `mock.laplace2d`, `psi`, `domain2d`, `mesh_size`,
+`grid2d`. Those names appear in the solver picker and in the parameter form because they
+come from `GET /api/v1/solvers` — the page cannot translate them without inventing a
+mapping and then maintaining it. Around English identifiers, Italian prose reads as
+translated documentation for an English system, which is what it would have been.
 
-**Cost.** A contributor who reads only one of the two languages sees half the project.
+The audience is also wider than the domain suggests. Someone looking for a worked example
+of putting FEniCSx behind a web page is exactly the reader this lab serves best, and they
+arrive from the Fenix Spoon repository, in English. A visitor who cannot read the
+explanations gets a picture and no physics.
+
+And the split had a maintenance cost that only showed up once both halves existed:
+assertions in two languages, a CI check grepping for an Italian sentence, and every
+message existing twice — once in the page and once in the test that reads it. For a
+project with one finished experiment, paying that to serve one audience less well was the
+wrong trade.
+
+**Cost.** Italian readers get English. Adding a translation later is now a real
+internationalisation project rather than a matter of swapping `content.json`, since the
+strings live in the pages and in `app.js` as well. That is the honest price, and it is not
+due until a second language is actually wanted — which is also when the seam should be
+designed for the languages it will really carry, rather than guessed at now.
 
 ---
 

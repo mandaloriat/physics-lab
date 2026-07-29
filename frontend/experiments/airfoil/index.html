@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Galleria del vento — Andolfatto Physics Lab</title>
+<title>Wind tunnel — Andolfatto Physics Lab</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Flusso potenziale attorno a un profilo alare: modifica la geometria, calcola e osserva come cambia il campo.">
+<meta name="description" content="Potential flow around an airfoil: reshape the geometry, run the solver, and watch how the field changes.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/shared/lab.css">
@@ -28,12 +28,12 @@
 
 <main class="wrap">
 
-  <h1>Galleria del vento</h1>
+  <h1>Wind tunnel</h1>
   <p class="lede prose" id="intro"></p>
 
   <p id="widgets-missing" class="notice notice--warn" hidden>
-    I widget del browser non sono stati compilati. Esegui
-    <code>./scripts/fetch-widgets.sh</code> e ricarica la pagina.
+    The browser widgets have not been built. Run
+    <code>./scripts/fetch-widgets.sh</code> and reload the page.
   </p>
   <p id="maintenance" class="notice notice--warn" hidden></p>
 
@@ -43,26 +43,26 @@
       <div class="stage">
         <fs-viewer id="viewer" field="speed" colormap="viridis" contours="10"></fs-viewer>
         <fs-geometry-2d id="editor" bounds="-1,-1,2,1" mode="spline" samples="10"
-                        aria-label="Profilo alare: punti di controllo trascinabili"></fs-geometry-2d>
+                        aria-label="Airfoil profile: draggable control points"></fs-geometry-2d>
       </div>
 
       <div class="status-bar">
         <span class="status-dot" id="dot" data-state="idle"></span>
-        <span id="status" role="status">Premi <strong>Calcola</strong> per avviare la prima simulazione.</span>
+        <span id="status" role="status">Press <strong>Run</strong> to start the first simulation.</span>
         <progress id="progress" value="0" max="1" hidden></progress>
       </div>
 
       <div class="panel" style="margin-top: 1rem;">
-        <h3>Risultato</h3>
-        <dl class="stats" id="stats"><span class="field__hint">Nessun calcolo ancora eseguito.</span></dl>
+        <h3>Result</h3>
+        <dl class="stats" id="stats"><span class="field__hint">Nothing computed yet.</span></dl>
         <p class="artifacts" id="artifacts"></p>
       </div>
 
       <div class="panel">
-        <h3>Visualizzazione</h3>
+        <h3>Display</h3>
         <div class="field">
-          <label class="field__label" for="field">Campo mostrato</label>
-          <select id="field" aria-label="Campo mostrato"></select>
+          <label class="field__label" for="field">Field shown</label>
+          <select id="field" aria-label="Field shown"></select>
           <p class="field__hint" id="field-hint"></p>
         </div>
       </div>
@@ -70,28 +70,28 @@
 
     <div>
       <div class="panel">
-        <h3>Modalità di calcolo</h3>
+        <h3>Computation mode</h3>
         <div class="field">
-          <select id="solver" aria-label="Solutore"></select>
+          <select id="solver" aria-label="Solver"></select>
           <p class="field__hint" id="solver-hint"></p>
         </div>
         <div class="button-row">
-          <button id="run" class="primary" type="button">Calcola</button>
-          <button id="cancel" type="button" hidden>Annulla</button>
+          <button id="run" class="primary" type="button">Run</button>
+          <button id="cancel" type="button" hidden>Cancel</button>
         </div>
       </div>
 
       <div class="panel">
-        <h3>Geometria</h3>
+        <h3>Geometry</h3>
         <div id="shape-controls"></div>
         <div class="button-row">
-          <button id="reset" type="button">Ripristina geometria</button>
+          <button id="reset" type="button">Reset geometry</button>
         </div>
         <p class="field__hint" id="shape-note" style="margin-top:0.6rem"></p>
       </div>
 
       <div class="panel">
-        <h3>Parametri del solutore</h3>
+        <h3>Solver parameters</h3>
         <div id="solver-params"></div>
       </div>
     </div>
@@ -99,9 +99,9 @@
   </div>
 
   <p class="disclaimer">
-    <strong>Nota.</strong>
-    Le simulazioni sono dimostrative e didattiche. Non sostituiscono una verifica
-    ingegneristica professionale.
+    <strong>Note.</strong>
+    The simulations are demonstrative and educational. They are not a substitute for
+    professional engineering verification.
   </p>
 
   <div class="lesson" id="lesson"></div>
