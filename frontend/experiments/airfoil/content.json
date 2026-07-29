@@ -29,6 +29,8 @@
       "body": [
         "In the **speed** field, look for where the colour brightens: that is where the flow accelerates. On a cambered profile the bright region over the upper surface is larger and more intense than the one underneath.",
         "In the **psi** field (the streamfunction) the contour lines **are** the streamlines. Watch where they crowd together: close lines mean fast flow, widely spaced lines mean slow flow.",
+        "Switch to **Cp**, the pressure coefficient, for the clearest view of all: blue is suction (pressure below ambient), red is compression, and the single red spot near the leading edge is the stagnation point, where the flow is brought to rest and Cp reaches its maximum of 1. On a cambered profile the blue patch over the upper surface is deeper and wider than anything underneath — that difference in pressure is what a real wing turns into lift.",
+        "**psi** is the least dramatic of the three on purpose. Nearly all of its vertical gradient is the far-field condition psi = U·y imposed at the boundary, which swamps the body's own contribution in the colour scale — so read the contour lines, which are the streamlines, rather than the colour.",
         "Follow the leading edge: the point where the stream divides in two shifts as you increase camber or angle of attack.",
         "Hover over the field to read the value at the point under the cursor."
       ]
@@ -51,6 +53,7 @@
         "There is no viscosity, so there is no boundary layer, no wall friction and no aerodynamic drag.",
         "There is no turbulence, no flow separation and no stall: you can push the angle of attack to values at which a real wing would already be in trouble, and the model will keep producing an orderly, plausible field that does not correspond to reality.",
         "No Kutta condition is imposed, so there is no circulation and the computed lift would be **zero** at any angle of attack. What you are looking at is how the body deflects and accelerates the stream, not how much lift it generates.",
+        "The **Cp** field is real Bernoulli pressure, but it is derived from this same idealised flow, so it inherits every limitation above. In particular: integrate that pressure around the profile and the vertical component sums to **zero**. The suction over the upper surface looks like the origin of lift, and in a real flow it is — here it is exactly cancelled by the pressure recovery behind the profile, because there is no circulation to break the symmetry.",
         "The result is not a complete aerodynamic simulation and must not be used to size anything."
       ]
     }

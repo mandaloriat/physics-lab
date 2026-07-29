@@ -457,6 +457,9 @@ async function run() {
       }
     });
 
+    // Derive Cp before handing the result over, so it shows up in the viewer's field list
+    // like any other field rather than needing a separate code path.
+    addPressureCoefficient(result, params.u_inf);
     dom.viewer.result = result;
     syncFieldOptions();
     showStats(result);
@@ -509,20 +512,98 @@ function showArtifacts(artifacts = []) {
   });
 }
 
-const FIELD_HINTS = {
-  speed: 'Velocity magnitude. The bright regions are where the flow accelerates.',
-  psi: 'Streamfunction: its contour lines are the streamlines.',
+/**
+ * Pressure coefficient, derived in the browser from the speed the solver returned.
+ *
+ * The solver computes no pressure — `psi` and `speed` are the whole result envelope. But
+ * potential flow is exactly the case where pressure follows from speed alone, with no
+ * further solving: Bernoulli along a streamline, plus irrotationality making the constant
+ * the same everywhere, gives
+ *
+ *     p + ½ρ|v|²  =  p∞ + ½ρU∞²      ⟹      Cp = (p − p∞) / (½ρU∞²) = 1 − (|v|/U∞)²
+ *
+ * so density never enters and the answer is dimensionless. Doing it here rather than in a
+ * solver keeps it where it belongs: this is the lab's didactic layer, and Fenix Spoon's
+ * result contract stays exactly what the solver produced.
+ *
+ * Returns silently unmodified when it cannot be computed — a solver that publishes no
+ * `u_inf`, or a free stream of zero, has no Cp to speak of rather than an infinite one.
+ */
+function addPressureCoefficient(result, freeStream) {
+  const fields = result.kind === 'grid2d' ? result.data.fields : result.data.point_fields;
+  const speed = fields?.speed;
+  if (!speed || !Number.isFinite(freeStream) || freeStream === 0) return result;
+
+  fields.Cp = Array.from(speed, (value) => 1 - (value / freeStream) ** 2);
+  return result;
+}
+
+/**
+ * How each field is presented: the colorbar caption, the colormap, and what to say about it.
+ *
+ * The caption matters more than it looks. The viewer labels its colorbar from the `units`
+ * attribute and nothing else, so an unlabelled bar is just a number range — which is how a
+ * streamfunction running from −1 to 1 gets mistaken for a pressure. Naming the field on the
+ * bar is the fix.
+ *
+ * Captions stay to a word. The widget right-aligns them to the colorbar's right edge, on the
+ * same line as the topmost tick label, which is sized for strings like "m/s" — anything
+ * longer crowds that tick. The full name lives on the `<select>` option and in the hint,
+ * where there is room for it.
+ */
+const FIELD_VIEW = {
+  speed: {
+    option: 'speed',
+    caption: 'speed',
+    colormap: 'viridis',
+    hint: 'Velocity magnitude. The bright regions are where the flow accelerates.',
+  },
+  psi: {
+    option: 'psi (streamfunction)',
+    caption: 'psi',
+    colormap: 'viridis',
+    hint:
+      'Streamfunction: its contour lines are the streamlines. Most of the vertical gradient is ' +
+      'the far-field condition psi = U·y, not the body — so watch how the contours bend, not the colour.',
+  },
+  Cp: {
+    option: 'Cp (pressure)',
+    caption: 'Cp',
+    colormap: 'coolwarm',
+    // Cp is signed and its zero is ambient pressure, so a diverging map centred on zero is
+    // the only one that reads correctly — blue suction, red compression, pale where the
+    // flow is undisturbed.
+    symmetric: true,
+    hint:
+      'Pressure coefficient, Cp = 1 − (|v|/U∞)², derived here from speed — the solver does not ' +
+      'compute pressure. Blue is suction, red is compression, and Cp = 1 marks a stagnation point.',
+  },
 };
+
+/** Point the viewer at a field, with the caption and colormap that field needs. */
+function applyFieldView(name) {
+  const view = FIELD_VIEW[name] ?? {};
+  // `units` and `symmetric` have no property setters on the element — attributes are the
+  // documented way in. `colormap` does, and its setter writes the attribute anyway.
+  dom.viewer.setAttribute('units', view.caption ?? name ?? '');
+  dom.viewer.colormap = view.colormap ?? 'viridis';
+  if (view.symmetric) dom.viewer.setAttribute('symmetric', '');
+  else dom.viewer.removeAttribute('symmetric');
+  dom.fieldHint.textContent = view.hint ?? '';
+}
 
 function syncFieldOptions() {
   const names = dom.viewer.fields ?? [];
   const current = [...dom.field.options].map((option) => option.value).join();
   if (names.join() !== current) {
     dom.field.replaceChildren(
-      ...names.map((name) => new Option(name, name, false, name === dom.viewer.field)),
+      ...names.map(
+        (name) =>
+          new Option(FIELD_VIEW[name]?.option ?? name, name, false, name === dom.viewer.field),
+      ),
     );
   }
-  dom.fieldHint.textContent = FIELD_HINTS[dom.viewer.field] ?? '';
+  applyFieldView(dom.viewer.field);
 }
 
 /* ---------------------------------------------------------------- didactic frame */
@@ -581,7 +662,7 @@ dom.reset.addEventListener('click', () => {
 dom.solver.addEventListener('change', onSolverChange);
 dom.field.addEventListener('change', () => {
   dom.viewer.field = dom.field.value;
-  dom.fieldHint.textContent = FIELD_HINTS[dom.field.value] ?? '';
+  applyFieldView(dom.field.value);
 });
 
 try {

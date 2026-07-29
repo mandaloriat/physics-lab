@@ -79,7 +79,57 @@ test('the airfoil page runs a solve and renders the field', async ({ page }) => 
   const fields = await page.evaluate(() => document.getElementById('viewer').fields);
   expect(fields).toContain('speed');
 
+  // The colorbar names the field it is showing. Without this the bar is a bare number
+  // range, which is how a streamfunction running −1…1 gets read as a pressure.
+  await expect(page.locator('#viewer')).toHaveAttribute('units', /speed/);
+
   expect(errors).toEqual([]);
+});
+
+test('the pressure coefficient is derived from speed and is physically bounded', async ({
+  page,
+}) => {
+  await page.goto('/experiments/airfoil/');
+  await expect(page.locator('#param-resolution')).toBeVisible();
+  await page.locator('#param-resolution').fill('64');
+  await page.locator('#param-iterations').fill('300');
+
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
+
+  // Cp is not in the result envelope the solver returns — the page derives it. It has to
+  // reach the viewer as an ordinary field, or the selector will not offer it.
+  const fields = await page.evaluate(() => document.getElementById('viewer').fields);
+  expect(fields).toContain('Cp');
+
+  const { max, min, freeStream } = await page.evaluate(() => {
+    const result = document.getElementById('viewer').result;
+    const data = result.kind === 'grid2d' ? result.data.fields : result.data.point_fields;
+    return {
+      max: Math.max(...data.Cp),
+      min: Math.min(...data.Cp),
+      freeStream: Math.max(...data.speed),
+    };
+  });
+
+  // Cp = 1 − (|v|/U∞)², so in incompressible potential flow it cannot exceed 1: that value
+  // is a stagnation point, where the flow has been brought to rest. A Cp above 1 would mean
+  // the derivation, or the free stream it was divided by, is wrong.
+  expect(max).toBeLessThanOrEqual(1 + 1e-9);
+  // And the profile must accelerate the flow somewhere, which is suction — negative Cp.
+  expect(min).toBeLessThan(0);
+  expect(freeStream).toBeGreaterThan(0);
+
+  // Selecting it relabels the bar and switches to the diverging map zero-centred Cp needs.
+  await page.locator('#field').selectOption('Cp');
+  await expect(page.locator('#viewer')).toHaveAttribute('units', /Cp/);
+  await expect(page.locator('#viewer')).toHaveAttribute('colormap', 'coolwarm');
+  await expect(page.locator('#viewer')).toHaveAttribute('symmetric', '');
+  await expect(page.locator('#field-hint')).toContainText('suction');
+
+  // Going back to a scalar field drops the symmetric range again.
+  await page.locator('#field').selectOption('speed');
+  await expect(page.locator('#viewer')).not.toHaveAttribute('symmetric', '');
 });
 
 test('the geometry can be reshaped and restored', async ({ page }) => {
