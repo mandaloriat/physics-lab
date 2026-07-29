@@ -132,6 +132,44 @@ test('the pressure coefficient is derived from speed and is physically bounded',
   await expect(page.locator('#viewer')).not.toHaveAttribute('symmetric', '');
 });
 
+test('Cp is derived for mesh2d results too, where the field key differs', async ({ page }) => {
+  // The two result kinds do not carry their scalars under the same key: `grid2d` uses
+  // `data.fields`, `mesh2d` uses `data.point_fields` and has no `fields` key at all. That
+  // asymmetry is the protocol's, and the viewer's own accessor branches on it the same way.
+  // Deriving Cp has to branch too, so both kinds get their own run here.
+  await page.goto('/experiments/airfoil/');
+  await expect(page.locator('#param-output')).toBeVisible();
+
+  await page.locator('#param-resolution').fill('64');
+  await page.locator('#param-iterations').fill('300');
+  await page.locator('#param-output').selectOption('mesh2d');
+
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
+
+  const shape = await page.evaluate(() => {
+    const result = document.getElementById('viewer').result;
+    const cp = result.data.point_fields?.Cp;
+    return {
+      kind: result.kind,
+      hasGridFieldsKey: 'fields' in result.data,
+      derived: Array.isArray(cp),
+      max: cp ? Math.max(...cp) : null,
+      min: cp ? Math.min(...cp) : null,
+    };
+  });
+
+  expect(shape.kind).toBe('mesh2d');
+  expect(shape.hasGridFieldsKey).toBe(false); // guards the assumption above, not the code
+  expect(shape.derived).toBe(true);
+  expect(shape.max).toBeLessThanOrEqual(1 + 1e-9);
+  expect(shape.min).toBeLessThan(0);
+
+  await expect.poll(() => page.locator('#field option').count()).toBeGreaterThan(2);
+  await page.locator('#field').selectOption('Cp');
+  await expect(page.locator('#viewer')).toHaveAttribute('units', /Cp/);
+});
+
 test('the geometry can be reshaped and restored', async ({ page }) => {
   await page.goto('/experiments/airfoil/');
   await expect(page.locator('#shape-camber')).toBeVisible();

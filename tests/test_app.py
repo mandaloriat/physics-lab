@@ -69,8 +69,12 @@ def test_a_mock_job_runs_to_a_result(client, airfoil_geometry):
     assert result.status_code == 200
     body = result.json()
 
+    # The two kinds do not agree on where their scalars live: `grid2d` has `fields`,
+    # `mesh2d` has `point_fields` and no `fields` key at all. Read whichever the kind
+    # implies rather than assuming, so this keeps passing if the default output changes.
     assert body["kind"] in {"grid2d", "mesh2d"}
-    assert body["data"]["fields"]["speed"], "the page renders `speed` by default"
+    scalars = body["data"]["fields" if body["kind"] == "grid2d" else "point_fields"]
+    assert scalars["speed"], "the page renders `speed` by default"
     # `seconds` is added by the job manager for every solve; the rest is adapter-defined.
     # The experiment page shows whatever is present, so it only needs one to be sure.
     assert body["stats"]["seconds"] >= 0
