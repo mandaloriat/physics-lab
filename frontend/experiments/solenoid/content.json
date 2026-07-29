@@ -1,0 +1,65 @@
+{
+  "id": "solenoid",
+  "title": "Magnetics lab",
+  "subtitle": "Magnetostatics of a solenoid cross-section",
+  "intro": "A slice through an electromagnet: an iron core down the middle, and either side of it the same winding cut twice by the plane — current flowing into the page on one side and out of it on the other. The sliders set the cross-section in millimetres and the permeability of the core. Press Run and see where the flux chooses to go.",
+  "sections": [
+    {
+      "id": "question",
+      "heading": "The question",
+      "lead": "What does the iron core actually do?",
+      "body": [
+        "The winding makes the field: current is the only source in the whole problem, and iron carrying no current makes nothing on its own. What the core does is offer the flux an easier route. Where the permeability is high, the same field strength drives far more flux — so the flux crowds into the iron and leaves the air comparatively empty.",
+        "That is worth watching rather than being told, because it has a limit. The flux has to come back round somewhere, and outside the core the only route is air. Once the iron is good enough that the air return dominates, making it better stops helping — and the model will show you exactly where that happens."
+      ]
+    },
+    {
+      "id": "what-to-change",
+      "heading": "What to change",
+      "body": [
+        "**Core permeability μᵣ** is the interesting one: 1 means no core at all, just a coil in air, and 10³–10⁴ is the range of real soft magnetic iron and ferrite. The slider moves in decades because that is how the quantity behaves.",
+        "**Core half-width** thickens the iron path. **Air gap** pushes the winding away from it, and **winding thickness** adds copper outward — so the coil is measured from the core rather than from the axis, and no combination of sliders can be dragged into a geometry the solver would refuse.",
+        "**Half-height** lengthens the whole magnet along its axis. A long thin magnet and a short fat one with the same amount of copper do not behave alike.",
+        "**Current density** scales the source. Because the material here is linear, doubling it doubles every field in the picture and changes nothing about the shape of it — which is worth confirming once, and is also the first limit of the model.",
+        "**Resolution** (preview) or **mesh size** (FEniCSx) decide how fine the discretisation is. The iron/air interface is where the two modes differ most."
+      ]
+    },
+    {
+      "id": "what-to-watch",
+      "heading": "What to watch",
+      "body": [
+        "**|B|** is the flux density, in tesla — the quantity a Gauss meter reads. Look at the bright band inside the core, and how abruptly it ends at the surface of the iron.",
+        "**A** is the vector potential, and its contour lines **are** the magnetic field lines. Watch them run up the core and close their loops out through the air. The flux between any two adjacent lines is the same everywhere, so where the lines crowd together the field is strong — that is the whole picture in one image.",
+        "**H** is the field strength, derived here as |B| / (μ₀ μᵣ). Switch between it and |B| with the core at μᵣ = 1000: B is large in the iron and H is small there, and in the air it is the other way round. That contrast *is* what permeability means — the core carries flux at almost no cost in H.",
+        "**μᵣ** is not a result but a check on the model: it shows where the solver put the iron. On the FEniCSx mesh the interface follows element edges exactly; on the preview's regular grid it is staircased, which is why the field near the surface is the one place the two modes visibly disagree.",
+        "Hover over the field to read the value at the point under the cursor."
+      ]
+    },
+    {
+      "id": "try-this",
+      "heading": "Try this",
+      "steps": [
+        "Run once with **μᵣ = 1** — no core, just copper in air. Note the peak |B|. Now take μᵣ to **1000** and run again, changing nothing else. The flux has been gathered into the iron.",
+        "Now go from **1000 to 10 000** and run once more. Almost nothing happens. The reason is on screen: the field lines have to return through air, and once the iron is far better than the air path, the air is what limits the flux. Improving the easy part of a series path buys nothing.",
+        "Put μᵣ back to 1000 and widen the **air gap** instead, without touching anything else. Watch how much flux leaks across the gap rather than running the length of the core.",
+        "Double the **current density** and compare the colorbar's numbers, then compare the *shape* of the field lines. The numbers scale; the geometry of the solution does not. That is linearity, and it is an assumption rather than a fact about iron.",
+        "If the server has FEniCSx, solve the same cross-section in both modes and switch to **μᵣ** in each. The staircased interface and the exact one are the same physics discretised two ways — and the difference shows up in |B| right at the iron's surface."
+      ]
+    },
+    {
+      "id": "limits",
+      "heading": "Limits of the model",
+      "caution": true,
+      "body": [
+        "The material is **linear**: μᵣ is a constant you set, and the solver applies it whatever the field. Real iron **saturates** — above roughly 1.5–2 T its permeability collapses towards that of air, and no amount of extra current buys much more flux. Nothing here will tell you that you have crossed that line. If the core's |B| comes out above about 2 T, the picture is arithmetic rather than physics.",
+        "There is no **hysteresis** and no remanence: turn the current off in this model and the field is exactly zero, which is not what happens to a real iron core.",
+        "This is a **two-dimensional cross-section**, which means an infinitely long magnet. A real solenoid has ends, and at those ends the flux fringes outward in a way no 2D slice can show. Treat the picture as the middle of something long.",
+        "The outer boundary imposes **A_z = 0**, which confines the flux to the modelled window. The real field extends indefinitely, weakening with distance; here it is made to close inside the box. The window is kept comfortably larger than the magnet for that reason, and a magnet approaching the edge would be measurably distorted by it.",
+        "Everything is **static**. No eddy currents, no skin effect, no inductive transient — this is the field once the current has settled, not the field while it is changing.",
+        "The winding is a **uniform block of current density**, not individual turns. The ampere-turns are right and the fine structure between conductors is absent.",
+        "**H** is derived from the displayed |B| and μᵣ, so it inherits how μᵣ is drawn. On the triangular mesh a node exactly on the iron/air interface is given the higher of the two permeabilities, which puts the interface's H value on the iron side of the step. One node's width, and only at the boundary.",
+        "The result is not a magnetic design and must not be used to size anything."
+      ]
+    }
+  ]
+}

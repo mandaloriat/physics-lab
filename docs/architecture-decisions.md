@@ -334,6 +334,61 @@ designed for the languages it will really carry, rather than guessed at now.
 
 ---
 
+## ADR-012 — The second experiment shares a page shell, and brings its own geometry controls
+
+**Decision.** The magnetics experiment (solenoid cross-section, `regions2d`) is the second
+one on the site. Two things were decided with it.
+
+First, the physics-agnostic half of an experiment page now lives in
+`frontend/shared/experiment.js`: the parameter form generated from a solver's
+`params_schema`, the solver picker, the run-and-stream loop, the status line, the result and
+artifact panels, the field-view application and the lesson renderer. The airfoil was
+rewritten onto it in the same change, so there is one implementation rather than two.
+
+Second, the magnetics page has **no geometry editor widget**, and that is a physics decision
+rather than a shortcut. `<fs-geometry-2d>` edits `domain2d` — one polygon cut out of a
+rectangle — while this experiment is `regions2d`, a filled domain whose material varies by
+region. There is nothing for the editor to edit. The controls are the quantities an engineer
+would name instead (core half-width, air gap, winding thickness, half-height, μᵣ, current
+density) and the cross-section is drawn as its own diagram.
+
+**Why this is not ADR-009 being reversed.** ADR-009 says no framework and no bundler, and
+sets the threshold for revisiting at "a fourth or fifth experiment sharing substantial
+interactive behaviour". That threshold is about adopting a framework, and none was adopted:
+`experiment.js` is a module of functions that take DOM nodes, in the same spirit as
+`components.js` and `api.js`, and there is still no build step for the lab's own code. What
+would have crossed the line is a component model or a state container. Copying two hundred
+lines of schema-driven form code into a second file would have been the worse outcome — the
+same bug fixed twice, or fixed once and left broken once.
+
+**Why the geometry controls are measured outward from the core.** `regions2d` accepts
+regions that are disjoint or fully nested and refuses outlines that properly cross, because
+a partial overlap describes an ambiguous material assignment. A form offering "core width"
+and "bore radius" as two free sliders can therefore be dragged into a payload the server
+rejects, and the visitor is left reading a validation error about a constraint they were
+never shown. Measuring the winding *outward from the core* — core half-width, then a gap,
+then a thickness — leaves no ordering to violate: every combination is valid by
+construction, and their maxima sum to well inside the window. A browser test walks each
+slider to both ends and checks the payload's invariants, which costs no solves.
+
+**Why the cross-section is a separate diagram rather than an overlay on the field.** The
+airfoil layers the editor over the viewer, which works because both fill the element. They
+do not agree, though: `<fs-viewer>` reserves a strip on the right for its colorbar and
+stretches the domain into what is left, while `<fs-geometry-2d>` uses the full width. A new
+overlay would have to reproduce the viewer's internal layout constants to stay aligned with
+the field, and would silently drift the first time they changed upstream. A diagram that
+owns its own box cannot misalign, and it can keep the domain's true aspect ratio. What shows
+the regions *inside* a computed result is the `mu_r` field, which the solvers publish for
+exactly that purpose.
+
+**Cost.** Two pages now share code, so a change to the shell has to be checked against both
+— which is the ordinary cost of not duplicating it, and what the browser suite is for. And
+the magnetics page cannot be reshaped by dragging, which is a real loss of directness
+compared with the airfoil; the compensation is that its sliders are dimensioned in
+millimetres and read as a specification.
+
+---
+
 ## Deferred
 
 Not built, on purpose. Each would have been a plausible use of the kickstart's time; none
@@ -341,7 +396,7 @@ would have made the one finished experiment better.
 
 | Deferred | Why, and what would bring it back |
 |---|---|
-| **Solenoid and heat-sink experiments** | Both solvers exist upstream (`mock.magnetostatics2d`, `mock.heat2d`, `dolfinx.magnetostatics2d`); what is missing is the didactic work. One finished experiment beats three half-written ones. The homepage lists them as planned rather than pretending. |
+| **The heat-sink experiment** | `mock.heat2d` exists upstream, takes `regions2d`, and carries its convective boundary condition as parameters (`h`, `t_ambient`) rather than needing anything of the geometry schema — so the machinery is ready and what is missing is the didactic half: a fin generator, and the lesson that makes "how many fins actually help" answerable. It would also ship with only the fast preview, since upstream has no FEniCSx heat adapter to pair with it. The homepage lists it as planned rather than pretending. (The solenoid was in this row until ADR-012.) |
 | **A lab-specific solver** | `physics_lab/solvers/` is the registered, wired-up place for one, and it is empty. Nothing the airfoil needs is missing from Fenix Spoon, so writing an adapter would have demonstrated the adapter contract rather than any physics. |
 | **Accounts, quotas per person, an admin dashboard** | Would need an identity provider, which would defeat "open the page and try it". Fenix Spoon supports API keys and per-principal quotas the day this changes. |
 | **Per-IP rate limiting on by default** | Needs a custom Caddy build. Configured and commented in the Caddyfile; see ADR-010. |

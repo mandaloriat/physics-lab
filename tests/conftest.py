@@ -57,3 +57,44 @@ def airfoil_geometry():
             "points": [[0.0, 0.0], [0.6, 0.08], [1.0, 0.0], [0.6, -0.08]],
         },
     }
+
+
+@pytest.fixture
+def solenoid_geometry():
+    """A small, valid ``regions2d`` payload: an iron core between two opposed windings.
+
+    Like ``airfoil_geometry``, deliberately not the page's own cross-section — a test that had
+    to agree with the front-end's geometry builder would fail whenever the defaults were
+    retuned. What it does share with the page is the shape of the payload: named regions with
+    ``mu_r`` and a signed ``current_density`` over an air background, which is the contract the
+    magnetostatics solvers read.
+    """
+
+    def rect(x0, y0, x1, y1):
+        return {
+            "type": "polygon2d",
+            "points": [[x0, y0], [x1, y0], [x1, y1], [x0, y1]],
+        }
+
+    return {
+        "type": "regions2d",
+        "bounds": [-0.06, -0.06, 0.06, 0.06],
+        "background": {"mu_r": 1.0},
+        "regions": [
+            {
+                "name": "core",
+                "shape": rect(-0.008, -0.025, 0.008, 0.025),
+                "material": {"mu_r": 800.0},
+            },
+            {
+                "name": "winding_left",
+                "shape": rect(-0.024, -0.025, -0.014, 0.025),
+                "material": {"current_density": -4.0e6},
+            },
+            {
+                "name": "winding_right",
+                "shape": rect(0.014, -0.025, 0.024, 0.025),
+                "material": {"current_density": 4.0e6},
+            },
+        ],
+    }

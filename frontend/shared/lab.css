@@ -28,6 +28,11 @@
   --warn-soft: #fdf4e3;
   --ok: #15803d;
 
+  /* Material colours for cross-section diagrams. Iron reads as iron and copper as copper,
+     which is one less legend to consult; they are never used to encode a field value. */
+  --core: #b3402f;
+  --winding: #a2701a;
+
   --radius: 8px;
   --radius-lg: 12px;
   --measure: 68ch;
@@ -53,6 +58,8 @@
     --warn: #e0a14a;
     --warn-soft: #2a2116;
     --ok: #5bbd7f;
+    --core: #e06a52;
+    --winding: #d9a63f;
   }
 }
 
@@ -403,6 +410,94 @@ fs-geometry-2d {
   border-radius: var(--radius);
   background: var(--surface-raised);
   padding: 1rem;
+}
+
+/* The cross-section diagram, for experiments whose geometry has no editor widget.
+ *
+ * A standalone square panel rather than an overlay on the field. `<fs-viewer>` stretches the
+ * domain into the plot area and reserves a strip on the right for its colorbar, while
+ * `<fs-geometry-2d>` fills the whole element — so anything layered over the viewer has to
+ * reproduce the widget's internal layout constants to stay aligned with the field. A diagram
+ * that owns its own box cannot drift, and it can keep the domain's true aspect ratio. The
+ * material map (the `mu_r` field) is what shows the regions *inside* a computed result. */
+.schematic {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  margin-bottom: 0.75rem;
+}
+
+.schematic .domain {
+  fill: color-mix(in srgb, var(--ink) 6%, transparent);
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.schematic .region {
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.schematic .region--core {
+  fill: color-mix(in srgb, var(--core) 45%, transparent);
+  stroke: var(--core);
+}
+
+.schematic .region--winding {
+  fill: color-mix(in srgb, var(--winding) 45%, transparent);
+  stroke: var(--winding);
+}
+
+.schematic .axis {
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legend .swatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  flex: none;
+}
+
+.legend .swatch--core {
+  background: color-mix(in srgb, var(--core) 45%, transparent);
+  color: var(--core);
+}
+
+.legend .swatch--winding {
+  background: color-mix(in srgb, var(--winding) 45%, transparent);
+  color: var(--winding);
+}
+
+.legend .swatch--air {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--line-strong);
 }
 
 .panel + .panel {

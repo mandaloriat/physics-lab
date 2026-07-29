@@ -2,25 +2,35 @@
  * Wind tunnel — the airfoil experiment.
  *
  * Everything simulation-related is Fenix Spoon's: `<fs-geometry-2d>` produces protocol
- * geometry, `@fenix-spoon/client` submits the job and streams progress, `<fs-viewer>`
- * renders the result. What this file adds is the *experiment*: a profile the visitor can
- * reason about in physical terms, a parameter form built from whatever the chosen solver
- * publishes, and the didactic frame around the picture.
+ * geometry, `@fenix-spoon/client` submits the job and streams progress, `<fs-viewer>` renders
+ * the result. Everything page-shaped is `shared/experiment.js`: the parameter form, the solver
+ * picker, the status line, the result panel and the lesson.
+ *
+ * What is left in this file is the experiment itself — a profile the visitor can reason about
+ * in physical terms, the pressure coefficient derived from what the solver returned, and how
+ * each field should be read.
  */
 
 import '@fenix-spoon/geometry-2d';
 import '@fenix-spoon/viewer';
-import { JobFailedError } from '@fenix-spoon/client';
 
-import { MODES, client, paramSpec, solversFor } from '/shared/api.js';
+import { solversFor } from '/shared/api.js';
+import { describeError, health, mountChrome } from '/shared/components.js';
 import {
-  describeError,
-  el,
-  formatBytes,
-  health,
-  mountChrome,
-  statEntries,
-} from '/shared/components.js';
+  applyFieldView,
+  applyMaintenance,
+  buildParamForm,
+  buildShapeControls,
+  describeSolver,
+  fillSolverPicker,
+  renderLesson,
+  runSolve,
+  scalarsOf,
+  setStatusOn,
+  showArtifacts,
+  showStats,
+  syncFieldOptions,
+} from '/shared/experiment.js';
 
 const GEOMETRY_TYPE = 'domain2d';
 
@@ -173,53 +183,9 @@ const SHAPE_CONTROLS = [
   },
 ];
 
-function buildShapeControls() {
-  dom.shapeControls.replaceChildren(
-    ...SHAPE_CONTROLS.map((control) => {
-      const readout = el('span', {
-        class: 'field__value',
-        text: `${shape[control.key]}${control.unit}`,
-      });
-      const input = el('input', {
-        type: 'range',
-        min: control.min,
-        max: control.max,
-        step: control.step,
-        value: shape[control.key],
-        id: `shape-${control.key}`,
-      });
-      input.addEventListener('input', () => {
-        shape[control.key] = Number(input.value);
-        readout.textContent = `${shape[control.key]}${control.unit}`;
-        applyShape();
-      });
-      return el(
-        'div',
-        { class: 'field' },
-        el(
-          'label',
-          { class: 'field__label', for: `shape-${control.key}` },
-          el('span', { text: control.label }),
-          readout,
-        ),
-        input,
-        el('span', { class: 'field__hint', text: control.hint }),
-      );
-    }),
-  );
-}
-
 /* ---------------------------------------------------------- solver parameter form */
 
-/**
- * Which parameters the experiment offers, in display order.
- *
- * The list names parameters; it does not describe them. Type, bounds, allowed values and
- * default all come from the solver's own `params_schema`, because the two solvers behind
- * this page do not agree on their inputs — `mock.laplace2d` takes `resolution` and
- * `iterations`, `dolfinx.potential_flow2d` takes `mesh_size`. A parameter the selected
- * solver does not publish is simply not rendered, and no value is ever invented for one.
- */
+/** Which parameters the experiment offers, in display order. Bounds come from the schema. */
 const PARAM_UI = [
   {
     name: 'resolution',
@@ -245,149 +211,7 @@ const PARAM_UI = [
 
 /** Current parameter values, keyed by name. Rebuilt whenever the solver changes. */
 let params = {};
-
-function buildParamForm(solver) {
-  const next = {};
-  const controls = [];
-
-  for (const config of PARAM_UI) {
-    const spec = paramSpec(solver, config.name);
-    // No schema entry, or a schema entry with no default: not offered. Guessing a value
-    // the server did not publish is how a form starts sending nonsense.
-    if (!spec || spec.default === undefined) continue;
-
-    // Carry the visitor's choice across a solver switch when it is still expressible.
-    const carried = params[config.name];
-    const value = isUsable(carried, spec) ? carried : spec.default;
-    next[config.name] = value;
-
-    controls.push(
-      renderParam(config, spec, value, (updated) => {
-        params[config.name] = updated;
-      }),
-    );
-  }
-
-  params = next;
-  dom.solverParams.replaceChildren(...controls);
-}
-
-function isUsable(value, spec) {
-  if (value === undefined) return false;
-  if (spec.enum) return spec.enum.includes(value);
-  if (typeof spec.default === 'boolean') return typeof value === 'boolean';
-  if (typeof value !== 'number' || !Number.isFinite(value)) return false;
-  if (spec.min !== undefined && value < spec.min) return false;
-  if (spec.max !== undefined && value > spec.max) return false;
-  return true;
-}
-
-function renderParam(config, spec, value, onChange) {
-  const id = `param-${config.name}`;
-  // The solver's own `description` is upstream's wording for the parameter; it goes on
-  // the control as a tooltip rather than into the visible hint, which is the lab's own
-  // explanation aimed at a visitor. Showing both inline prints the same thing twice.
-  const title = spec.description ?? null;
-
-  if (typeof spec.default === 'boolean') {
-    const input = el('input', { type: 'checkbox', id, checked: value === true, title });
-    input.addEventListener('change', () => onChange(input.checked));
-    return el(
-      'div',
-      { class: 'field' },
-      el('label', { class: 'check', for: id }, input, el('span', { text: config.label })),
-      el('span', { class: 'field__hint', text: config.hint }),
-    );
-  }
-
-  if (spec.enum) {
-    const select = el('select', { id, title });
-    select.replaceChildren(
-      ...spec.enum.map(
-        (option) =>
-          new Option(config.optionLabels?.[option] ?? option, option, false, option === value),
-      ),
-    );
-    select.addEventListener('change', () => onChange(select.value));
-    return el(
-      'div',
-      { class: 'field' },
-      el('label', { class: 'field__label', for: id }, el('span', { text: config.label })),
-      select,
-      el('span', { class: 'field__hint', text: config.hint }),
-    );
-  }
-
-  const integer = spec.type === 'integer';
-  const bounded = spec.min !== undefined && spec.max !== undefined;
-  const step = config.step ?? (integer ? 1 : 0.1);
-  const readout = el('span', { class: 'field__value', text: format(value, integer) });
-
-  // A slider needs two bounds. `mesh_size` is declared `gt=0` with no maximum, so it gets
-  // a number input instead of a fabricated upper limit — and an over-budget value comes
-  // back from the server as a clear 422 rather than being silently clamped here.
-  const input = el('input', {
-    type: bounded ? 'range' : 'number',
-    id,
-    step,
-    value,
-    title,
-    min: spec.min,
-    max: spec.max,
-  });
-  input.addEventListener('input', () => {
-    const parsed = Number(input.value);
-    if (!Number.isFinite(parsed)) return;
-    readout.textContent = format(parsed, integer);
-    onChange(parsed);
-  });
-
-  return el(
-    'div',
-    { class: 'field' },
-    el(
-      'label',
-      { class: 'field__label', for: id },
-      el('span', { text: config.label }),
-      bounded ? readout : el('span'),
-    ),
-    input,
-    el('span', { class: 'field__hint', text: config.hint }),
-  );
-}
-
-function format(value, integer) {
-  return integer ? String(Math.round(value)) : String(Number(value.toFixed(4)));
-}
-
-/* ------------------------------------------------------------------ solver picker */
-
 let catalogue = { all: [], byMode: {} };
-
-function modeOf(solverName) {
-  return Object.values(MODES).find((mode) => solverName.startsWith(mode.prefix));
-}
-
-function buildSolverPicker() {
-  const options = [];
-  for (const mode of Object.values(MODES)) {
-    for (const solver of catalogue.byMode[mode.id] ?? []) {
-      options.push(new Option(`${mode.label} — ${solver.title}`, solver.name));
-    }
-  }
-  // Anything the server offers that is neither mock nor dolfinx still belongs in the list:
-  // a lab-specific adapter added later must show up without this file changing.
-  for (const solver of catalogue.all) {
-    if (!modeOf(solver.name)) options.push(new Option(solver.title, solver.name));
-  }
-  dom.solver.replaceChildren(...options);
-
-  // Default to the fast preview: it is the mode you want while shaping the profile, and
-  // on a public server it is the one that will not queue behind someone else's mesh.
-  const preview = catalogue.byMode[MODES.preview.id]?.[0];
-  if (preview) dom.solver.value = preview.name;
-  onSolverChange();
-}
 
 function selectedSolver() {
   return catalogue.all.find((solver) => solver.name === dom.solver.value) ?? null;
@@ -396,17 +220,8 @@ function selectedSolver() {
 function onSolverChange() {
   const solver = selectedSolver();
   if (!solver) return;
-  const mode = modeOf(solver.name);
-  const missing = Object.values(MODES).filter((m) => !(catalogue.byMode[m.id] ?? []).length);
-  dom.solverHint.textContent = [
-    mode ? `${mode.summary} ${mode.caveat}` : solver.description,
-    missing.length
-      ? `Not available on this server: ${missing.map((m) => m.label).join(', ')}.`
-      : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-  buildParamForm(solver);
+  dom.solverHint.textContent = describeSolver(solver, catalogue);
+  params = buildParamForm(dom.solverParams, solver, PARAM_UI, params);
 }
 
 /* --------------------------------------------------------------------- the solve */
@@ -414,102 +229,43 @@ function onSolverChange() {
 let running = false;
 let currentJob = null;
 
-function setStatus(text, state = 'idle') {
-  dom.status.textContent = text;
-  dom.dot.dataset.state = state;
-}
-
 async function run() {
   if (running) return;
   const solver = selectedSolver();
   if (!solver) {
-    setStatus('No solver is available on this server.', 'error');
+    setStatusOn(dom, 'No solver is available on this server.', 'error');
     return;
   }
 
   running = true;
-  dom.run.disabled = true;
-  dom.cancel.hidden = false;
-  dom.progress.hidden = false;
-  dom.progress.value = 0;
   dom.artifacts.replaceChildren();
-  setStatus('Submitting…', 'running');
 
   try {
-    currentJob = await client.submit({
+    const result = await runSolve({
+      dom,
       solver: solver.name,
       // The editor hands over protocol geometry directly — there is no translation layer
       // between the widget and the wire format, by design.
       geometry: dom.editor.value,
       params,
+      onJob: (job) => {
+        currentJob = job;
+      },
     });
-
-    const result = await currentJob.wait((event) => {
-      if (event.type === 'progress') {
-        if (event.total) dom.progress.value = event.iteration / event.total;
-        const detail = event.message
-          ? event.message
-          : `iteration ${event.iteration}${event.total ? ` of ${event.total}` : ''}` +
-            (event.residual != null ? ` — residual ${event.residual.toExponential(2)}` : '');
-        setStatus(detail, 'running');
-      } else if (event.type === 'status' && event.status === 'running') {
-        setStatus('Solving…', 'running');
-      }
-    });
+    if (!result) return;
 
     // Derive Cp before handing the result over, so it shows up in the viewer's field list
     // like any other field rather than needing a separate code path.
     addPressureCoefficient(result, params.u_inf);
     dom.viewer.result = result;
-    syncFieldOptions();
-    showStats(result);
-    showArtifacts(result.artifacts);
-    setStatus('Done.', 'done');
-  } catch (error) {
-    if (error instanceof JobFailedError && error.status === 'cancelled') {
-      setStatus('Cancelled.', 'idle');
-    } else {
-      setStatus(describeError(error), 'error');
-    }
+    syncFieldOptions(dom.viewer, dom.field, FIELD_VIEW, dom.fieldHint);
+    showStats(dom.stats, result);
+    showArtifacts(dom.artifacts, result.artifacts);
+    setStatusOn(dom, 'Done.', 'done');
   } finally {
     running = false;
-    dom.run.disabled = false;
-    dom.cancel.hidden = true;
-    dom.progress.hidden = true;
     currentJob = null;
   }
-}
-
-function showStats(result) {
-  const entries = statEntries(result.stats);
-  const topology =
-    result.kind === 'mesh2d'
-      ? { label: 'elements', value: (result.data.triangles?.length ?? 0).toLocaleString('en-US') }
-      : { label: 'grid', value: (result.data.shape ?? []).join(' × ') };
-
-  dom.stats.replaceChildren(
-    ...[...entries, topology]
-      .filter((entry) => entry.value)
-      .map((entry) =>
-        el('div', {}, el('dt', { text: entry.label }), el('dd', { text: entry.value })),
-      ),
-  );
-}
-
-function showArtifacts(artifacts = []) {
-  dom.artifacts.replaceChildren();
-  if (!artifacts.length) return;
-  dom.artifacts.append('Download: ');
-  artifacts.forEach((artifact, index) => {
-    if (index) dom.artifacts.append(' · ');
-    dom.artifacts.append(
-      el('a', {
-        href: client.artifactUrl(artifact),
-        download: artifact.name,
-        text: `${artifact.name} (${formatBytes(artifact.size)})`,
-      }),
-    );
-  });
 }
 
 /**
@@ -530,7 +286,7 @@ function showArtifacts(artifacts = []) {
  * `u_inf`, or a free stream of zero, has no Cp to speak of rather than an infinite one.
  */
 function addPressureCoefficient(result, freeStream) {
-  const fields = result.kind === 'grid2d' ? result.data.fields : result.data.point_fields;
+  const fields = scalarsOf(result);
   const speed = fields?.speed;
   if (!speed || !Number.isFinite(freeStream) || freeStream === 0) return result;
 
@@ -538,30 +294,20 @@ function addPressureCoefficient(result, freeStream) {
   return result;
 }
 
-/**
- * How each field is presented: the colorbar caption, the colormap, and what to say about it.
- *
- * The caption matters more than it looks. The viewer labels its colorbar from the `units`
- * attribute and nothing else, so an unlabelled bar is just a number range — which is how a
- * streamfunction running from −1 to 1 gets mistaken for a pressure. Naming the field on the
- * bar is the fix.
- *
- * Captions stay to a word. The widget right-aligns them to the colorbar's right edge, on the
- * same line as the topmost tick label, which is sized for strings like "m/s" — anything
- * longer crowds that tick. The full name lives on the `<select>` option and in the hint,
- * where there is room for it.
- */
+/** How each field is presented: the colorbar caption, the colormap, and what to say about it. */
 const FIELD_VIEW = {
   speed: {
     option: 'speed',
     caption: 'speed',
     colormap: 'viridis',
+    contours: 10,
     hint: 'Velocity magnitude. The bright regions are where the flow accelerates.',
   },
   psi: {
     option: 'psi (streamfunction)',
     caption: 'psi',
     colormap: 'viridis',
+    contours: 10,
     hint:
       'Streamfunction: its contour lines are the streamlines. Most of the vertical gradient is ' +
       'the far-field condition psi = U·y, not the body — so watch how the contours bend, not the colour.',
@@ -570,6 +316,7 @@ const FIELD_VIEW = {
     option: 'Cp (pressure)',
     caption: 'Cp',
     colormap: 'coolwarm',
+    contours: 10,
     // Cp is signed and its zero is ambient pressure, so a diverging map centred on zero is
     // the only one that reads correctly — blue suction, red compression, pale where the
     // flow is undisturbed.
@@ -580,71 +327,10 @@ const FIELD_VIEW = {
   },
 };
 
-/** Point the viewer at a field, with the caption and colormap that field needs. */
-function applyFieldView(name) {
-  const view = FIELD_VIEW[name] ?? {};
-  // `units` and `symmetric` have no property setters on the element — attributes are the
-  // documented way in. `colormap` does, and its setter writes the attribute anyway.
-  dom.viewer.setAttribute('units', view.caption ?? name ?? '');
-  dom.viewer.colormap = view.colormap ?? 'viridis';
-  if (view.symmetric) dom.viewer.setAttribute('symmetric', '');
-  else dom.viewer.removeAttribute('symmetric');
-  dom.fieldHint.textContent = view.hint ?? '';
-}
-
-function syncFieldOptions() {
-  const names = dom.viewer.fields ?? [];
-  const current = [...dom.field.options].map((option) => option.value).join();
-  if (names.join() !== current) {
-    dom.field.replaceChildren(
-      ...names.map(
-        (name) =>
-          new Option(FIELD_VIEW[name]?.option ?? name, name, false, name === dom.viewer.field),
-      ),
-    );
-  }
-  applyFieldView(dom.viewer.field);
-}
-
-/* ---------------------------------------------------------------- didactic frame */
-
-/** Renders `**bold**` and nothing else — the content file needs emphasis, not a parser. */
-function richText(markdown) {
-  const fragment = document.createDocumentFragment();
-  for (const [index, chunk] of markdown.split('**').entries()) {
-    if (!chunk) continue;
-    fragment.append(index % 2 ? el('strong', { text: chunk }) : document.createTextNode(chunk));
-  }
-  return fragment;
-}
-
-function renderLesson(content) {
-  dom.intro.textContent = content.intro;
-  document.title = `${content.title} — Andolfatto Physics Lab`;
-
-  dom.lesson.replaceChildren(
-    ...content.sections.map((section) => {
-      const children = [el('h2', { id: section.id, text: section.heading })];
-      if (section.lead) children.push(el('p', { class: 'question', text: section.lead }));
-      for (const paragraph of section.body ?? []) {
-        children.push(el('p', {}, richText(paragraph)));
-      }
-      if (section.steps) {
-        children.push(el('ol', {}, ...section.steps.map((step) => el('li', {}, richText(step)))));
-      }
-      return el(
-        'section',
-        { class: section.caution ? 'is-caution' : null, 'aria-labelledby': section.id },
-        ...children,
-      );
-    }),
-  );
-}
-
 /* ---------------------------------------------------------------------- start-up */
 
 mountChrome('experiments');
-buildShapeControls();
+buildShapeControls(dom.shapeControls, SHAPE_CONTROLS, shape, applyShape);
 applyShape();
 
 dom.editor.addEventListener('change', () => {
@@ -656,13 +342,13 @@ dom.run.addEventListener('click', run);
 dom.cancel.addEventListener('click', () => currentJob?.cancel());
 dom.reset.addEventListener('click', () => {
   Object.assign(shape, SHAPE_DEFAULTS);
-  buildShapeControls();
+  buildShapeControls(dom.shapeControls, SHAPE_CONTROLS, shape, applyShape);
   applyShape();
 });
 dom.solver.addEventListener('change', onSolverChange);
 dom.field.addEventListener('change', () => {
   dom.viewer.field = dom.field.value;
-  applyFieldView(dom.field.value);
+  applyFieldView(dom.viewer, FIELD_VIEW, dom.field.value, dom.fieldHint);
 });
 
 try {
@@ -672,23 +358,23 @@ try {
     solversFor(GEOMETRY_TYPE),
   ]);
 
-  renderLesson(content);
+  renderLesson({ content, intro: dom.intro, lesson: dom.lesson });
   catalogue = solvers;
 
   if (!catalogue.all.length) {
-    setStatus('This server exposes no solver compatible with this geometry.', 'error');
+    setStatusOn(dom, 'This server exposes no solver compatible with this geometry.', 'error');
     dom.run.disabled = true;
   } else {
-    buildSolverPicker();
+    fillSolverPicker(dom.solver, catalogue);
+    onSolverChange();
   }
 
-  if (info?.jobs_enabled === false) {
-    dom.maintenance.hidden = false;
-    dom.maintenance.textContent =
-      'The lab is not accepting new simulations right now. You can still explore the page and reshape the geometry.';
-    dom.run.disabled = true;
-  }
+  applyMaintenance(
+    dom,
+    info,
+    'The lab is not accepting new simulations right now. You can still explore the page and reshape the geometry.',
+  );
 } catch (error) {
-  setStatus(`Cannot reach the server — ${describeError(error)}`, 'error');
+  setStatusOn(dom, `Cannot reach the server — ${describeError(error)}`, 'error');
   dom.run.disabled = true;
 }

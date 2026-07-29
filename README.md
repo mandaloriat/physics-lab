@@ -26,11 +26,17 @@ Everything — pages, experiment content, code and documentation — is in Engli
 | Experiment | Physics | Status |
 |---|---|---|
 | **Airfoil potential flow** — *Wind tunnel* | Laplace equation for the streamfunction around an editable NACA profile | **Available** |
-| **Solenoid magnetostatics** | Iron core, current-carrying coils, flux redistribution | Planned |
+| **Solenoid magnetostatics** — *Magnetics lab* | Vector potential for an out-of-plane current: iron core, opposed windings, flux crowding into the iron | **Available** |
 | **Heat sink conduction and convection** | Conduction in a finned body with convective surfaces | Planned |
 
-The two planned experiments have solvers upstream already; what they need is the didactic
-work. The homepage lists them as planned rather than pretending otherwise.
+The two experiments deliberately exercise different halves of the protocol. The airfoil
+sends `domain2d` — one polygon cut out of a rectangle, edited by dragging control points.
+The magnetics lab sends `regions2d`, a filled domain whose *material* varies by region, so
+there is no outline to drag and the controls are physical dimensions instead; see
+[ADR-012](docs/architecture-decisions.md#adr-012--the-second-experiment-shares-a-page-shell-and-brings-its-own-geometry-controls).
+
+The remaining experiment has its preview solver upstream already; what it needs is the
+didactic work. The homepage lists it as planned rather than pretending otherwise.
 
 ---
 
@@ -79,7 +85,8 @@ physics_lab/          the app: main.py, settings.py, solvers/ (registered, empty
 frontend/             static site — no build step for the lab's own code
   index.html            homepage
   experiments/airfoil/  the wind-tunnel experiment (index.html, app.js, content.json)
-  shared/               lab.css, api.js, components.js
+  experiments/solenoid/ the magnetics experiment, same three files
+  shared/               lab.css, api.js, components.js, experiment.js (the page shell)
   vendor/               Fenix Spoon widgets, built from the pin (generated, gitignored)
 tests/                pytest: the API seam, the served site
 e2e/                  Playwright: the browser loop, run against a deployment
@@ -418,9 +425,19 @@ A bare `:port` site address turns automatic HTTPS off, so nothing else has to ch
 ### Adding an experiment
 
 1. A directory under `frontend/experiments/`, with `index.html`, `app.js` and
-   `content.json` — the airfoil is the reference.
-2. A card on the homepage.
-3. If Fenix Spoon has no solver for it, an adapter in `physics_lab/solvers/`. That package
+   `content.json`. The two existing experiments are the references, and they differ on
+   purpose: the airfoil edits its geometry with a widget, the solenoid builds it from
+   physical sliders.
+2. `app.js` supplies the physics and takes the rest from `shared/experiment.js` — the
+   parameter form (generated from the solver's own `params_schema`, never hardcoded), the
+   solver picker, the run loop, the result panel and the lesson renderer. What each
+   experiment writes for itself is the geometry, a `FIELD_VIEW` table saying how to read
+   each field, and any quantity worth deriving in the browser from what the solver returned
+   (`Cp` for the airfoil, `H` for the solenoid).
+3. A card on the homepage, and the experiment's name in `EXPERIMENTS` in
+   `tests/test_frontend.py`, which then checks its assets, its import map and the shape of
+   its `content.json` — including that it documents the limits of its own model.
+4. If Fenix Spoon has no solver for it, an adapter in `physics_lab/solvers/`. That package
    is already imported before the app is built, so `@register` is the whole integration —
    in the API process and in every worker, because they run the same image. It must
    implement Fenix Spoon's public `Solver` contract; nothing about it is lab-specific.
