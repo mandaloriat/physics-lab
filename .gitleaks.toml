@@ -1,30 +1,37 @@
 # Secret-scanning configuration.
 #
-# `useDefault` keeps gitleaks' entire built-in ruleset — this file only *adds* a narrow
-# exception, it does not replace anything. A config that silently disabled the default
-# rules would turn the CI secret scan into a check that always passes, which is worse than
-# having no scan at all.
+# `useDefault` keeps gitleaks' entire built-in ruleset — this file only *adds* one narrow
+# exception. A config that silently disabled the default rules would turn the CI secret
+# scan into a check that always passes, which is worse than having no scan at all.
 [extend]
 useDefault = true
 
 # The lab has no credentials of any kind: no accounts, no API keys, no third-party tokens.
-# Every finding here is therefore expected to be a false positive on documentation, and
-# each one gets its own entry rather than a blanket path exclusion.
-[[allowlists]]
-description = """
-The example Sec-WebSocket-Key in the README's proxy-verification command.
-
-`dGhlIHNhbXBsZSBub25jZQ==` is base64 for the ASCII string "the sample nonce" — the
-canonical example from RFC 6455 section 1.3. It is not a credential: a Sec-WebSocket-Key
-is a per-handshake random value the client generates in the clear, and the protocol
-requires the server to echo a hash of it back. gitleaks' `generic-api-key` rule flags it
-on entropy alone (4.17).
-
-The README now uses an obviously-inert value instead, but this entry has to stay: the RFC
-nonce is in this repository's git history, so a scan over full history still reaches it.
-Scoped with `condition = "AND"` so it allows exactly this string in exactly this file, and
-nothing else anywhere.
-"""
-condition = "AND"
-paths = ['''^README\.md$''']
+# Any finding is therefore expected to be a false positive on documentation.
+#
+# `dGhlIHNhbXBsZSBub25jZQ==` is base64 for the ASCII string "the sample nonce" — the
+# canonical example from RFC 6455 §1.3, used in the README's command for checking that the
+# reverse proxy upgrades a WebSocket. It is not a credential: a Sec-WebSocket-Key is a
+# per-handshake value the client generates in the clear, and the protocol requires the
+# server to echo a hash of it back. gitleaks' `generic-api-key` rule flags it on entropy
+# alone (4.17). The README no longer uses it, but it is in this repository's history for
+# good, so a scan over full history still reaches it.
+#
+# Two things about the shape of this block are load-bearing, and both were established by
+# testing gitleaks 8.24.3 rather than by reading the documentation:
+#
+#   * It is `[allowlist]`, singular. A top-level `[[allowlists]]` array is accepted by the
+#     TOML parser and then silently ignored by this version — no warning, no error, and a
+#     scan that stays red while appearing to be configured.
+#
+#   * It lists `regexes` and nothing else. `condition = "AND"` is *not* honoured at the top
+#     level here: adding `paths = ['''^README\.md$''']` alongside the regex does not narrow
+#     the exception to that file, it widens it to allowlist the whole file. Verified by
+#     planting a GitHub PAT in README.md and watching it go unreported.
+#
+# So the exception is exactly this one string, anywhere. That is narrower than any
+# path-based rule would have been, and it is verified: a planted PAT alongside the nonce
+# is still caught.
+[allowlist]
+description = "RFC 6455 §1.3 example Sec-WebSocket-Key — a handshake nonce, not a secret"
 regexes = ['''dGhlIHNhbXBsZSBub25jZQ==''']

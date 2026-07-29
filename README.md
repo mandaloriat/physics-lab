@@ -213,7 +213,7 @@ The progress stream is a WebSocket; a proxy that does not upgrade it makes the U
 hung while everything else appears fine. Check the handshake directly:
 
 ```bash
-# The key is any 16 base64-encoded bytes — the handshake does not care what they are.
+# The key is any 16 random bytes, base64-encoded — the handshake does not care which.
 curl -sI -o /dev/null -w '%{http_code}\n' \
   -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
   -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: AAAAAAAAAAAAAAAAAAAAAA==' \
