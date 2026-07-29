@@ -1,0 +1,134 @@
+# Caddy site for the Andolfatto Physics Lab.
+#
+# One hostname serves everything: the static pages and the Fenix Spoon API live behind
+# the same origin, so the browser never makes a cross-origin request and CORS never has
+# to be configured. That is a deliberate choice, not an accident of convenience — see
+# docs/architecture-decisions.md, ADR-003.
+#
+# Certificates are obtained automatically over ACME. Ports 80 and 443 must both be open:
+# 80 for the HTTP-01 challenge and the redirect, 443 for the site.
+{
+	# Uncomment to receive certificate-expiry warnings from Let's Encrypt, and set
+	# LAB_ACME_EMAIL in .env — the compose file already passes it through, so this line is
+	# the only edit needed. It stays commented by default because Caddy has no way to
+	# express "use this only if it is set": an empty LAB_ACME_EMAIL makes `email` a syntax
+	# error and the container would refuse to start. ACME works without an address; the
+	# only thing given up is the expiry reminder.
+	# email {$LAB_ACME_EMAIL}
+
+	# Uncomment while testing a new server, to avoid burning Let's Encrypt rate limits on
+	# a misconfigured DNS record. Certificates issued here are not publicly trusted.
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+
+	servers {
+		# Long solves stream progress over a WebSocket that must outlive the job. Both
+		# timeouts sit comfortably above FENIXSPOON_JOB_TIMEOUT (90 s by default): a proxy
+		# timeout *below* the job timeout means every long job stutters, because the SDK
+		# reconnects and the server replays the whole event history each time.
+		timeouts {
+			read_body 30s
+			idle 900s
+		}
+	}
+}
+
+{$LAB_DOMAIN:lab.andolfatto.eu} {
+	encode zstd gzip
+
+	header {
+		# HSTS. Two years, subdomains included. Remove `includeSubDomains` if anything
+		# else under andolfatto.eu is ever served over plain HTTP.
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# The lab needs no camera, microphone, geolocation or payment API.
+		Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+
+		# The pages load only their own scripts and styles, and talk only to their own
+		# origin — including the WebSocket, which `connect-src 'self'` covers for wss://
+		# on the same host. `script-src 'self'` is enough because there is no inline
+		# handler anywhere and no CDN: every module is served from this origin. The
+		# import map is a `<script type="importmap">` block, which CSP treats as inline
+		# script, hence 'unsafe-inline' — narrow it with a hash if that ever matters more
+		# than keeping the map readable in the page.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+
+		# Nothing here identifies the server version to a scanner.
+		-Server
+	}
+
+	# A request body larger than this is not a simulation, it is an attempt at something
+	# else: the biggest legitimate payload is a geometry with a few hundred points, which
+	# is a couple of kilobytes. The lab accepts no uploads in this version.
+	request_body {
+		max_size 1MB
+	}
+
+	# Everything — pages, widgets, /api/v1 REST, the /api/v1/.../events WebSocket and
+	# /health — goes to the one upstream. Caddy upgrades WebSockets transparently and
+	# sets X-Forwarded-{For,Proto,Host} by itself; there is nothing to configure for
+	# either, which is most of why this file is short.
+	# The upstream is a variable so that *this file* — not a simplified copy of it — can be
+	# put in front of a locally running server and smoke-tested, WebSocket included:
+	#
+	#   LAB_DOMAIN=:9080 LAB_UPSTREAM=127.0.0.1:8000 caddy run --config Caddyfile
+	#
+	# A bare `:port` site address turns off automatic HTTPS, so no certificate is needed.
+	reverse_proxy {$LAB_UPSTREAM:api:8000} {
+		# Above FENIXSPOON_JOB_TIMEOUT, so the proxy is never the thing that ends a solve.
+		transport http {
+			read_timeout 900s
+			write_timeout 900s
+		}
+		health_uri /health
+		health_interval 30s
+		health_timeout 5s
+	}
+
+	log {
+		output stdout
+		format console
+		# Health checks would otherwise be most of the log volume.
+		level INFO
+	}
+}
+
+# ---------------------------------------------------------------------------------
+# Optional: per-IP rate limiting.
+#
+# The lab runs anonymously, so Fenix Spoon's own quotas (FENIXSPOON_MAX_JOBS_PER_HOUR
+# and friends) apply to the principal `anonymous` — which is to say *server-wide*, shared
+# by every visitor. That is the right shape for a cap on total load, and the wrong shape
+# for defence against one abusive client: a single script can consume the whole hourly
+# budget and lock everyone else out without ever tripping a per-user limit.
+#
+# Per-IP limiting is the missing half, and it belongs here rather than in the application
+# — the reverse proxy is the only layer that sees the client address. Caddy's rate
+# limiter is a plugin, so it needs a custom build:
+#
+#     FROM caddy:2.10-builder AS builder
+#     RUN xcaddy build --with github.com/mholt/caddy-ratelimit
+#     FROM caddy:2.10-alpine
+#     COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+#
+# then, inside the site block above:
+#
+#     rate_limit {
+#         zone submits {
+#             match {
+#                 method POST
+#                 path /api/v1/jobs
+#             }
+#             key {remote_host}
+#             events 20
+#             window 1h
+#         }
+#     }
+#
+# Deliberately left out of the default build: it turns a stock image into one this
+# repository has to keep rebuilding, and the honest starting point for a small public
+# demo is the server-wide cap plus this note. Turn it on the first time the logs show
+# one address taking the hour's budget.
+# ---------------------------------------------------------------------------------

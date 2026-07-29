@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Andolfatto Physics Lab</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Un laboratorio interattivo per esplorare fenomeni fisici modificando geometrie, materiali e condizioni del problema, con simulazioni rapide e calcoli FEniCSx.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/shared/lab.css">
+</head>
+<body>
+
+<div id="header"></div>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1>Un laboratorio di fisica che puoi modificare</h1>
+    <p class="lede">
+      Cambia una geometria, un materiale o una condizione al contorno, premi <em>Calcola</em> e
+      guarda come risponde il campo. Ogni esperimento gira davvero: c'è un solutore dietro,
+      non un'animazione registrata.
+    </p>
+    <p class="disclaimer">
+      <strong>Nota.</strong>
+      Le simulazioni sono dimostrative e didattiche. Non sostituiscono una verifica
+      ingegneristica professionale.
+    </p>
+  </section>
+
+  <section aria-labelledby="esperimenti">
+    <h2 id="esperimenti">Esperimenti</h2>
+    <ul class="card-grid">
+
+      <li class="card card--available">
+        <span class="badge badge--available">Disponibile</span>
+        <h3><a href="/experiments/airfoil/">Galleria del vento</a></h3>
+        <p>
+          Flusso potenziale attorno a un profilo alare. Trascina i punti di controllo o regola
+          curvatura, spessore e incidenza, e osserva come si ridistribuiscono le linee di
+          corrente e la velocità.
+        </p>
+        <p class="card__foot"><a href="/experiments/airfoil/">Apri l'esperimento →</a></p>
+      </li>
+
+      <li class="card card--planned">
+        <span class="badge badge--planned">In preparazione</span>
+        <h3>Laboratorio magnetico</h3>
+        <p>
+          Sezione di un solenoide: nucleo di ferro, avvolgimenti percorsi da corrente, e il
+          flusso magnetico che si concentra dove la permeabilità è alta.
+        </p>
+        <p class="card__foot">Il solutore esiste già in Fenix Spoon; manca la pagina didattica.</p>
+      </li>
+
+      <li class="card card--planned">
+        <span class="badge badge--planned">In preparazione</span>
+        <h3>Dissipatore termico</h3>
+        <p>
+          Conduzione in un corpo alettato con scambio convettivo sulle superfici: quante alette
+          servono davvero, e quando smettono di aiutare.
+        </p>
+        <p class="card__foot">In attesa di un adapter dedicato nel laboratorio.</p>
+      </li>
+
+    </ul>
+  </section>
+
+  <section id="modalita" aria-labelledby="modalita-titolo">
+    <h2 id="modalita-titolo">Due modi di calcolare la stessa cosa</h2>
+    <p class="prose">
+      Lo stesso problema può essere risolto in fretta e approssimativamente, oppure con calma e
+      con più fedeltà. Il laboratorio offre entrambe le strade e ti dice sempre quale stai
+      guardando — perché la differenza fra le due <em>è</em> parte di ciò che c'è da imparare.
+    </p>
+
+    <div class="modes">
+      <div class="mode">
+        <h3><span class="badge badge--mock">Anteprima</span> Anteprima rapida</h3>
+        <ul>
+          <li>Griglia cartesiana regolare, risolta in NumPy.</li>
+          <li>Risposta quasi immediata: perfetta mentre modifichi la forma.</li>
+          <li>Approssimata per costruzione — la griglia non segue il bordo del corpo.</li>
+        </ul>
+      </div>
+      <div class="mode">
+        <h3><span class="badge badge--fenics">FEniCSx</span> Calcolo FEniCSx</h3>
+        <ul>
+          <li>Mesh triangolare non strutturata generata con Gmsh.</li>
+          <li>Elementi finiti P1: più lento, più fedele vicino al profilo.</li>
+          <li>Produce un file VTK scaricabile, apribile in ParaView.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p id="capability" class="notice">Verifico cosa è installato su questo server…</p>
+  </section>
+
+  <section aria-labelledby="cosa-e">
+    <h2 id="cosa-e">Com'è fatto</h2>
+    <p class="prose">
+      Il laboratorio è un'applicazione costruita sopra
+      <a href="https://github.com/mandaloriat/fenix-spoon">Fenix Spoon</a>, un toolkit open
+      source che mette un solutore agli elementi finiti dietro una pagina web: il protocollo,
+      la gestione dei job, i solutori e i widget del browser vengono da lì. Quello che trovi
+      qui è l'esperienza didattica costruita sopra — i testi, gli esperimenti, la grafica e il
+      deployment pubblico.
+    </p>
+    <p class="prose">
+      Il codice di questo laboratorio è su
+      <a href="https://github.com/mandaloriat/andolfatto-physics-lab">GitHub</a>, con licenza
+      MIT. I calcoli veri sono eseguiti da <a href="https://fenicsproject.org/">FEniCSx</a>.
+    </p>
+  </section>
+
+</main>
+
+<div id="footer"></div>
+
+<script type="module">
+import { mountChrome, health } from '/shared/components.js';
+
+mountChrome('home');
+
+// Say what this deployment can actually do rather than describing an ideal one. A slim
+// server has no FEniCSx solver, and pretending otherwise would send visitors to a mode
+// that isn't there.
+const capability = document.getElementById('capability');
+try {
+  const info = await health();
+  const solvers = info.solvers ?? [];
+  const hasFenics = solvers.some((name) => name.startsWith('dolfinx.'));
+  const parts = [];
+  parts.push(
+    hasFenics
+      ? 'Su questo server sono attive entrambe le modalità.'
+      : 'Su questo server è attiva solo l’anteprima rapida: nessun solutore FEniCSx risulta installato. Gli esperimenti restano pienamente utilizzabili.',
+  );
+  if (info.jobs_enabled === false) {
+    parts.push('Le nuove simulazioni sono temporaneamente sospese per manutenzione.');
+    capability.classList.add('notice--warn');
+  }
+  capability.textContent = parts.join(' ');
+} catch {
+  capability.textContent =
+    'Non riesco a interrogare il server in questo momento; gli esperimenti potrebbero non essere disponibili.';
+  capability.classList.add('notice--warn');
+}
+</script>
+
+</body>
+</html>

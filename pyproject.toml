@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "andolfatto-physics-lab"
+version = "0.1.0"
+description = "An interactive physics laboratory built on Fenix Spoon and FEniCSx"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = [
+    # Pinned to a commit, not a branch. Fenix Spoon has published no release and no tag
+    # (checked: `git ls-remote --tags` is empty), so a SHA is the strongest pin
+    # available — see docs/architecture-decisions.md, ADR-007, for the upgrade procedure.
+    # This SHA must match FENIX_SPOON_COMMIT everywhere else in the repository;
+    # scripts/check-pins.sh fails CI when it does not.
+    "fenixspoon @ git+https://github.com/mandaloriat/fenix-spoon@7c89be3d9641c382017931be407e5d6ba8ca9826#subdirectory=server",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "httpx>=0.27",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[project.urls]
+Homepage = "https://lab.andolfatto.eu"
+Source = "https://github.com/mandaloriat/andolfatto-physics-lab"
+"Built with" = "https://github.com/mandaloriat/fenix-spoon"
+
+[tool.setuptools.packages.find]
+include = ["physics_lab*"]
+
+[tool.ruff]
+# Matches Fenix Spoon's own configuration, so code moving between the two repositories
+# does not have to be reformatted.
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["physics_lab"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error::DeprecationWarning:physics_lab.*"]

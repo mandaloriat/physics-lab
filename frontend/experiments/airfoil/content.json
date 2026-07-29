@@ -1,0 +1,58 @@
+{
+  "id": "airfoil",
+  "title": "Galleria del vento",
+  "subtitle": "Flusso potenziale attorno a un profilo alare",
+  "intro": "Un profilo alare immerso in una corrente uniforme che arriva da sinistra. Puoi cambiarne la forma in due modi: con i cursori, che ricostruiscono un profilo NACA a quattro cifre, oppure trascinando direttamente i punti di controllo sul disegno. Poi premi Calcola e guarda cosa succede al campo.",
+  "sections": [
+    {
+      "id": "domanda",
+      "heading": "Domanda",
+      "lead": "Come cambia il campo del flusso quando aumenti la curvatura del profilo?",
+      "body": [
+        "Un profilo simmetrico divide la corrente in due metà uguali. Appena introduci curvatura, le due facce smettono di essere equivalenti: una diventa più lunga dell'altra e la corrente deve percorrerla più in fretta. È da questa asimmetria che, in un modello più completo del nostro, nasce la portanza."
+      ]
+    },
+    {
+      "id": "cosa-modificare",
+      "heading": "Cosa modificare",
+      "body": [
+        "**Curvatura** sposta la linea media del profilo: a 0 % il profilo è simmetrico, a 6 % è nettamente ricurvo verso l'alto.",
+        "**Spessore** gonfia il profilo attorno alla stessa linea media, senza cambiarne la curvatura.",
+        "**Incidenza** ruota tutto il profilo attorno al punto a un quarto della corda.",
+        "**Risoluzione** (anteprima) o **dimensione mesh** (FEniCSx) decidono quanto è fine la discretizzazione: più fine significa più preciso e più lento.",
+        "I **punti di controllo** bianchi sul disegno si trascinano con il mouse o, dopo averli selezionati con Tab, con le frecce. Da lì in poi la forma è tua e i cursori non la governano più finché non premi Ripristina."
+      ]
+    },
+    {
+      "id": "cosa-osservare",
+      "heading": "Cosa osservare",
+      "body": [
+        "Nel campo **speed** cerca dove il colore si accende: è lì che la corrente accelera. Su un profilo ricurvo la zona chiara sul dorso è più estesa e più intensa di quella sul ventre.",
+        "Nel campo **psi** (la funzione di corrente) le linee di livello **sono** le linee di corrente. Guarda dove si stringono: linee vicine significano corrente veloce, linee larghe corrente lenta.",
+        "Segui il bordo d'attacco: il punto in cui la corrente si divide in due si sposta man mano che aumenti curvatura o incidenza.",
+        "Passa il mouse sul campo per leggere il valore puntuale sotto il cursore."
+      ]
+    },
+    {
+      "id": "prova-questo",
+      "heading": "Prova questo",
+      "steps": [
+        "Porta la curvatura a 0 % e calcola. Poi portala a 6 % senza toccare nient'altro. Confronta l'estensione della zona veloce sopra e sotto il profilo: quanto è cambiata la simmetria?",
+        "Rimetti la curvatura a 0 % e alza invece l'incidenza a 8°. Il campo somiglia a quello del profilo ricurvo? In che cosa differisce?",
+        "Se il server ha FEniCSx, calcola la stessa geometria nelle due modalità e confronta le statistiche in basso e l'aspetto del campo vicino al bordo d'attacco, dove la griglia regolare dell'anteprima fatica di più."
+      ]
+    },
+    {
+      "id": "limiti",
+      "heading": "Limiti del modello",
+      "caution": true,
+      "body": [
+        "Questo è **flusso potenziale**: risolve l'equazione di Laplace per la funzione di corrente. Il fluido è considerato incomprimibile, non viscoso e irrotazionale.",
+        "Non c'è viscosità, quindi non c'è strato limite, non c'è attrito di parete e non c'è resistenza aerodinamica.",
+        "Non c'è turbolenza, non c'è separazione della vena fluida e non c'è stallo: puoi portare l'incidenza a valori a cui un'ala vera sarebbe già in crisi, e il modello continuerà a produrre un campo ordinato e plausibile che non corrisponde alla realtà.",
+        "Non è imposta la condizione di Kutta, quindi non c'è circolazione e la portanza calcolata sarebbe **zero** a qualsiasi incidenza. Quello che vedi è come il corpo devia e accelera la corrente, non quanta portanza genera.",
+        "Il risultato non è una simulazione aerodinamica completa e non va usato per dimensionare alcunché."
+      ]
+    }
+  ]
+}
