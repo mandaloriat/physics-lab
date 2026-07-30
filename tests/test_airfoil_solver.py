@@ -159,6 +159,34 @@ def test_a_sweep_is_needed_before_the_aerodynamic_centre_appears(tmp_path):
     assert min(swept["sweep"]["alpha_deg"]) < 0 < max(swept["sweep"]["alpha_deg"])
 
 
+def test_the_sweep_reaches_both_ends_even_when_the_step_does_not_divide_the_span(tmp_path):
+    """ "Inclusive of both ends" has to be arranged, not assumed.
+
+    Stepping from the start alone stops short whenever the span is not a whole number of steps:
+    -4 to 8 in steps of 5 gives -4, 1, 6 and never reaches 8. The far end is what a sweep is
+    usually *for* — it is one of the two points the lift-curve slope is anchored on.
+    """
+    _, report = run(tmp_path, sweep_from_deg=-4.0, sweep_to_deg=8.0, sweep_step_deg=5.0)
+    offset = report["geometry"]["chord_angle_deg"]
+    stations = [a + offset for a in report["sweep"]["alpha_deg"]]
+
+    assert min(stations) == pytest.approx(-4.0, abs=1e-3)
+    assert max(stations) == pytest.approx(8.0, abs=1e-3)
+    # The step is not stretched to fit, so the last interval is simply shorter than the rest.
+    assert any(abs(s - 1.0) < 1e-3 for s in stations)
+    assert any(abs(s - 6.0) < 1e-3 for s in stations)
+
+
+def test_the_sweep_has_no_duplicate_stations(tmp_path):
+    """A station the requested incidence already occupies must not be asked for twice."""
+    _, report = run(
+        tmp_path, alpha_deg=4.0, sweep_from_deg=-4.0, sweep_to_deg=8.0, sweep_step_deg=2.0
+    )
+    stations = report["sweep"]["alpha_deg"]
+    assert len(stations) == len(set(stations))
+    assert sorted(stations) == stations, "and they arrive in order"
+
+
 def test_the_requested_incidence_is_always_in_the_sweep(tmp_path):
     """Otherwise the field picture and the sweep curve would describe different solves."""
     _, report = run(tmp_path, alpha_deg=3.7, sweep_from_deg=-4.0, sweep_to_deg=8.0)

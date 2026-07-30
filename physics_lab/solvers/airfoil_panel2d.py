@@ -358,14 +358,34 @@ PANEL_CEILING = 800
 
 
 def _sweep_angles(params: "AirfoilPanel2D.Params") -> np.ndarray:
-    """Sweep stations, inclusive of both ends, with the primary incidence always present."""
+    """Sweep stations: both ends, the requested step between them, and the primary incidence.
+
+    "Both ends" has to be arranged rather than assumed. Stepping from the start stops short
+    whenever the span is not a whole number of steps — from −4° to 8° in steps of 5° gives
+    −4, 1, 6 and never reaches 8 — so the far end is appended explicitly. The alternative,
+    stretching the step to divide the span, would silently answer a question the visitor did
+    not ask.
+
+    The step is *not* adjusted, so the last interval can be shorter than the rest. That is
+    harmless here: every derived quantity is a least-squares fit over the stations, which does
+    not require them to be evenly spaced.
+
+    Deduplicated to a thousandth of a degree, because two stations closer together than that
+    are one station — the requested incidence usually *is* one of the sweep's own stations, and
+    asking the solver for it twice would add a duplicate right-hand side and a duplicate point
+    in every fit.
+    """
     if params.sweep_from_deg is None or params.sweep_to_deg is None:
         raise ValueError("a sweep needs both ends")
     start, stop = sorted([float(params.sweep_from_deg), float(params.sweep_to_deg)])
     step = max(abs(params.sweep_step_deg), 1e-3)
-    count = int(np.floor((stop - start) / step)) + 1
-    angles = start + step * np.arange(max(count, 2))
-    return np.unique(np.append(angles, params.alpha_deg))
+
+    # The tolerance stops a station that lands on `stop` to within rounding from being counted
+    # out by a floating-point hair — otherwise the number of stations depends on whether
+    # (stop - start) / step comes out as 5.999999999 or 6.0.
+    count = int(np.floor((stop - start) / step + 1e-9)) + 1
+    angles = start + step * np.arange(max(count, 1))
+    return np.unique(np.round(np.append(angles, [stop, params.alpha_deg]), 3))
 
 
 def _grid_shape(bounds, resolution: int) -> tuple[int, int]:

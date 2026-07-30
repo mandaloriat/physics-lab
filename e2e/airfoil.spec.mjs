@@ -288,6 +288,46 @@ test('a kept run records enough to be recomputed, and two runs can be compared',
   await expect(page.locator('#param-alpha_deg')).toHaveValue('4.6');
 });
 
+test('a browser that refuses to store cannot take the page down', async ({ page }) => {
+  // A private window, a full quota, storage switched off: the store throws on *every* write, and
+  // pressing Keep or Delete must still leave a working page. Saving loses the run and deleting
+  // keeps it, and in both cases what the table shows is what the store really holds.
+  await ready(page);
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+
+  await setParam(page, 'alpha_deg', 4.6);
+  await solve(page);
+  await page.getByRole('button', { name: 'Keep run' }).click();
+  await expect(page.locator('#runs-table tbody tr')).toHaveCount(1);
+
+  await page.evaluate(() => {
+    // Patched on `Storage.prototype`, which is where the methods actually live. Defining them as
+    // own properties of the `localStorage` instance does not shadow them, and the write goes
+    // through — which is how the first version of this test passed while proving nothing.
+    const refuse = () => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    };
+    Storage.prototype.setItem = refuse;
+    Storage.prototype.removeItem = refuse;
+  });
+
+  await page.getByRole('button', { name: 'Keep run' }).click();
+  await expect(page.locator('#runs-table tbody tr')).toHaveCount(1); // the run is lost, the page is not
+  await page
+    .locator('#runs-table tbody tr')
+    .first()
+    .getByRole('button', { name: 'Delete' })
+    .click();
+  await expect(page.locator('#runs-table tbody tr')).toHaveCount(1); // the row survives a failed delete
+  await page.getByRole('button', { name: 'Delete all' }).click();
+  await expect(page.locator('#runs-table tbody tr')).toHaveCount(1);
+
+  // Still usable afterwards: the export path is the way out of a browser that will not store.
+  await expect(page.locator('#export-json')).toBeEnabled();
+  expect(errors).toEqual([]);
+});
+
 test('a strongly cambered section reaches the lift and fails the moment constraint', async ({
   page,
 }) => {

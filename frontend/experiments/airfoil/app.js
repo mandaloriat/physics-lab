@@ -926,7 +926,10 @@ dom.exportJson.addEventListener('click', () =>
 );
 dom.clearRuns.addEventListener('click', () => {
   runs.clear(EXERCISE);
-  refreshRuns([]);
+  // Re-read rather than assume the table is now empty: a store that refuses to be written to
+  // also refuses to be cleared, and a table showing nothing while the rows are still there is
+  // the one thing worse than a delete that did not happen.
+  refreshRuns();
 });
 
 try {

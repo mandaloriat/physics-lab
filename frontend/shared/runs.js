@@ -52,14 +52,31 @@ export function save(exercise, row) {
   return { rows: kept, evicted: rows.length - kept.length };
 }
 
+/**
+ * Delete one row. Returns the rows that remain.
+ *
+ * Guarded like {@link save}, and for the same reason: a store that is disabled or full throws on
+ * a write, and in a private window that would mean pressing Delete takes the page down. Where a
+ * failed save loses a run, a failed delete keeps one — so the rows are re-read rather than
+ * assumed, and what the table shows is what the store really holds.
+ */
 export function remove(exercise, savedAt) {
   const rows = load(exercise).filter((row) => row.saved_at !== savedAt);
-  window.localStorage.setItem(KEY(exercise), JSON.stringify(rows));
+  try {
+    window.localStorage.setItem(KEY(exercise), JSON.stringify(rows));
+  } catch {
+    return load(exercise);
+  }
   return rows;
 }
 
 export function clear(exercise) {
-  window.localStorage.removeItem(KEY(exercise));
+  try {
+    window.localStorage.removeItem(KEY(exercise));
+  } catch {
+    // Nothing to report: the caller re-renders from `load`, which returns [] for a store it
+    // cannot read either way.
+  }
 }
 
 /* --------------------------------------------------------------------------- flattening */

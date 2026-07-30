@@ -143,7 +143,10 @@ def read_profile(outline: np.ndarray, stations: int = 60) -> Profile:
     # Longest diagonal. O(V^2) on a few hundred vertices is microseconds, and an approximate
     # diameter would put the chord in the wrong place on a profile with a blunt base.
     gaps = np.linalg.norm(poly[:, None, :] - poly[None, :, :], axis=-1)
-    i, j = np.unravel_index(int(np.argmax(gaps)), gaps.shape)
+    # Converted to plain ints at the boundary: `unravel_index` hands back NumPy integers, and
+    # everything downstream — the sharpness comparison, the chain slicing — is written against
+    # Python indices.
+    i, j = (int(index) for index in np.unravel_index(int(np.argmax(gaps)), gaps.shape))
     chord = float(gaps[i, j])
 
     span = 0.03 * chord
