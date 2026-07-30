@@ -134,6 +134,11 @@ adapter the workers have. A slim API in front of FEniCSx workers answers
 
 ## ADR-006 — The first experiment is potential flow around an airfoil
 
+> **Partly superseded by [ADR-014](#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first).**
+> The choice of the airfoil as the first subject stands. The model does not: the exercise
+> revision adds a Kutta condition, which is exactly the "most famous thing about a wing"
+> this record closes by admitting the model cannot show.
+
 **Decision.** The airfoil, on `mock.laplace2d` and `dolfinx.potential_flow2d`. Not
 Navier–Stokes, not the solenoid, not the heat sink.
 
@@ -386,6 +391,155 @@ exactly that purpose.
 the magnetics page cannot be reshaped by dragging, which is a real loss of directness
 compared with the airfoil; the compensation is that its sliders are dimensioned in
 millimetres and read as a specification.
+
+---
+
+## ADR-013 — The pages become exercises, not demonstrations
+
+**Decision.** Every page in the lab implements one contract:
+problem → model → boundary conditions → (initial conditions, only if transient) → physical
+inputs → fields → engineering metrics → verification → saved result. Written down in
+[docs/exercise-contract.md](exercise-contract.md), and binding on new pages and on the two
+that exist.
+
+**Why.** The lab as shipped is a gallery. Its two pages ask "how does the flow field change
+as you increase the camber?" and "what does the iron core actually do?" — questions with no
+answer that can be wrong. Nothing can be got wrong, so nothing can be compared, and nothing
+can be improved. A visitor who moves every slider has learned to move sliders.
+
+An exercise has a right answer, a wrong answer and a better answer, and the difference
+between them is a number the page computes. That single change cascades: a target implies
+metrics, metrics imply verification (otherwise the target is met by an unchecked number),
+verification implies a stated domain of validity, and a comparable result implies a run
+record that carries every input rather than the interesting ones.
+
+**Two separations the contract insists on.**
+
+*Physical inputs are not numerical settings.* `velocity 40 m/s` is the problem;
+`mesh size 0.02` is the approximation. In one panel they read as the same kind of quantity,
+and they are opposites: changing the first should change the answer, and changing the second
+should not — the amount by which it does is the discretisation error, which is the
+verification section's subject. So a page has three parameter groups: physical, numerical,
+and study.
+
+*The engineering answer is not the cost of the solve.* Fenix Spoon already draws this line —
+`stats` is cells and seconds, metrics are lift and temperature rise — and the lab's result
+panel now has two tables rather than one.
+
+**Cost.** The two existing pages need rewriting rather than extending, and their prose about
+"what to watch" is largely dropped rather than migrated. The page shell grows by a metrics
+table, a verification panel, a validity panel, a curve plot, a run table and a challenge
+banner — which is the point at which ADR-009's "revisit at a fourth or fifth experiment"
+clause should be re-read rather than assumed. It still holds: all of that is functions over
+DOM nodes, with no shared mutable state. The run table is the likeliest thing to break it.
+
+---
+
+## ADR-014 — The airfoil exercise ships ideal flow with a Kutta condition first
+
+**Decision.** Two model levels, specified together and shipped apart
+([docs/exercises/airfoil.md](exercises/airfoil.md)):
+
+- **Level 1 — ideal flow with the Kutta condition.** Ships first. Produces C_p, C_L, C_m,
+  centre of pressure, aerodynamic centre (from a sweep) and sectional lift. Withholds C_D and
+  L/D, and says why.
+- **Level 2 — viscous performance.** Later, on the same page. Adds Reynolds dependence,
+  no-slip, drag, efficiency and a separation indication.
+
+The reference solver is a **panel method in NumPy**, registered in `physics_lab/solvers/`.
+Not FEniCSx.
+
+**Why a Kutta condition is not optional.** The current model has none, so its circulation is
+zero and its integrated lift is exactly zero at every incidence. Adding a lift coefficient to
+that page would print a number the equations cannot produce. The Kutta condition is precisely
+the missing physics — the condition that selects the circulation an ideal flow needs to lift
+at all — and it is one equation on a model the lab already runs.
+
+**Why level 1 before level 2.** Level 1 is verifiable to the last digit: an exact cylinder
+solution, an exact Joukowski solution with a sharp trailing edge, thin-airfoil theory as an
+asymptotic band, and — on every single run — the internal consistency of lift from circulation
+against lift from integrated pressure. A viscous model has no closed form to check against;
+its verification is correlation with experiment, which is a far weaker claim for a lab whose
+argument is that the numbers can be checked. Level 1 also fits the public job budget
+(ADR-010), where a viscous solve at a useful Reynolds number does not.
+
+**Why a panel method rather than FEniCSx.** Three reasons, and none of them is convenience.
+The boundary is represented *exactly* rather than approximated by elements, and the surface
+pressure is the quantity the exercise reads. There is no outer boundary, so there is no
+domain-truncation error to converge — a mesh solve has to demonstrate that its far field is
+far enough. And the influence matrix depends only on the geometry and the panelling, never on
+incidence, so an incidence sweep is one job with one factorisation and a back-substitution per
+angle — which is what makes the aerodynamic centre affordable on a public server at all. A
+FEniCSx variant is specified as a cross-check, recovering circulation by superposing three
+linear solves, because cross-validating two independent implementations of the same physics is
+upstream's own practice.
+
+**What is kept from the old model.** `kutta: none` reproduces it exactly, as a model selector
+rather than a setting, because "turn circulation off and the lift vanishes" is the clearest
+demonstration in the lab that circulation *is* lift — and it doubles as a check of d'Alembert's
+paradox on the discrete solution.
+
+**Cost.** A solver to write and test, ten catalogue profiles to enter, an ISA atmosphere, a
+curve plot the lab does not have, and a page rewritten rather than edited. The old page's
+honest disclaimer about zero lift stops being needed, which is the trade.
+
+---
+
+## ADR-015 — The run table lives in the browser, and Fenix Spoon owns the record
+
+**Decision.** Saved runs are `localStorage`, per exercise, with a stated cap and CSV/JSON
+export. No server-side store, no accounts, no database in this repository. The row schema is
+shaped like upstream's direction — metrics separate from cost, provenance its own block,
+verification as data.
+
+**Why not server-side.** Everything a durable run store needs is already being built one
+repository away: typed metrics declared (#43, landed) and returned (#46), compact queryable
+results (#46), provenance and a content-addressed cache (#47), and a study object for sweeps
+and convergence ladders (#48). A second implementation here would be a parallel system to
+migrate off, and it would be the *wrong* half — the lab would own persistence, which it has no
+business owning, while still lacking the typed metrics that make a row comparable.
+
+**What that costs today.** Protocol 1.2's result envelope has nowhere to put a computed
+metric, a warning, or a 1-D curve. So a lab solver returns the field as `grid2d`/`mesh2d`,
+restricts `stats` to what the solve cost, and writes one always-present `report.json`
+artifact carrying metrics, curves, verification residuals and warnings — declared as an
+`ArtifactSpec` so it is discoverable before submitting. It is protocol-legal, it invents no
+private convention on top of `stats`, and its content is exactly the payload that becomes
+native `metrics` when #46 lands: at that point the page reads the envelope and the artifact
+becomes optional.
+
+**Cost.** Runs are lost when the visitor clears their browser, and cannot be shared by URL.
+For an anonymous public demo that is the honest state of affairs rather than a limitation to
+apologise for — and the export button is the answer for anyone who wants to keep a study.
+
+---
+
+## ADR-016 — The product is called Spoon Physics
+
+**Decision.** The lab is **Spoon Physics** — *Interactive problems. Computed fields.
+Checkable answers.* Not "Andolfatto Physics Lab". The rename is its own change, and this
+record precedes it.
+
+**Why not the old name.** There is a real
+[Andolfatto Lab at Columbia](https://andolfattolab.com/), a genetics group. A personal
+surname on a physics site that collides with an existing research group is a needless
+ambiguity, and the lab's value has nothing to do with whose surname is on it.
+
+**Why this name.** It says what the thing is and where it comes from: the toolkit is Fenix
+Spoon, and this is the physics built on it. "Fun Physics Lab" is clear but generic and reads
+as a school worksheet. "Spoon Labs" is stronger but taken several times over, including by
+[spoonLabs AI](https://spoonlabs.ai/). "Spoon Physics Lab" is the more descriptive variant and
+stays available as a fallback if the shorter name proves ambiguous in use.
+
+**What the rename touches.** `settings.site_name()` and its environment default, the page
+titles built in `experiment.js` and both `index.html`s, the homepage masthead, the README, the
+`pyproject.toml` project name, and the assertions in `tests/` and `e2e/` that read the visible
+name. `lab.andolfatto.eu` stays as the hostname: a domain is infrastructure, and it need not
+be the product's name — the pages should stop presenting it as one.
+
+**Cost.** A rename touches strings in a dozen files and invalidates any bookmark that
+remembered the title. Doing it before the exercise revision means the exercise pages are
+written under the final name; doing it after means one more page to sweep.
 
 ---
 

@@ -38,6 +38,24 @@ there is no outline to drag and the controls are physical dimensions instead; se
 The remaining experiment has its preview solver upstream already; what it needs is the
 didactic work. The homepage lists it as planned rather than pretending otherwise.
 
+### Where this is going: exercises instead of demonstrations
+
+Both pages are guided demonstrations — they ask *what changes in the field?* rather than
+setting a problem with a right, wrong or better answer. The next revision turns each page
+into an **exercise** with the same nine sections (problem, model, boundary conditions,
+initial conditions where the problem is transient, physical inputs, fields, engineering
+metrics, verification, saved result), a machine-checked objective, and a run table of
+reproducible, comparable results.
+
+- The contract every page implements: **[docs/exercise-contract.md](docs/exercise-contract.md)**
+  ([ADR-013](docs/architecture-decisions.md#adr-013--the-pages-become-exercises-not-demonstrations)).
+- The first one specified in full: **[docs/exercises/airfoil.md](docs/exercises/airfoil.md)**
+  — which begins by fixing the physics, since the current model has no Kutta condition and
+  therefore no lift to report
+  ([ADR-014](docs/architecture-decisions.md#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first)).
+
+Neither is implemented yet. Nothing on the live site has changed.
+
 ---
 
 ## Architecture
@@ -91,7 +109,7 @@ frontend/             static site — no build step for the lab's own code
 tests/                pytest: the API seam, the served site
 e2e/                  Playwright: the browser loop, run against a deployment
 scripts/              fetch-widgets, check-pins, smoke-test, deploy
-docs/                 architecture-decisions.md
+docs/                 architecture-decisions.md, exercise-contract.md, exercises/*.md
 Dockerfile            node stage (widgets) + runtime stage FROM the Fenix Spoon image
 compose.yaml          base stack — no published ports
 compose.override.yaml development conveniences, auto-loaded
