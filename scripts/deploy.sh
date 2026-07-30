@@ -12,7 +12,6 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-COMPOSE=(docker compose -f compose.yaml -f compose.production.yaml)
 PULL=1
 ROLLBACK=0
 
@@ -33,6 +32,15 @@ fi
 # shellcheck disable=SC1091
 LAB_DOMAIN=$(grep -E '^LAB_DOMAIN=' .env | cut -d= -f2- | tr -d '"' || true)
 LAB_DOMAIN="${LAB_DOMAIN:-lab.andolfatto.eu}"
+
+# Which Caddy overlay this host uses. compose.production.yaml runs its own Caddy
+# container on 80/443; compose.host-caddy.yaml instead publishes the api to
+# 127.0.0.1 for a shared, host-level Caddy that already owns those ports (see that
+# file's header). Boxes in the second group must set this in .env, or this script
+# fights the host Caddy for port 80 every time it runs.
+LAB_COMPOSE_OVERLAY=$(grep -E '^LAB_COMPOSE_OVERLAY=' .env | cut -d= -f2- | tr -d '"' || true)
+LAB_COMPOSE_OVERLAY="${LAB_COMPOSE_OVERLAY:-compose.production.yaml}"
+COMPOSE=(docker compose -f compose.yaml -f "$LAB_COMPOSE_OVERLAY")
 
 PREVIOUS=$(git rev-parse HEAD)
 echo "==> current revision: ${PREVIOUS:0:7}"
