@@ -1,0 +1,105 @@
+# Production overlay for this server (maetfork-prod-01), used INSTEAD of
+# compose.production.yaml.
+#
+#   docker compose -f compose.yaml -f compose.host-caddy.yaml up -d --build
+#
+# Why this file exists rather than reusing compose.production.yaml as-is: that file
+# bundles its own Caddy container publishing 80/443. This host already runs one shared
+# Caddy system service (systemctl status caddy) that imports every
+# /home/deploy/apps/*/Caddyfile and reverse-proxies to a loopback port per app — the
+# convention every other app directory on this box already follows (see e.g.
+# ../bridgesilence/Caddyfile, ../tabletop_sim/Caddyfile). A second process trying to bind
+# 80/443 would conflict with it.
+#
+# Everything else — the FEniCSx image, Redis, the worker, the resource limits — is
+# unchanged from compose.production.yaml. Only the reverse-proxy ownership differs: here
+# the api container publishes to 127.0.0.1 and the repo's own Caddyfile is imported by the
+# host's Caddy instead of run in its own container.
+
+services:
+  api:
+    build:
+      args:
+        FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-712dea2}
+    image: ${LAB_IMAGE:-physics-lab:prod}
+    ports:
+      # Loopback only — the host Caddy is the sole public entry point, same as every
+      # other app on this box.
+      - "127.0.0.1:${LAB_PROD_PORT:-8000}:8000"
+    environment:
+      FENIXSPOON_REDIS_URL: redis://redis:6379
+      FENIXSPOON_CORS_ORIGINS: ${FENIXSPOON_CORS_ORIGINS:-https://lab.andolfatto.eu}
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "${LAB_API_CPUS:-1.0}"
+          memory: ${LAB_API_MEMORY:-768M}
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  worker:
+    build:
+      context: .
+      args:
+        FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-712dea2738d1165fa0afc563f2965e5a48df32cb}
+        FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-712dea2}
+    image: ${LAB_IMAGE:-physics-lab:prod}
+    restart: unless-stopped
+    command: ["arq", "fenixspoon.worker.WorkerSettings"]
+    environment:
+      FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-712dea2738d1165fa0afc563f2965e5a48df32cb}
+      FENIXSPOON_DATA_DIR: /data
+      FENIXSPOON_REDIS_URL: redis://redis:6379
+      FENIXSPOON_WORKER_CONCURRENCY: ${FENIXSPOON_WORKER_CONCURRENCY:-1}
+      FENIXSPOON_JOB_TIMEOUT: ${FENIXSPOON_JOB_TIMEOUT:-90}
+      FENIXSPOON_MAX_CELLS: ${FENIXSPOON_MAX_CELLS:-200000}
+    volumes:
+      - lab-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    # Overrides the image's baked-in HEALTHCHECK (Dockerfile), which curls the API's own
+    # :8000/health — arq has no HTTP server, so that check fails forever here (always
+    # "connection refused") no matter how healthy the worker actually is. This pings the
+    # one dependency the worker actually has.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os,sys,redis; sys.exit(0 if redis.Redis.from_url(os.environ['FENIXSPOON_REDIS_URL']).ping() else 1)"
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "${LAB_WORKER_CPUS:-1.5}"
+          memory: ${LAB_WORKER_MEMORY:-2G}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
