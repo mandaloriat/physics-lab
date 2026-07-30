@@ -19,7 +19,7 @@ test('the homepage introduces the lab and links every available experiment', asy
   page.on('pageerror', (error) => errors.push(error.message));
 
   await page.goto('/');
-  await expect(page).toHaveTitle(/Andolfatto Physics Lab/);
+  await expect(page).toHaveTitle(/Spoon Physics/);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
   // The educational disclaimer is a requirement, not decoration.

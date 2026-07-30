@@ -426,7 +426,7 @@ export function richText(markdown) {
  */
 export function renderLesson({ content, intro, lesson }) {
   intro.textContent = content.intro;
-  document.title = `${content.title} — Andolfatto Physics Lab`;
+  document.title = `${content.title} — Spoon Physics`;
 
   lesson.replaceChildren(
     ...content.sections.map((section) => {

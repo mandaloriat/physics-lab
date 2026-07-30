@@ -1,4 +1,4 @@
-# Andolfatto Physics Lab — base stack.
+# Spoon Physics — base stack.
 #
 #   docker compose up -d --build
 #       Development. `compose.override.yaml` is picked up automatically and adds the

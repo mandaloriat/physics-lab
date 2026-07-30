@@ -11,6 +11,13 @@ export const REPO_URL = 'https://github.com/mandaloriat/physics-lab';
 export const FENIX_SPOON_URL = 'https://github.com/mandaloriat/fenix-spoon';
 
 /**
+ * What the lab claims to be, in three words each. Shown beside the name on the homepage and
+ * nowhere else: on an experiment page the visitor is already inside one of the problems, and
+ * a strapline repeated on every page stops being read. See ADR-016.
+ */
+export const TAGLINE = 'Interactive problems. Computed fields. Checkable answers.';
+
+/**
  * `GET /health` — what this deployment is made of, and whether it will accept solves.
  *
  * It lives here rather than beside the protocol client because it is not part of the
@@ -55,7 +62,8 @@ function siteHeader(current = '') {
         'a',
         { class: 'brand', href: '/' },
         el('span', { class: 'mark', text: '◦∿' }),
-        el('span', { text: 'Andolfatto Physics Lab' }),
+        el('span', { text: 'Spoon Physics' }),
+        current === 'home' ? el('span', { class: 'sub', text: TAGLINE }) : null,
       ),
       el(
         'nav',

@@ -1,4 +1,4 @@
-# Andolfatto Physics Lab.
+# Spoon Physics.
 #
 # Two stages, one pin. The Node stage builds the Fenix Spoon browser widgets from source
 # (they are not published to npm); the runtime stage starts from the Fenix Spoon server
@@ -48,7 +48,7 @@ FROM ${FENIX_SPOON_IMAGE} AS runtime
 ARG FENIX_SPOON_COMMIT
 ARG FENIX_SPOON_IMAGE
 
-LABEL org.opencontainers.image.title="Andolfatto Physics Lab" \
+LABEL org.opencontainers.image.title="Spoon Physics" \
       org.opencontainers.image.source="https://github.com/mandaloriat/physics-lab" \
       org.opencontainers.image.licenses="MIT" \
       eu.andolfatto.lab.fenix-spoon-commit="${FENIX_SPOON_COMMIT}" \

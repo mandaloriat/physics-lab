@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "andolfatto-physics-lab"
+name = "spoon-physics"
 version = "0.1.0"
 description = "An interactive physics laboratory built on Fenix Spoon and FEniCSx"
 readme = "README.md"

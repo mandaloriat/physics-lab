@@ -59,7 +59,7 @@ def frontend_dir() -> Path:
 
 
 def site_name() -> str:
-    return os.environ.get("PHYSICS_LAB_SITE_NAME", "Andolfatto Physics Lab")
+    return os.environ.get("PHYSICS_LAB_SITE_NAME", "Spoon Physics")
 
 
 def public_url() -> str:

@@ -1,4 +1,4 @@
-# Caddy site for the Andolfatto Physics Lab.
+# Caddy site for the Spoon Physics.
 #
 # One hostname serves everything: the static pages and the Fenix Spoon API live behind
 # the same origin, so the browser never makes a cross-origin request and CORS never has

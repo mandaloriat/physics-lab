@@ -1,9 +1,13 @@
-# Andolfatto Physics Lab
+# Spoon Physics
 
-**An interactive laboratory for exploring physical phenomena by changing geometries,
-materials and boundary conditions, with fast previews and FEniCSx computations.**
+**Interactive problems. Computed fields. Checkable answers.**
 
-Live at **[lab.andolfatto.eu](https://lab.andolfatto.eu)**.
+An interactive laboratory for exploring physical phenomena by changing geometries, materials
+and boundary conditions, with fast previews and FEniCSx computations.
+
+Live at **[lab.andolfatto.eu](https://lab.andolfatto.eu)** — the hostname is infrastructure,
+not the name of the thing
+([ADR-016](docs/architecture-decisions.md#adr-016--the-product-is-called-spoon-physics)).
 
 > The simulations are demonstrative and educational. They are not a substitute for
 > professional engineering verification.

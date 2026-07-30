@@ -67,7 +67,7 @@ fi
 # ---------------------------------------------------------------- 3. homepage & experiments
 for path in "/" "/experiments/airfoil/" "/experiments/solenoid/"; do
   BODY=$(curl -fsS --max-time 15 "$BASE_URL$path" 2>&1)
-  if [ $? -eq 0 ] && printf '%s' "$BODY" | grep -q "Andolfatto Physics Lab"; then
+  if [ $? -eq 0 ] && printf '%s' "$BODY" | grep -q "Spoon Physics"; then
     pass "$path is served"
   else
     fail "$path is served"

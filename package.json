@@ -1,8 +1,8 @@
 {
-  "name": "andolfatto-physics-lab",
+  "name": "spoon-physics",
   "version": "0.1.0",
   "private": true,
-  "description": "Front-end tooling for the Andolfatto Physics Lab. The pages themselves need no build step.",
+  "description": "Front-end tooling for Spoon Physics. The pages themselves need no build step.",
   "license": "MIT",
   "type": "module",
   "scripts": {

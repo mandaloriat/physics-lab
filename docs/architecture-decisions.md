@@ -517,8 +517,9 @@ apologise for — and the export button is the answer for anyone who wants to ke
 ## ADR-016 — The product is called Spoon Physics
 
 **Decision.** The lab is **Spoon Physics** — *Interactive problems. Computed fields.
-Checkable answers.* Not "Andolfatto Physics Lab". The rename is its own change, and this
-record precedes it.
+Checkable answers.* Not the founder's surname, which is what it was called until this record
+was written. **Carried out**: the name now reads that way everywhere the product names
+itself.
 
 **Why not the old name.** There is a real
 [Andolfatto Lab at Columbia](https://andolfattolab.com/), a genetics group. A personal
@@ -531,15 +532,21 @@ as a school worksheet. "Spoon Labs" is stronger but taken several times over, in
 [spoonLabs AI](https://spoonlabs.ai/). "Spoon Physics Lab" is the more descriptive variant and
 stays available as a fallback if the shorter name proves ambiguous in use.
 
-**What the rename touches.** `settings.site_name()` and its environment default, the page
-titles built in `experiment.js` and both `index.html`s, the homepage masthead, the README, the
-`pyproject.toml` project name, and the assertions in `tests/` and `e2e/` that read the visible
-name. `lab.andolfatto.eu` stays as the hostname: a domain is infrastructure, and it need not
-be the product's name — the pages should stop presenting it as one.
+**What the rename touched.** `settings.site_name()` and its environment default, the page
+titles built in `experiment.js` and all three `index.html`s, the homepage masthead and the
+favicon's `aria-label`, the README, the `pyproject.toml` and `package.json` project names, and
+the assertions in `tests/`, `e2e/` and `scripts/smoke-test.sh` that read the visible name.
 
-**Cost.** A rename touches strings in a dozen files and invalidates any bookmark that
-remembered the title. Doing it before the exercise revision means the exercise pages are
-written under the final name; doing it after means one more page to sweep.
+**What it deliberately left alone.** `lab.andolfatto.eu` stays as the hostname: a domain is
+infrastructure, and it need not be the product's name — what changed is that the pages stop
+presenting it as one. The `LICENSE` copyright and the ACME contact address are the author's
+and stay the author's. The image labels keep the `eu.andolfatto.lab.*` reverse-DNS namespace,
+because that namespace is derived from the domain, which did not change; renaming it would
+break label queries on already-published images for no gain.
+
+**Cost.** Any bookmark that remembered the old title is now inconsistent with the page, and
+the repository name still reads `physics-lab`. Done before the exercise pages exist, so they
+are written under the final name rather than swept afterwards.
 
 ---
 
