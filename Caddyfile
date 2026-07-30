@@ -5,34 +5,27 @@
 # to be configured. That is a deliberate choice, not an accident of convenience — see
 # docs/architecture-decisions.md, ADR-003.
 #
-# Certificates are obtained automatically over ACME. Ports 80 and 443 must both be open:
-# 80 for the HTTP-01 challenge and the redirect, 443 for the site.
-{
-	# Uncomment to receive certificate-expiry warnings from Let's Encrypt, and set
-	# LAB_ACME_EMAIL in .env — the compose file already passes it through, so this line is
-	# the only edit needed. It stays commented by default because Caddy has no way to
-	# express "use this only if it is set": an empty LAB_ACME_EMAIL makes `email` a syntax
-	# error and the container would refuse to start. ACME works without an address; the
-	# only thing given up is the expiry reminder.
-	# email {$LAB_ACME_EMAIL}
-
-	# Uncomment while testing a new server, to avoid burning Let's Encrypt rate limits on
-	# a misconfigured DNS record. Certificates issued here are not publicly trusted.
-	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
-
-	servers {
-		# Long solves stream progress over a WebSocket that must outlive the job. Both
-		# timeouts sit comfortably above FENIXSPOON_JOB_TIMEOUT (90 s by default): a proxy
-		# timeout *below* the job timeout means every long job stutters, because the SDK
-		# reconnects and the server replays the whole event history each time.
-		timeouts {
-			read_body 30s
-			idle 900s
-		}
-	}
-}
+# This file is imported by the host's own Caddy instance (systemctl status caddy; see
+# /etc/caddy/Caddyfile's `import /home/deploy/apps/*/Caddyfile`), the same convention
+# every other app on this box follows — so there is deliberately no global options block
+# here: Caddy allows only one across the whole merged config, and this app does not own
+# it. That also means no per-site override of the server's read_body/idle timeouts; the
+# defaults (5 min idle) comfortably exceed FENIXSPOON_JOB_TIMEOUT (90 s), which is what
+# actually bounds how long a solve — and its progress stream — can run.
+#
+# Certificates are obtained automatically over ACME by the host Caddy for whatever
+# hostnames appear across every imported file, this one included.
 
 {$LAB_DOMAIN:lab.andolfatto.eu} {
+	# Per-site rather than the global `email` directive: this file is imported alongside
+	# every other app's, none of which set one, and the host Caddy process has no
+	# environment substitution wired up for this app specifically (no
+	# /etc/systemd/system/caddy.service.d drop-in, unlike e.g. paymasterpulse's) — so a
+	# literal value here, same as every sibling Caddyfile uses for its own hostnames, is
+	# what actually takes effect. Only used for Let's Encrypt expiry warnings; ACME itself
+	# works without it.
+	tls mattia.andolfatto@gmail.com
+
 	encode zstd gzip
 
 	header {
@@ -76,7 +69,11 @@
 	#   LAB_DOMAIN=:9080 LAB_UPSTREAM=127.0.0.1:8000 caddy run --config Caddyfile
 	#
 	# A bare `:port` site address turns off automatic HTTPS, so no certificate is needed.
-	reverse_proxy {$LAB_UPSTREAM:api:8000} {
+	# Default is 127.0.0.1:8000 rather than the compose-network name `api:8000`: on this
+	# box the host's own Caddy (not a container on the compose network) is what imports
+	# this file, and reaches the api container the same way every sibling app's Caddyfile
+	# reaches its own — over the loopback port compose.host-caddy.yaml publishes it on.
+	reverse_proxy {$LAB_UPSTREAM:127.0.0.1:8000} {
 		# Above FENIXSPOON_JOB_TIMEOUT, so the proxy is never the thing that ends a solve.
 		transport http {
 			read_timeout 900s

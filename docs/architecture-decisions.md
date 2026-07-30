@@ -167,7 +167,7 @@ it is for.
 
 ## ADR-007 — The dependency is pinned to a commit, in four places, checked by a script
 
-**Decision.** Fenix Spoon is pinned to commit `7c89be3d9641c382017931be407e5d6ba8ca9826`.
+**Decision.** Fenix Spoon is pinned to commit `712dea2738d1165fa0afc563f2965e5a48df32cb`.
 Never `main`, never `latest`.
 
 **Why a commit and not a release.** There is no release and no tag to use: upstream's
@@ -175,9 +175,9 @@ Never `main`, never `latest`.
 complete one — it fixes the server, the solvers, the protocol models and the widget source
 together.
 
-**Why the image tags are what they are.** GHCR carries `sha-7c89be3` (FEniCSx, dolfinx
-v0.11.0, digest `sha256:35575482…`) and `sha-7c89be3-slim` (mock solvers only, digest
-`sha256:2bb12020…`). `dolfinx-v0.11.0` is the same image today but is re-pointed on every
+**Why the image tags are what they are.** GHCR carries `sha-712dea2` (FEniCSx, dolfinx
+v0.11.0, digest `sha256:84697160…`) and `sha-712dea2-slim` (mock solvers only, digest
+`sha256:9d5820ca…`). `dolfinx-v0.11.0` is the same image today but is re-pointed on every
 push to `main`, so it is not a pin. And `latest` / `latest-slim` **do not exist**, despite
 what upstream's README says — the publish workflow tags `latest` only on a `v*` git tag,
 and none has been pushed. Anyone debugging a failed pull should know that before they

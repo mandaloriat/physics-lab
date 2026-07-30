@@ -13,17 +13,17 @@
 #
 #   # full FEniCSx runtime, ~3 GB base
 #   docker build -t physics-lab:fenics \
-#       --build-arg FENIX_SPOON_IMAGE=ghcr.io/mandaloriat/fenix-spoon:sha-7c89be3 .
+#       --build-arg FENIX_SPOON_IMAGE=ghcr.io/mandaloriat/fenix-spoon:sha-712dea2 .
 
 # The Fenix Spoon commit this lab is built and tested against. There is no release and no
 # tag upstream (`git ls-remote --tags` is empty), so a SHA is the strongest pin available.
-ARG FENIX_SPOON_COMMIT=7c89be3d9641c382017931be407e5d6ba8ca9826
+ARG FENIX_SPOON_COMMIT=712dea2738d1165fa0afc563f2965e5a48df32cb
 
 # The server image built from that same commit. `:sha-<short>-slim` is mock solvers only;
 # `:sha-<short>` carries FEniCSx (dolfinx v0.11.0). Note that `:latest` and `:latest-slim`
 # do *not* exist in GHCR despite what the upstream README says — the publish workflow only
 # tags `latest` on a `v*` git tag, and none has been pushed.
-ARG FENIX_SPOON_IMAGE=ghcr.io/mandaloriat/fenix-spoon:sha-7c89be3-slim
+ARG FENIX_SPOON_IMAGE=ghcr.io/mandaloriat/fenix-spoon:sha-712dea2-slim
 
 
 # ---------------------------------------------------------------- widget build stage
