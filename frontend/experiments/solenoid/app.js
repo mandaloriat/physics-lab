@@ -470,19 +470,27 @@ try {
   renderLesson({ content, intro: dom.intro, lesson: dom.lesson });
   catalogue = solvers;
 
-  if (!catalogue.all.length) {
-    setStatusOn(dom, 'This server exposes no solver compatible with this geometry.', 'error');
-    dom.run.disabled = true;
-  } else {
+  if (catalogue.all.length) {
     fillSolverPicker(dom.solver, catalogue);
     onSolverChange();
   }
 
-  applyMaintenance(
+  const canSolve = applyMaintenance(
     dom,
     info,
     'The lab is not accepting new simulations right now. You can still explore the page and change the cross-section.',
   );
+
+  // Run is enabled here and nowhere else — see `applyMaintenance` for why it starts disabled.
+  // Each branch leaves the status line saying something that is true of this deployment.
+  if (!catalogue.all.length) {
+    setStatusOn(dom, 'This server exposes no solver compatible with this geometry.', 'error');
+  } else if (!canSolve) {
+    setStatusOn(dom, 'Simulations are paused for maintenance.');
+  } else {
+    dom.run.disabled = false;
+    setStatusOn(dom, 'Press Run to start the first simulation.');
+  }
 } catch (error) {
   setStatusOn(dom, `Cannot reach the server — ${describeError(error)}`, 'error');
   dom.run.disabled = true;

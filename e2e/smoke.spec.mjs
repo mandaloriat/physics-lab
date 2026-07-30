@@ -342,6 +342,49 @@ test('no slider combination can build a geometry the protocol would refuse', asy
   }
 });
 
+for (const experiment of ['airfoil', 'solenoid']) {
+  test(`the ${experiment} page offers no Run button until it knows it can solve`, async ({
+    page,
+  }) => {
+    // `/health` is held open so the "still loading" state is wide enough to test at all.
+    // Two things must hold in that window: no job may be submitted, and the page must not
+    // claim anything about the server it has not heard from yet.
+    const submissions = [];
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.url().includes('/api/v1/jobs')) {
+        submissions.push(request.url());
+      }
+    });
+
+    let release = () => {};
+    const held = new Promise((resolve) => {
+      release = resolve;
+    });
+    await page.route('**/health', async (route) => {
+      await held;
+      await route.continue();
+    });
+
+    await page.goto(`/experiments/${experiment}/`, { waitUntil: 'commit' });
+
+    await expect(page.locator('#run')).toBeDisabled();
+    await expect(page.locator('#status')).toContainText('Checking what this server can do');
+    // Force the click past the disabled state: the guarantee is about what the page does,
+    // not merely about what the pointer can reach.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await page.evaluate(() => document.getElementById('run')?.click());
+      await page.waitForTimeout(50);
+    }
+    expect(submissions).toEqual([]);
+
+    release();
+    // Once both answers are in, the button is offered and the status says so.
+    await expect(page.locator('#run')).toBeEnabled();
+    await expect(page.locator('#status')).toContainText('Press Run');
+    expect(submissions).toEqual([]);
+  });
+}
+
 test('the geometry can be reshaped and restored', async ({ page }) => {
   await page.goto('/experiments/airfoil/');
   await expect(page.locator('#shape-camber')).toBeVisible();

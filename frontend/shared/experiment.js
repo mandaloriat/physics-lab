@@ -453,6 +453,16 @@ export function renderLesson({ content, intro, lesson }) {
  * The page must never offer a Run button that is going to 503. Reading the switch and saying
  * so is the difference between "the lab is busy" and "this site is broken".
  *
+ * Both experiment pages ship `#run` **disabled** and enable it only after this has been
+ * called, which is worth explaining because the alternative looks equally safe and is not.
+ * Leaving the button enabled from the start cannot cause a stray submission — `run()` reads
+ * the solver catalogue, which is empty until the same synchronous block that calls this
+ * function, so an early click is turned away without a request. What it does do is turn it
+ * away by announcing "no solver is available on this server", which is false about a server
+ * that has merely not replied yet. Starting disabled means the page never makes a claim about
+ * a deployment it has not heard from, and removes the need to reason about the event loop to
+ * see that it is correct.
+ *
  * @returns {boolean} whether solving is available
  */
 export function applyMaintenance(dom, info, explanation) {

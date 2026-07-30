@@ -47,7 +47,10 @@
 
       <div class="status-bar">
         <span class="status-dot" id="dot" data-state="idle"></span>
-        <span id="status" role="status">Press <strong>Run</strong> to start the first simulation.</span>
+        <!-- Run starts disabled and this says why. The page cannot know whether it can solve
+             until the solver catalogue and /health have answered, and a button offered before
+             then can only mislead. -->
+        <span id="status" role="status">Checking what this server can do…</span>
         <progress id="progress" value="0" max="1" hidden></progress>
       </div>
 
@@ -75,7 +78,7 @@
           <p class="field__hint" id="solver-hint"></p>
         </div>
         <div class="button-row">
-          <button id="run" class="primary" type="button">Run</button>
+          <button id="run" class="primary" type="button" disabled>Run</button>
           <button id="cancel" type="button" hidden>Cancel</button>
         </div>
       </div>
