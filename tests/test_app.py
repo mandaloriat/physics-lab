@@ -28,6 +28,21 @@ def test_solver_catalogue_is_not_empty_and_covers_the_airfoil(client):
     assert all(s["params_schema"]["properties"] for s in usable)
 
 
+def test_solver_catalogue_covers_the_magnetics_experiment(client):
+    """The solenoid page asks for ``regions2d`` and builds its form from the schema it gets.
+
+    Its two solvers do not agree on their parameters — the mock takes ``resolution`` and
+    ``iterations``, the FEniCSx adapter takes ``mesh_size`` — which is precisely why the page
+    reads them from here instead of hardcoding either. A solver publishing no properties would
+    render an empty parameter panel.
+    """
+    solvers = client.get("/api/v1/solvers").json()
+
+    usable = [s for s in solvers if "regions2d" in s["geometry_types"]]
+    assert usable, "the magnetics experiment needs at least one regions2d solver"
+    assert all(s["params_schema"]["properties"] for s in usable)
+
+
 def test_the_mock_solver_is_always_present(client):
     """The lab must work without FEniCSx.
 
@@ -37,6 +52,7 @@ def test_the_mock_solver_is_always_present(client):
     """
     names = {s["name"] for s in client.get("/api/v1/solvers").json()}
     assert "mock.laplace2d" in names
+    assert "mock.magnetostatics2d" in names
 
 
 def test_a_mock_job_runs_to_a_result(client, airfoil_geometry):
@@ -83,6 +99,75 @@ def test_a_mock_job_runs_to_a_result(client, airfoil_geometry):
     downloaded = client.get(artifact["url"])
     assert downloaded.status_code == 200
     assert downloaded.content.startswith(b"# vtk DataFile")
+
+
+def test_a_magnetostatics_job_returns_the_fields_the_page_reads(client, solenoid_geometry):
+    """The magnetics page needs three named fields, and derives a fourth from two of them.
+
+    ``A`` and ``B`` are the physics; ``mu_r`` is what lets the page show where the iron is and
+    what lets it compute H = |B| / (μ₀ μᵣ) in the browser. If the adapter stopped publishing
+    ``mu_r`` the H option would silently disappear from the page, so its presence is asserted
+    here rather than discovered later.
+    """
+    submitted = client.post(
+        "/api/v1/jobs",
+        json={
+            "solver": "mock.magnetostatics2d",
+            "geometry": solenoid_geometry,
+            "params": {"resolution": 48, "iterations": 200, "write_vtk": False},
+        },
+    )
+    assert submitted.status_code == 202, submitted.text
+    job_id = submitted.json()["job_id"]
+
+    with client.websocket_connect(f"/api/v1/jobs/{job_id}/events") as socket:
+        while True:
+            event = json.loads(socket.receive_text())
+            if event["type"] == "status" and event["status"] in {"done", "failed", "cancelled"}:
+                assert event["status"] == "done", event
+                break
+
+    body = client.get(f"/api/v1/jobs/{job_id}/result").json()
+    scalars = body["data"]["fields" if body["kind"] == "grid2d" else "point_fields"]
+    for name in ("A", "B", "mu_r"):
+        assert scalars[name], f"the magnetics page renders `{name}`"
+
+    # The iron has to have been rasterised somewhere, or the geometry never reached the solver
+    # and the whole picture would be of a coil in empty air.
+    assert max(scalars["mu_r"]) > 1.0
+    # Current in, flux out: a solved magnetostatic problem with a source cannot be uniformly
+    # zero. This is the cheapest assertion that the source term actually did something.
+    assert max(abs(value) for value in scalars["B"]) > 0.0
+
+
+def test_a_partially_overlapping_geometry_is_refused(client, solenoid_geometry):
+    """The constraint the page's controls are shaped to respect.
+
+    ``regions2d`` accepts regions that are disjoint or fully nested, and rejects outlines that
+    properly cross, because that describes an ambiguous material assignment. The solenoid page
+    measures its winding outward from the core precisely so no slider combination can produce
+    this — and the refusal is the reason that design is worth the trouble.
+    """
+    overlapping = {
+        **solenoid_geometry,
+        "regions": [
+            solenoid_geometry["regions"][0],
+            {
+                "name": "straddles_the_core",
+                "shape": {
+                    "type": "polygon2d",
+                    "points": [[0.0, -0.01], [0.02, -0.01], [0.02, 0.01], [0.0, 0.01]],
+                },
+                "material": {"current_density": 1.0e6},
+            },
+        ],
+    }
+
+    response = client.post(
+        "/api/v1/jobs",
+        json={"solver": "mock.magnetostatics2d", "geometry": overlapping, "params": {}},
+    )
+    assert response.status_code == 422
 
 
 def test_an_oversized_job_is_refused_with_an_explanation(client, airfoil_geometry, monkeypatch):

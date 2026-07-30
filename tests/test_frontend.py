@@ -13,7 +13,11 @@ import pytest
 
 FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
 
-PAGES = ["/", "/experiments/airfoil/"]
+#: Every experiment's directory. A page added here without its assets being reachable is the
+#: failure this module exists to catch.
+EXPERIMENTS = ["airfoil", "solenoid"]
+
+PAGES = ["/", *(f"/experiments/{name}/" for name in EXPERIMENTS)]
 
 
 @pytest.mark.parametrize("path", PAGES)
@@ -29,10 +33,13 @@ def test_homepage_names_the_experiments_and_carries_the_disclaimer(client):
     body = re.sub(r"\s+", " ", client.get("/").text)
 
     assert "Andolfatto Physics Lab" in body
-    assert "/experiments/airfoil/" in body
-    # The two planned experiments are listed honestly rather than linked to nothing.
-    assert "In preparation" in body
+    # Every available experiment is linked from the homepage; an experiment that ships
+    # without a way in has not shipped.
+    for name in EXPERIMENTS:
+        assert f"/experiments/{name}/" in body
     assert "Magnetics lab" in body
+    # What is still planned is listed honestly rather than linked to nothing.
+    assert "In preparation" in body
     assert "Heat sink" in body
     assert "not a substitute for professional engineering verification" in body
     assert "fenix-spoon" in body
@@ -46,6 +53,31 @@ def test_the_airfoil_page_uses_the_fenix_spoon_widgets(client):
     assert '"@fenix-spoon/client"' in body
 
 
+def test_the_solenoid_page_renders_the_field_and_draws_its_own_cross_section(client):
+    """The magnetics page uses the viewer, and its own diagram in place of the editor.
+
+    ``<fs-geometry-2d>`` edits a ``domain2d`` outline — one polygon cut out of a rectangle —
+    so it has nothing to offer a geometry made of nested material regions. Asserting it is
+    *absent* is the point: importing it here would ship a widget bundle the page cannot use.
+    """
+    body = client.get("/experiments/solenoid/").text
+    # Comments stripped first: the page *explains* why the editor widget is absent, and prose
+    # naming a tag is not the same claim as markup using it.
+    markup = re.sub(r"<!--.*?-->", "", body, flags=re.DOTALL)
+
+    assert "<fs-viewer" in markup
+    assert '"@fenix-spoon/client"' in markup
+    assert "<fs-geometry-2d" not in markup
+    assert '"@fenix-spoon/geometry-2d"' not in markup
+    # The cross-section diagram, which is what tells the visitor what will be solved.
+    assert 'id="schematic"' in markup
+    # Collapsed, because the disclaimer is line-wrapped in the source and a line break is
+    # formatting rather than content.
+    assert "not a substitute for professional engineering verification" in re.sub(
+        r"\s+", " ", markup
+    )
+
+
 @pytest.mark.parametrize(
     "path",
     [
@@ -55,8 +87,9 @@ def test_the_airfoil_page_uses_the_fenix_spoon_widgets(client):
         "/shared/lab.css",
         "/shared/api.js",
         "/shared/components.js",
-        "/experiments/airfoil/app.js",
-        "/experiments/airfoil/content.json",
+        "/shared/experiment.js",
+        *(f"/experiments/{name}/app.js" for name in EXPERIMENTS),
+        *(f"/experiments/{name}/content.json" for name in EXPERIMENTS),
     ],
 )
 def test_static_assets_the_pages_reference_are_reachable(client, path):
@@ -70,13 +103,44 @@ def test_static_assets_the_pages_reference_are_reachable(client, path):
     assert response.status_code == 200, f"{path} is referenced by the site but not served"
 
 
-def test_the_import_map_matches_what_is_vendored(client):
-    """The import map's targets and the vendor tree must not drift apart."""
-    body = client.get("/experiments/airfoil/").text
+@pytest.mark.parametrize("name", EXPERIMENTS)
+def test_the_import_map_matches_what_is_vendored(client, name):
+    """Every experiment's import map targets must resolve, and they need not be the same set.
+
+    The airfoil resolves three packages, the solenoid two — it has no geometry to edit with
+    the editor widget. What must hold for both is that whatever the page declares is actually
+    served, because a bare specifier that resolves to a 404 is a page that does nothing.
+    """
+    body = client.get(f"/experiments/{name}/").text
     targets = re.findall(r'"(/vendor/fenix-spoon/[^"]+)"', body)
-    assert targets, "the airfoil page must resolve the widget packages through an import map"
+    assert targets, f"the {name} page must resolve the widget packages through an import map"
     for target in targets:
         assert client.get(target).status_code == 200
+
+
+@pytest.mark.parametrize("name", EXPERIMENTS)
+def test_every_experiment_has_didactic_content_with_the_sections_the_page_renders(client, name):
+    """The lesson is data, and the page renders whatever shape it finds.
+
+    ``renderLesson`` reads ``intro``, ``title`` and ``sections[]`` with ``id`` and ``heading``.
+    A content file missing one of those produces a page with a blank panel and no error, which
+    is the kind of failure that survives review — so the contract is asserted here instead.
+    """
+    content = client.get(f"/experiments/{name}/content.json").json()
+
+    assert content["title"]
+    assert content["intro"]
+    assert content["sections"], "an experiment page with no lesson is a demo, not a lab"
+    for section in content["sections"]:
+        assert section["id"] and section["heading"]
+        assert section.get("body") or section.get("steps"), section["id"]
+
+    # Every experiment states the limits of its own model. This one is not a style rule: the
+    # whole claim of the lab is that it teaches, and a simulation presented without its
+    # assumptions teaches something false.
+    limits = next((s for s in content["sections"] if s["id"] == "limits"), None)
+    assert limits, f"{name} must document the limits of its model"
+    assert limits.get("caution") is True
 
 
 def test_the_vendored_widgets_record_their_source_commit():

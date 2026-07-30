@@ -64,8 +64,8 @@ else
   MOCK="mock.laplace2d"
 fi
 
-# ---------------------------------------------------------------- 3. homepage & experiment
-for path in "/" "/experiments/airfoil/"; do
+# ---------------------------------------------------------------- 3. homepage & experiments
+for path in "/" "/experiments/airfoil/" "/experiments/solenoid/"; do
   BODY=$(curl -fsS --max-time 15 "$BASE_URL$path" 2>&1)
   if [ $? -eq 0 ] && printf '%s' "$BODY" | grep -q "Andolfatto Physics Lab"; then
     pass "$path is served"
@@ -78,6 +78,14 @@ if printf '%s' "$(curl -fsS --max-time 15 "$BASE_URL/experiments/airfoil/")" | g
   pass "the airfoil page embeds the Fenix Spoon widgets"
 else
   fail "the airfoil page embeds the Fenix Spoon widgets"
+fi
+
+# The magnetics page renders a field but edits no outline, so it embeds the viewer and not the
+# geometry editor — checking for the wrong one would pass on a page that cannot work.
+if printf '%s' "$(curl -fsS --max-time 15 "$BASE_URL/experiments/solenoid/")" | grep -q "fs-viewer"; then
+  pass "the magnetics page embeds the field viewer"
+else
+  fail "the magnetics page embeds the field viewer"
 fi
 
 if curl -fsS --max-time 15 -o /dev/null "$BASE_URL/vendor/fenix-spoon/viewer/index.js"; then

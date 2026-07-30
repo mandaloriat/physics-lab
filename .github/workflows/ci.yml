@@ -81,10 +81,14 @@ jobs:
           ]
 
           DISCLAIMER = "not a substitute for professional engineering verification"
+          # Every experiment page carries it, not just the first one. Listed explicitly
+          # rather than globbed: the point is that a *new* page cannot ship without the
+          # disclaimer, and a glob would happily find nothing and pass.
           DISCLAIMER_FILES = [
               "README.md",
               "frontend/index.html",
               "frontend/experiments/airfoil/index.html",
+              "frontend/experiments/solenoid/index.html",
           ]
 
           def rendered(path: str) -> str:
