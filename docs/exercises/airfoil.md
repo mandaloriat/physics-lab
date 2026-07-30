@@ -443,9 +443,11 @@ table shows *x<sub>ac</sub>* as "requires a sweep" until one has been run.
 
 ## 8. Verification
 
-Five checks. The first two are exact, the third asymptotic, the fourth internal, the fifth a
-theorem. Each is a *number* in the result payload with a stated tolerance; the page shows
-residual, tolerance and a pass mark.
+Six checks: two exact solutions (§8.1, §8.2), one asymptotic band (§8.3), one internal
+consistency (§8.4), one theorem (§8.5) and one convergence study (§8.6). Each is a *number* in
+the result payload with a stated tolerance; the page shows residual, tolerance and a pass mark.
+The last four run on every solve and are shown on the page; the first two are the test suite's
+(§12), because they need geometries the exercise does not offer.
 
 ### 8.1 Circular cylinder with circulation (exact, unit test)
 
@@ -514,8 +516,8 @@ With `kutta: none` the lift must also vanish, to the same tolerance.
 
 With `convergence_check` on, the same geometry is also solved at 2*N* panels (cheap: one more
 factorisation) and `cl_convergence_delta` = |*C<sub>L</sub>*(2*N*) − *C<sub>L</sub>*(*N*)| is
-reported. Tolerance 0.5 %. It is the weakest of the five checks on its own and the page says
-so — it shows the discretisation has settled, not that it settled on the truth.
+reported. Tolerance 0.5 %. It is the weakest of the six on its own and the page says so — it
+shows the discretisation has settled, not that it settled on the truth.
 
 ---
 
