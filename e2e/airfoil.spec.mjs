@@ -17,6 +17,8 @@
  * anything to keep the suite quick.
  */
 
+import { stat } from 'node:fs/promises';
+
 import { expect, test } from '@playwright/test';
 
 /** Set a generated control and fire the event the form listens for. */
@@ -518,9 +520,45 @@ test('Run, Keep result and exporting the image all work from the action bar', as
   await page.locator('#actionbar #keep').click();
   await expect(page.locator('#runs-table tbody tr')).toHaveCount(1);
 
+  // The exported image is composed from the field plus the annotation layer, and the layer is
+  // serialised without its stylesheet — so every property it is drawn with has to be inlined.
+  // `fill: none` is the one that bites: an outline whose fill is not carried across falls back
+  // to the SVG default of *black* and exports as a filled silhouette. Asserting the styles the
+  // export has to preserve is a cheaper regression guard than decoding the PNG, and it names
+  // the cause rather than a symptom.
+  await page.locator('[data-layer=peak]').click();
+  const styled = await page.evaluate(() => {
+    const seen = {};
+    for (const [key, selector] of [
+      ['profile', '#overlay .overlay__profile'],
+      ['label', '#overlay .overlay__marker text'],
+    ]) {
+      const node = document.querySelector(selector);
+      if (!node) continue;
+      const style = getComputedStyle(node);
+      seen[key] = {
+        fill: style.fill,
+        stroke: style.stroke,
+        fontFamily: style.fontFamily,
+        paintOrder: style.paintOrder,
+      };
+    }
+    return seen;
+  });
+  // An outline: no fill, a visible stroke.
+  expect(styled.profile.fill).toBe('none');
+  expect(styled.profile.stroke).not.toBe('none');
+  // A label: a font of its own and the halo that keeps it readable over any field.
+  expect(styled.label.fontFamily).not.toBe('');
+  expect(styled.label.paintOrder).toContain('stroke');
+
   const download = page.waitForEvent('download');
   await page.locator('[data-tool=export]').click();
-  expect((await download).suggestedFilename()).toMatch(/\.png$/);
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(/\.png$/);
+  // A composed picture, not an empty canvas: the field alone is already tens of kilobytes.
+  const { size } = await stat(await file.path());
+  expect(size).toBeGreaterThan(10_000);
 });
 
 /* ------------------------------------------------------------------ keeping and comparing */

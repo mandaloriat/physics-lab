@@ -899,7 +899,32 @@ export function createWorkspace(spec) {
     }
   }
 
-  /** Serialise the overlay with its computed colours inlined, so it rasterises standalone. */
+  /**
+   * Everything the annotation layer is styled with, to be inlined before export.
+   *
+   * A serialised SVG carries no stylesheet, so whatever is not copied onto the element falls
+   * back to the SVG defaults — and those defaults are not neutral. `fill` defaults to *black*,
+   * so an unstyled `<path>` that the page draws as a hairline outline exports as a filled
+   * silhouette; unstyled text loses the halo that makes a label readable over a dark field, and
+   * takes on the serif default at whatever size the renderer picks. Both make the exported PNG
+   * a different picture from the one on screen, which is the one thing an export must not be.
+   */
+  const EXPORTED_STYLE = [
+    'stroke',
+    'fill',
+    'stroke-width',
+    'stroke-dasharray',
+    'stroke-linejoin',
+    'stroke-linecap',
+    'opacity',
+    'font-family',
+    'font-size',
+    'font-weight',
+    'paint-order',
+    'text-anchor',
+  ];
+
+  /** Serialise the overlay with its computed style inlined, so it rasterises standalone. */
   async function overlayImage(width, height) {
     if (!overlay.childNodes.length) return null;
     const clone = overlay.cloneNode(true);
@@ -907,9 +932,11 @@ export function createWorkspace(spec) {
     const copies = clone.querySelectorAll('*');
     for (const [index, node] of copies.entries()) {
       const computed = getComputedStyle(originals[index]);
-      for (const property of ['stroke', 'fill', 'stroke-width', 'stroke-dasharray', 'opacity']) {
+      for (const property of EXPORTED_STYLE) {
         const value = computed.getPropertyValue(property);
-        if (value && value !== 'none') node.setAttribute(property, value);
+        // `none` is copied like any other value, and deliberately: `fill: none` is what keeps
+        // an outline an outline. Skipping it was leaving the SVG default of black behind.
+        if (value) node.setAttribute(property, value);
       }
       node.removeAttribute('class');
     }
