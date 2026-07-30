@@ -3,8 +3,9 @@
 One adapter lives here so far: the airfoil exercise's panel method. It is registered by
 importing it, and importing this package is wired into ``physics_lab.main`` before the app is
 created, so it appears in ``GET /api/v1/solvers``, in the capability catalogue and in the
-front-end's solver picker with no further wiring — in the API process and in every worker
-container alike, because both import the same module.
+front-end's solver picker with no further wiring. The worker needs the same import — see
+``physics_lab.worker``, which is why arq is pointed at that module rather than at
+``fenixspoon.worker.WorkerSettings`` directly.
 
 Why a solver of the lab's own, when the point of the first release was to write none
 -------------------------------------------------------------------------------------
