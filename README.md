@@ -463,9 +463,11 @@ A bare `:port` site address turns automatic HTTPS off, so nothing else has to ch
    `tests/test_frontend.py`, which then checks its assets, its import map and the shape of
    its `content.json` — including that it documents the limits of its own model.
 4. If Fenix Spoon has no solver for it, an adapter in `physics_lab/solvers/`. That package
-   is already imported before the app is built, so `@register` is the whole integration —
-   in the API process and in every worker, because they run the same image. It must
-   implement Fenix Spoon's public `Solver` contract; nothing about it is lab-specific.
+   is already imported before the app is built, and again by `physics_lab.worker` — the
+   module the worker containers run — so `@register` is the whole integration. Sharing an
+   image with the API is not what makes an adapter available in a worker; importing the
+   package in the process arq runs is. It must implement Fenix Spoon's public `Solver`
+   contract; nothing about it is lab-specific.
 
 ---
 

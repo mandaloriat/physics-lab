@@ -108,10 +108,12 @@ services:
         FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-988ad64}
     image: ${LAB_IMAGE:-physics-lab:prod}
     restart: unless-stopped
-    # arq drains the queue the API dispatches to. The lab's own adapters are registered
-    # because `physics_lab.solvers` is imported by the package the worker also has
-    # installed — same image, same catalogue, by construction.
-    command: ["arq", "fenixspoon.worker.WorkerSettings"]
+    # arq drains the queue the API dispatches to. physics_lab.worker re-exports fenixspoon's
+    # own WorkerSettings and imports physics_lab.solvers, which is what registers the lab's
+    # adapters (e.g. lab.airfoil_panel2d) in this process too — pointing arq straight at
+    # fenixspoon.worker.WorkerSettings would skip that import, and every job for one of those
+    # adapters would fail here with "this worker has no solver named …".
+    command: ["arq", "physics_lab.worker.WorkerSettings"]
     environment:
       FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-988ad64b8cd25f94e52b985bf2d2456230a9eed3}
       FENIXSPOON_DATA_DIR: /data

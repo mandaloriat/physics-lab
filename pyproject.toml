@@ -24,6 +24,10 @@ dev = [
     "httpx>=0.27",
     "ruff>=0.4",
     "mypy>=1.10",
+    # tests/test_worker.py reads the compose files. PyYAML arrives anyway as a transitive
+    # dependency of uvicorn's `standard` extra, but a test that imports it directly should
+    # say so rather than rely on another package's extras staying what they are today.
+    "pyyaml>=6",
 ]
 
 [project.urls]
