@@ -15,7 +15,7 @@ dependencies = [
     # available — see docs/architecture-decisions.md, ADR-007, for the upgrade procedure.
     # This SHA must match FENIX_SPOON_COMMIT everywhere else in the repository;
     # scripts/check-pins.sh fails CI when it does not.
-    "fenixspoon @ git+https://github.com/mandaloriat/fenix-spoon@712dea2738d1165fa0afc563f2965e5a48df32cb#subdirectory=server",
+    "fenixspoon @ git+https://github.com/mandaloriat/fenix-spoon@988ad64b8cd25f94e52b985bf2d2456230a9eed3#subdirectory=server",
 ]
 
 [project.optional-dependencies]

@@ -157,7 +157,7 @@ The FEniCSx solvers register only where dolfinx imports, which means the full im
 docker compose \
   --env-file .env \
   -f compose.yaml -f compose.override.yaml \
-  build --build-arg FENIX_SPOON_IMAGE=ghcr.io/mandaloriat/fenix-spoon:sha-712dea2
+  build --build-arg FENIX_SPOON_IMAGE=ghcr.io/mandaloriat/fenix-spoon:sha-988ad64
 docker compose up -d
 ```
 
@@ -362,9 +362,9 @@ pytest && npx playwright test
 
 | What | Value |
 |---|---|
-| Fenix Spoon commit | `712dea2738d1165fa0afc563f2965e5a48df32cb` |
-| FEniCSx base image | `ghcr.io/mandaloriat/fenix-spoon:sha-712dea2` — digest `sha256:846971603b791a5af01072bcae614b56c5d93ff473fcfc3e727e3aef0fd6bce9` |
-| Mock-only base image | `ghcr.io/mandaloriat/fenix-spoon:sha-712dea2-slim` — digest `sha256:9d5820ca0ecff796692acd9026b8205ee0a5bb4eaaae522f42434f46d91cebec` |
+| Fenix Spoon commit | `988ad64b8cd25f94e52b985bf2d2456230a9eed3` |
+| FEniCSx base image | `ghcr.io/mandaloriat/fenix-spoon:sha-988ad64` — digest `sha256:9066f98076339d58f62d20da68ea917139d0430b364f598de6df92b7811eb6f0` |
+| Mock-only base image | `ghcr.io/mandaloriat/fenix-spoon:sha-988ad64-slim` — digest `sha256:99230d7e91929bc3179a2da6895843e157708b16c0fe80ef17f7e442880e65fd` |
 | dolfinx | v0.11.0 |
 
 Upstream has published **no release and no git tag**, so a commit SHA is the strongest pin
