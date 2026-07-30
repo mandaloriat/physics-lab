@@ -251,7 +251,7 @@ a caller learns what a run will report before running it.
 |---|---|---|---|---|
 | **Airfoil design** | Hit a target sectional lift by choosing profile and incidence | *C<sub>p</sub>*, *C<sub>L</sub>*, *C<sub>m</sub>*, centre of pressure, aerodynamic centre; *C<sub>D</sub>* and *L*/*D* only at model level 2 | Thin-airfoil theory, exact Kármán–Trefftz and cylinder solutions, circulation-vs-pressure consistency, panel convergence | **built**: [`exercises/airfoil.md`](exercises/airfoil.md) |
 | **Lightweight bracket** | Remove mass while keeping stress and deflection admissible | displacement, von Mises, reactions, mass, compliance, safety factor | Euler–Bernoulli beam, hole stress-concentration factor *K<sub>t</sub>*, reaction balance, mesh convergence | not specified |
-| **Electromagnet gap** | Produce a required gap force at minimum current | **B**, **H**, flux, force, losses, saturation margin | magnetic-circuit estimate, energy balance | not specified; reworks the existing solenoid page |
+| **Electromagnet gap** | Produce a required gap force at minimum current | **B**, **H**, flux, force, losses, saturation margin | magnetic-circuit estimate, energy balance | **specified, not built**: [`exercises/solenoid.md`](exercises/solenoid.md). The page has the shell and refuses the metrics until their 2-D definitions are verified |
 | **Heat-sink challenge** | Dissipate a given power below a maximum temperature, with less material | *T*, heat flux, *T*<sub>max</sub>, *R*<sub>θ</sub>, mass, fin efficiency | energy balance, 1-D fin theory | not specified |
 | **Room modes** | Place source and listener avoiding nodes and resonances | acoustic pressure, phase, SPL, modal frequencies, uniformity | analytic modes of a rectangular room | not specified; needs complex harmonic fields and a frequency sweep |
 
@@ -263,6 +263,34 @@ Two of the metric columns above cannot be produced by the model the correspondin
 today — that is not a gap in the table but the substance of the airfoil specification, which
 deals with it explicitly and refuses to display a lift coefficient a circulation-free model
 cannot produce.
+
+---
+
+## 7a. The order a page presents them in
+
+The nine sections are what a page must *contain*. They are not the order in which a visitor
+meets them, and conflating the two produced a page that had everything and showed it all at
+once. Since [ADR-017](architecture-decisions.md#adr-017--an-experiment-page-is-a-bench-not-a-document)
+every page is arranged as one path:
+
+| Step | Carries |
+|---|---|
+| **1 Mission** | §1 — the objective, the targets with their tolerances, the constraints, pass/fail per target, and — separately — why a run does not count when the numbers are right but the model is not |
+| **2 Configure** | §5, in two visible groups (*Design*, *Conditions*) plus *Advanced*, closed, holding the numerical settings and the study |
+| **3 Run** | a stable action bar: Run, Cancel while solving, Keep result afterwards, Compare once rows exist |
+| **4 Explore** | §6 — the field, with the tools to interrogate it rather than only look at it |
+| **5 Check** | §7 as a few headline tiles before any table, then §8 and the domain of validity, then the cost of the solve |
+| **6 Keep and compare** | §9 |
+| **7 Understand the model** | §2, §3, §4 and the reasoning behind §5–§8, in collapsible blocks |
+
+Two rules the arrangement adds to the contract:
+
+- **Nothing internal reaches the screen.** A target is stated in the metric's *symbol* — `L′`,
+  `C_m,c/4` — not in the key the report stores it under. The keys stay in the export, where they
+  are read by a program.
+- **A section with nothing in it does not exist yet.** Before the first run the reporting
+  sections are absent, not empty. A panel reading "Nothing computed yet" occupies the position
+  where an answer will be and teaches the visitor to skip it.
 
 ---
 
@@ -286,9 +314,17 @@ renderer. The contract adds:
 - **a run table** — the store, the row renderer, compare and export.
 - **a challenge banner** — the objective, and per-target met / not met.
 
-All of it now exists, built with the airfoil exercise: the grouped panels in `exercise.js`
-alongside the metrics, verification and validity renderers and the challenge banner, the plot in
-`curve.js`, the store and its table in `runs.js`, and the atmosphere in `atmosphere.js`.
+- **a workspace** — the computed field as the page's largest element, with a toolbar: pan, zoom,
+  reset, fit, probe, vector glyphs, streamlines, annotation layers in domain coordinates, image
+  export, and a colour scale. Every tool declares the condition under which it works and is
+  **disabled with that reason** when it does not, because "this result publishes no vector
+  field" is a statement about the solve and a missing button is a statement about nothing.
+- **an edit mode kept apart from an explore mode**, where the page has geometry to edit at all.
+
+All of it now exists: the grouped panels in `exercise.js` alongside the headline tiles, the
+metrics, verification and validity renderers and the challenge banner, the plot in `curve.js`,
+the store and its table in `runs.js`, the atmosphere in `atmosphere.js`, and the workspace in
+`workspace.js`.
 
 That is a real amount of shared code, and it is the point at which
 [ADR-009](architecture-decisions.md#adr-009--no-front-end-framework-and-no-bundler)'s

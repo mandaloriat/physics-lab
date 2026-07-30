@@ -1,0 +1,9 @@
+{
+ "generated_by": "scripts/make-thumbnails.py",
+ "note": "Real solves. Re-run the script to reproduce these bytes.",
+ "thumbnails": [
+  "airfoil",
+  "solenoid",
+  "heatsink"
+ ]
+}

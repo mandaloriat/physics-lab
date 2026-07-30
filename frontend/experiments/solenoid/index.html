@@ -27,10 +27,32 @@
 
 <div id="header"></div>
 
-<main class="wrap">
+<main class="bench">
 
-  <h1>Magnetics lab</h1>
-  <p class="lede prose" id="intro"></p>
+  <!-- ------------------------------------------------------------------ 1. Mission -->
+  <header class="mission">
+    <div class="mission__head">
+      <p class="mission__eyebrow">Demonstration · magnetostatics of a cross-section</p>
+      <h1>Magnetics lab</h1>
+    </div>
+    <!-- Deliberately not a challenge banner. This page is still a demonstration, and the
+         contract's §1 says a section that does not apply is absent rather than invented: a
+         target here would need metrics whose 2-D definition has not been checked yet. What
+         those metrics are, and what has to be settled before they can be claimed, is in
+         `docs/exercises/solenoid.md`. -->
+    <div class="mission__challenge panel panel--mission">
+      <h2 class="panel__title">What this page is</h2>
+      <p class="lede prose" id="intro"></p>
+      <p class="field__hint" id="not-an-exercise">
+        A demonstration, not yet an exercise: it has no quantitative target, because the
+        metrics one would be set in — core flux, mean and peak flux density, leakage,
+        ampere-turns, stored energy — have definitions in a two-dimensional slice that this
+        lab has not yet verified. They are specified in
+        <a href="https://github.com/mandaloriat/physics-lab/blob/main/docs/exercises/solenoid.md">docs/exercises/solenoid.md</a>
+        and will not be printed before they are checked.
+      </p>
+    </div>
+  </header>
 
   <p id="widgets-missing" class="notice notice--warn" hidden>
     The browser widgets have not been built. Run
@@ -38,53 +60,39 @@
   </p>
   <p id="maintenance" class="notice notice--warn" hidden></p>
 
-  <div class="experiment">
+  <div class="bench__layout">
 
-    <div>
-      <div class="stage">
-        <fs-viewer id="viewer" field="B" colormap="viridis" units="T"></fs-viewer>
+    <section class="workspace" id="workspace" aria-labelledby="workspace-heading">
+      <h2 id="workspace-heading" class="visually-hidden">Workspace</h2>
+
+      <div class="workspace__toolbar" role="toolbar" aria-label="Visualisation tools"></div>
+
+      <div class="workspace__frame">
+        <div class="workspace__stage" id="stage" aria-label="Computed field. Drag to pan, plus and minus to zoom.">
+          <div class="workspace__zoom">
+            <fs-viewer id="viewer" field="B" colormap="viridis" units="T" colorbar="off"></fs-viewer>
+            <svg class="workspace__overlay" id="overlay" preserveAspectRatio="none" aria-hidden="true"></svg>
+          </div>
+        </div>
+        <div class="workspace__scale" id="scale" aria-hidden="true"></div>
       </div>
 
-      <div class="status-bar">
-        <span class="status-dot" id="dot" data-state="idle"></span>
-        <!-- Run starts disabled and this says why. The page cannot know whether it can solve
-             until the solver catalogue and /health have answered, and a button offered before
-             then can only mislead. -->
-        <span id="status" role="status">Checking what this server can do…</span>
-        <progress id="progress" value="0" max="1" hidden></progress>
-      </div>
+      <div class="workspace__readout" id="readout" hidden></div>
 
-      <div class="panel" style="margin-top: 1rem;">
-        <h3>Result</h3>
-        <dl class="stats" id="stats"><span class="field__hint">Nothing computed yet.</span></dl>
-        <p class="artifacts" id="artifacts"></p>
-      </div>
-
-      <div class="panel">
-        <h3>Display</h3>
-        <div class="field">
-          <label class="field__label" for="field">Field shown</label>
+      <div class="workspace__field">
+        <label class="workspace__fieldpick" for="field">
+          <span>Field</span>
           <select id="field" aria-label="Field shown"></select>
-          <p class="field__hint" id="field-hint"></p>
-        </div>
+        </label>
+        <p class="field__hint" id="field-hint"></p>
       </div>
-    </div>
+    </section>
 
-    <div>
-      <div class="panel">
-        <h3>Computation mode</h3>
-        <div class="field">
-          <select id="solver" aria-label="Solver"></select>
-          <p class="field__hint" id="solver-hint"></p>
-        </div>
-        <div class="button-row">
-          <button id="run" class="primary" type="button" disabled>Run</button>
-          <button id="cancel" type="button" hidden>Cancel</button>
-        </div>
-      </div>
+    <form class="controls" id="controls" aria-labelledby="controls-heading" onsubmit="return false">
+      <h2 id="controls-heading" class="panel__title">Configure</h2>
 
-      <div class="panel">
-        <h3>Cross-section</h3>
+      <section class="group" aria-labelledby="design-heading">
+        <h3 id="design-heading">Design</h3>
         <!-- The domain is square and this diagram keeps that aspect ratio, so proportions
              on it are the real ones. The group flips y, because the protocol's y grows
              upward and SVG's grows down; the geometry is symmetric top-to-bottom, but a
@@ -108,27 +116,84 @@
           <li><span class="swatch swatch--air"></span>air</li>
         </ul>
         <div id="shape-controls"></div>
+        <p class="field__hint" id="shape-note"></p>
         <div class="button-row">
           <button id="reset" type="button">Reset geometry</button>
         </div>
-        <p class="field__hint" id="shape-note" style="margin-top:0.6rem"></p>
-      </div>
+      </section>
 
-      <div class="panel">
-        <h3>Solver parameters</h3>
-        <div id="solver-params"></div>
-      </div>
-    </div>
+      <section class="group" aria-labelledby="conditions-heading">
+        <h3 id="conditions-heading">Conditions</h3>
+        <div id="conditions"></div>
+      </section>
 
+      <details class="group group--advanced" id="advanced">
+        <summary><span>Advanced</span><span class="group__note">solver and numerics</span></summary>
+        <div class="group__body">
+          <div class="field">
+            <label class="field__label" for="solver"><span>Computation mode</span></label>
+            <select id="solver" aria-label="Solver"></select>
+            <p class="field__hint" id="solver-hint"></p>
+          </div>
+          <h4>Numerical settings</h4>
+          <div id="numerical"></div>
+        </div>
+      </details>
+    </form>
   </div>
+
+  <div class="actionbar" id="actionbar">
+    <div class="actionbar__status">
+      <span class="status-dot" id="dot" data-state="idle"></span>
+      <!-- Run starts disabled and this says why. The page cannot know whether it can solve
+           until the solver catalogue and /health have answered, and a button offered before
+           then can only mislead. -->
+      <span id="status" role="status">Checking what this server can do…</span>
+      <progress id="progress" value="0" max="1" hidden></progress>
+    </div>
+    <div class="actionbar__actions">
+      <button id="run" class="primary" type="button" disabled>Run</button>
+      <button id="cancel" type="button" hidden>Cancel</button>
+      <!-- The extension point for `Keep result`. Disabled with its reason rather than absent,
+           so the shape of the finished exercise is visible and the button is not invented
+           before there is a comparable row to keep. -->
+      <button id="keep" type="button" disabled
+              title="Keeping a run needs the metrics a comparison is made of. See docs/exercises/solenoid.md.">
+        Keep result
+      </button>
+    </div>
+  </div>
+
+  <div class="results" id="results" hidden>
+    <section class="panel" aria-labelledby="reading-heading">
+      <h2 id="reading-heading" class="panel__title">What came out</h2>
+      <!-- Extension point: this is where the metrics table goes once the definitions in
+           docs/exercises/solenoid.md are verified. Until then the page reports what the
+           solve cost and nothing it cannot stand behind. -->
+      <dl class="stats" id="stats"></dl>
+      <p class="artifacts" id="artifacts"></p>
+      <p class="field__hint">
+        No engineering metrics yet, and no verification residual: this page reports the field
+        and the cost of computing it. What it would take to report more is written down rather
+        than guessed at.
+      </p>
+    </section>
+  </div>
+
+  <section class="lesson" aria-labelledby="lesson-heading">
+    <h2 id="lesson-heading" class="panel__title">Understand the model</h2>
+    <p class="field__hint">
+      Everything the demonstration rests on. Nothing here has been shortened — it has been
+      moved out of the way of the experiment.
+    </p>
+    <div class="lesson__blocks" id="lesson"></div>
+  </section>
 
   <p class="disclaimer">
     <strong>Note.</strong>
     The simulations are demonstrative and educational. They are not a substitute for
     professional engineering verification.
   </p>
-
-  <div class="lesson" id="lesson"></div>
 
 </main>
 

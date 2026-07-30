@@ -26,10 +26,22 @@
 
 <div id="header"></div>
 
-<main class="wrap">
+<!-- The page is one path, in this order: mission, configure, run, explore, check, keep,
+     understand. Every section below is one of those steps and says which — the arrangement
+     docs/architecture-decisions.md ADR-017 sets out. -->
+<main class="bench">
 
-  <h1>Airfoil design</h1>
-  <p class="lede prose" id="intro"></p>
+  <!-- ------------------------------------------------------------------ 1. Mission -->
+  <header class="mission" id="mission">
+    <div class="mission__head">
+      <p class="mission__eyebrow">Exercise 1 · ideal flow with a Kutta condition</p>
+      <h1>Airfoil design</h1>
+    </div>
+    <div class="mission__challenge panel panel--mission" aria-labelledby="challenge-heading">
+      <h2 id="challenge-heading" class="panel__title">The mission</h2>
+      <div id="challenge"></div>
+    </div>
+  </header>
 
   <p id="widgets-missing" class="notice notice--warn" hidden>
     The browser widgets have not been built. Run
@@ -37,126 +49,129 @@
   </p>
   <p id="maintenance" class="notice notice--warn" hidden></p>
 
-  <!-- 1. Problem. The objective is data in content.json, so the page can say whether this run
-       met it instead of leaving two numbers to be compared by eye. -->
-  <section class="challenge panel" aria-labelledby="challenge-heading">
-    <h2 id="challenge-heading">The challenge</h2>
-    <div id="challenge"></div>
-  </section>
+  <!-- ------------------------------------------- 2. Configure · 3. Run · 4. Explore -->
+  <div class="bench__layout">
 
-  <div class="experiment">
+    <!-- The workspace is the instrument: it takes most of the width, it owns its own tools,
+         and every tool it cannot offer says why rather than disappearing. -->
+    <section class="workspace" id="workspace" aria-labelledby="workspace-heading">
+      <h2 id="workspace-heading" class="visually-hidden">Workspace</h2>
 
-    <div>
-      <div class="stage">
-        <fs-viewer id="viewer" field="Cp" colormap="coolwarm" contours="12" symmetric></fs-viewer>
-        <fs-geometry-2d id="editor" bounds="-1,-1,2,1" mode="spline" samples="16"
-                        aria-label="Airfoil profile: draggable control points"></fs-geometry-2d>
+      <div class="workspace__toolbar" role="toolbar" aria-label="Visualisation tools"></div>
+
+      <!-- The frame is fixed and the stage scrolls inside it, so the colour scale stays put
+           while the field is panned. -->
+      <div class="workspace__frame">
+        <div class="workspace__stage" id="stage" aria-label="Computed field. Drag to pan, plus and minus to zoom.">
+          <div class="workspace__zoom">
+            <fs-viewer id="viewer" field="Cp" colormap="coolwarm" contours="12" symmetric colorbar="off"></fs-viewer>
+            <!-- Annotations in domain coordinates, drawn by the page over the field. Aligned
+                 exactly because the viewer's colorbar is off, so its plot area is this box. -->
+            <svg class="workspace__overlay" id="overlay" preserveAspectRatio="none" aria-hidden="true"></svg>
+            <!-- Hidden except in Edit shape, so a drag can never be both a pan and a reshaping.
+                 The window is 2.6 chords by 1.2: wide enough to show the stream turning, tight
+                 enough that the section is the subject rather than a mark near the middle. The
+                 panel method has no outer boundary, so this is a framing choice and not a
+                 boundary condition — see docs/exercises/airfoil.md §2. -->
+            <fs-geometry-2d id="editor" bounds="-0.8,-0.6,1.8,0.6" mode="spline" samples="16" hidden
+                            aria-label="Airfoil profile: draggable control points"></fs-geometry-2d>
+          </div>
+        </div>
+        <div class="workspace__scale" id="scale" aria-hidden="true"></div>
       </div>
 
-      <div class="status-bar">
-        <span class="status-dot" id="dot" data-state="idle"></span>
-        <!-- Run starts disabled and this says why. The page cannot know whether it can solve
-             until the solver catalogue and /health have answered, and a button offered before
-             then can only mislead. -->
-        <span id="status" role="status">Checking what this server can do…</span>
-        <progress id="progress" value="0" max="1" hidden></progress>
-      </div>
+      <div class="workspace__readout" id="readout" hidden></div>
 
-      <!-- 6. Fields. -->
-      <div class="panel">
-        <h3>Field shown</h3>
-        <div class="field">
+      <div class="workspace__field">
+        <label class="workspace__fieldpick" for="field">
+          <span>Field</span>
           <select id="field" aria-label="Field shown"></select>
-          <p class="field__hint" id="field-hint"></p>
-        </div>
+        </label>
+        <p class="field__hint" id="field-hint"></p>
       </div>
+    </section>
 
-      <div class="panel">
-        <h3>Surface pressure</h3>
-        <div id="cp-curve" class="plot"></div>
-        <p class="field__hint">
-          Drawn suction-upward, as an aerodynamicist expects. The area between the two traces
-          is the lift.
-        </p>
-      </div>
-    </div>
+    <!-- 2. Configure. Three groups, and only the first two are on the main path. -->
+    <form class="controls" id="controls" aria-labelledby="controls-heading" onsubmit="return false">
+      <h2 id="controls-heading" class="panel__title">Configure</h2>
 
-    <div>
-      <div class="panel">
-        <h3>Solver</h3>
-        <div class="field">
-          <select id="solver" aria-label="Solver"></select>
-          <p class="field__hint" id="solver-hint"></p>
-        </div>
-        <div class="button-row">
-          <button id="run" class="primary" type="button" disabled>Run</button>
-          <button id="cancel" type="button" hidden>Cancel</button>
-        </div>
-      </div>
-
-      <!-- 5. Physical inputs: the problem itself. Nothing numerical in this column. -->
-      <div class="panel panel--physical">
-        <h3>Physical inputs</h3>
+      <section class="group" aria-labelledby="design-heading">
+        <h3 id="design-heading">Design</h3>
         <div class="field">
           <label class="field__label" for="profile"><span>Profile</span></label>
           <select id="profile" aria-label="Profile"></select>
-          <p class="field__hint">
-            Real four-digit sections, all three digits free. Move the sliders and you have a
-            profile of your own; drag the control points and you have a shape of your own.
-          </p>
         </div>
         <div id="shape-controls"></div>
+        <p class="field__hint" id="shape-note"></p>
         <div class="button-row">
+          <button id="edit-shape" type="button">Edit shape</button>
           <button id="reset" type="button">Reset profile</button>
         </div>
-        <p class="field__hint" id="shape-note"></p>
-        <p class="field__hint field__hint--read" id="geometry-readback"></p>
-      </div>
+      </section>
 
-      <div class="panel panel--physical">
-        <h3>Flow and air</h3>
+      <section class="group" aria-labelledby="conditions-heading">
+        <h3 id="conditions-heading">Conditions</h3>
         <div id="physical"></div>
         <div id="atmosphere"></div>
-        <h4>Follows from the above</h4>
-        <dl class="stats stats--derived" id="derived"></dl>
-        <p class="field__hint">
-          The Reynolds number is reported and changes nothing: this model has no viscosity. It
-          is here so two runs can be compared, and so the page can say when the model has been
-          left behind.
-        </p>
-      </div>
+        <button type="button" class="disclose" id="derived-toggle" aria-expanded="false" aria-controls="derived-wrap">
+          What follows from these
+        </button>
+        <div id="derived-wrap" hidden>
+          <dl class="stats stats--derived" id="derived"></dl>
+        </div>
+      </section>
 
-      <!-- 5. …and the numerics, kept apart from it on purpose. -->
-      <div class="panel panel--numerical">
-        <h3>Numerical settings</h3>
-        <p class="field__hint">
-          These change the error, not the answer. How much they change it is what the
-          verification panel measures.
-        </p>
-        <div id="numerical"></div>
-      </div>
-
-      <div class="panel panel--study">
-        <h3>Study</h3>
-        <p class="field__hint">
-          A single incidence, or a sweep. A sweep is the only way to get an aerodynamic centre,
-          and it costs one solve rather than one per angle.
-        </p>
-        <div id="study"></div>
-      </div>
-    </div>
-
+      <!-- Closed on arrival. Nothing in here is needed to answer the mission, and everything
+           in here changes the error rather than the answer. -->
+      <details class="group group--advanced" id="advanced">
+        <summary><span>Advanced</span><span class="group__note">numerics and study</span></summary>
+        <div class="group__body">
+          <p class="field__hint">
+            These change the error, not the answer. How much they change it is what the
+            verification panel measures.
+          </p>
+          <div id="numerical"></div>
+          <h4>Study</h4>
+          <p class="field__hint">
+            A single incidence, or a sweep. A sweep is the only way to get an aerodynamic
+            centre, and it costs one solve rather than one per angle.
+          </p>
+          <div id="study"></div>
+          <p class="field__hint" id="solver-hint"></p>
+          <select id="solver" aria-label="Solver" hidden></select>
+        </div>
+      </details>
+    </form>
   </div>
 
-  <div class="results">
+  <!-- 3. Run. One bar, always reachable, carrying every action that changes state. -->
+  <div class="actionbar" id="actionbar">
+    <div class="actionbar__status">
+      <span class="status-dot" id="dot" data-state="idle"></span>
+      <!-- Run starts disabled and this says why. The page cannot know whether it can solve
+           until the solver catalogue and /health have answered, and a button offered before
+           then can only mislead. -->
+      <span id="status" role="status">Checking what this server can do…</span>
+      <progress id="progress" value="0" max="1" hidden></progress>
+    </div>
+    <div class="actionbar__actions">
+      <button id="run" class="primary" type="button" disabled>Run</button>
+      <button id="cancel" type="button" hidden>Cancel</button>
+      <button id="keep" type="button" disabled>Keep result</button>
+      <button id="compare-jump" type="button" hidden>Compare</button>
+    </div>
+  </div>
 
-    <!-- 7. Engineering metrics: the answer. -->
-    <section class="panel" aria-labelledby="answer-heading">
-      <h2 id="answer-heading">The answer</h2>
-      <div id="metrics"></div>
-      <h4>What the solve cost</h4>
-      <dl class="stats" id="stats"><span class="field__hint">Nothing computed yet.</span></dl>
-      <p class="artifacts" id="artifacts"></p>
+  <!-- ------------------------------------------------------ 5. Check. Hidden until run. -->
+  <div class="results" id="results" hidden>
+
+    <section class="panel panel--answer" aria-labelledby="answer-heading">
+      <h2 id="answer-heading" class="panel__title">The answer</h2>
+      <div class="kpis" id="kpis"></div>
+      <details class="subpanel">
+        <summary>Every reported quantity</summary>
+        <div id="metrics"></div>
+      </details>
       <p class="field__hint">
         No drag and no lift-to-drag ratio: this model is inviscid, so both are zero and a ratio
         of zeroes is not a metric. The chordwise force that does come out of the pressure
@@ -164,45 +179,60 @@
       </p>
     </section>
 
-    <!-- 8. Verification, and the domain of validity. -->
-    <section class="panel" aria-labelledby="verification-heading">
-      <h2 id="verification-heading">How far to trust it</h2>
+    <section class="panel" aria-labelledby="trust-heading">
+      <h2 id="trust-heading" class="panel__title">How far to trust it</h2>
       <div id="verification"></div>
       <div id="validity"></div>
+      <details class="subpanel">
+        <summary>What the solve cost</summary>
+        <dl class="stats" id="stats"></dl>
+        <p class="artifacts" id="artifacts"></p>
+      </details>
+    </section>
+
+    <section class="panel panel--wide" aria-labelledby="cp-heading">
+      <h2 id="cp-heading" class="panel__title">Surface pressure</h2>
+      <div id="cp-curve" class="plot"></div>
+      <p class="field__hint" id="geometry-readback"></p>
+    </section>
+
+    <section class="panel panel--wide" id="sweep-panel" aria-labelledby="sweep-heading" hidden>
+      <h2 id="sweep-heading" class="panel__title">Across the sweep</h2>
+      <div class="sweep-layout">
+        <div id="sweep-curve" class="plot"></div>
+        <dl class="stats" id="sweep-metrics"></dl>
+      </div>
+      <p class="field__hint">
+        The aerodynamic centre is the regression slope of the pitching moment against lift,
+        subtracted from the quarter chord. Thin-airfoil theory says 0.25; thickness moves it
+        slightly aft. The fit's R² is shown because a straight line through a curve is not a
+        point.
+      </p>
     </section>
 
   </div>
 
-  <section class="panel" id="sweep-panel" aria-labelledby="sweep-heading" hidden>
-    <h2 id="sweep-heading">Across the sweep</h2>
-    <div class="sweep-layout">
-      <div id="sweep-curve" class="plot"></div>
-      <dl class="stats" id="sweep-metrics"></dl>
-    </div>
-    <p class="field__hint">
-      The aerodynamic centre is the regression slope of C_m against C_L, subtracted from the
-      quarter chord. Thin-airfoil theory says 0.25; thickness moves it slightly aft. The fit's
-      R² is shown because a straight line through a curve is not a point.
-    </p>
-  </section>
-
-  <!-- 9. Save result. -->
-  <section class="panel" aria-labelledby="runs-heading">
-    <h2 id="runs-heading">Kept runs</h2>
+  <!-- ------------------------------------------------------------ 6. Keep and compare -->
+  <section class="panel panel--runs" id="runs-panel" aria-labelledby="runs-heading">
+    <h2 id="runs-heading" class="panel__title">Kept runs</h2>
+    <p class="field__hint" id="runs-note"></p>
+    <div id="runs-table" class="table-scroll"></div>
     <div class="button-row">
-      <button id="keep" class="primary" type="button" disabled>Keep run</button>
       <button id="export-csv" type="button" disabled>Export CSV</button>
       <button id="export-json" type="button" disabled>Export JSON</button>
       <button id="clear-runs" type="button" disabled>Delete all</button>
     </div>
-    <p class="field__hint" id="runs-note"></p>
-    <div id="runs-table" class="table-scroll"></div>
-    <h4>Comparison</h4>
     <div id="compare" class="table-scroll"></div>
+  </section>
+
+  <!-- ------------------------------------------------------- 7. Understand the model -->
+  <section class="lesson" aria-labelledby="lesson-heading">
+    <h2 id="lesson-heading" class="panel__title">Understand the model</h2>
     <p class="field__hint">
-      A kept run records every input, not the interesting ones, so it can be recomputed. It
-      lives in this browser and nowhere else — export it if you want to keep it.
+      Everything the exercise rests on, in the order it matters. Nothing here has been
+      shortened — it has been moved out of the way of the experiment.
     </p>
+    <div class="lesson__blocks" id="lesson"></div>
   </section>
 
   <p class="disclaimer">
@@ -210,8 +240,6 @@
     The simulations are demonstrative and educational. They are not a substitute for
     professional engineering verification.
   </p>
-
-  <div class="lesson" id="lesson"></div>
 
 </main>
 

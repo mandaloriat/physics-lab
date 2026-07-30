@@ -33,6 +33,18 @@
   --core: #b3402f;
   --winding: #a2701a;
 
+  /* Annotation colours for the field overlay. Chosen to read against *both* ends of every
+     colormap the lab uses — the viewer's canvas is dark under viridis and near-white under
+     the middle of coolwarm — which is why each marker is also drawn with a halo rather than
+     relying on the colour alone. They encode identity (which quantity), never magnitude. */
+  --overlay-profile: #ffffff;
+  --overlay-chord: #ffd166;
+  --overlay-stream: #7ee0d3;
+  --overlay-cp: #ff6b6b;
+  --overlay-peak: #c084fc;
+  --overlay-ac: #4ade80;
+  --overlay-streamline: #7ee0d3;
+
   --radius: 8px;
   --radius-lg: 12px;
   --measure: 68ch;
@@ -253,8 +265,8 @@ code {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 1.25rem;
   margin: 1.5rem 0;
   padding: 0;
   list-style: none;
@@ -263,20 +275,45 @@ code {
 .card {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-lg);
   background: var(--surface-raised);
-  padding: 1.15rem;
-  gap: 0.5rem;
+  overflow: hidden;
 }
 
-.card--available {
-  border-color: var(--line-strong);
+/* A real solve, not an illustration: scripts/make-thumbnails.py runs the same solver the
+   page runs and commits the field as a PNG. The dark plate behind it is the viewer's own
+   background, so a card reads as a smaller version of the instrument. */
+.card__shot {
+  display: block;
+  aspect-ratio: 16 / 9;
+  background: #1e1e22;
+  overflow: hidden;
+}
+
+.card__shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.card__shot--planned img {
+  filter: saturate(0.55);
+  opacity: 0.75;
+}
+
+.card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1.15rem 1.15rem;
+  flex: 1;
 }
 
 .card--planned {
   background: var(--surface-sunken);
-  color: var(--ink-faint);
+  border-color: var(--line);
 }
 
 .card--planned h3 {
@@ -285,22 +322,93 @@ code {
 
 .card h3 {
   margin: 0;
+  font-size: 1.12rem;
+}
+
+.card h3 a {
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.card h3 a:hover {
+  color: var(--accent-ink);
+  text-decoration: underline;
 }
 
 .card p {
   margin: 0;
   font-size: 0.92rem;
   color: var(--ink-soft);
+}
+
+.card__problem {
   flex: 1;
+}
+
+.card__problem strong {
+  color: var(--ink);
 }
 
 .card--planned p {
   color: var(--ink-faint);
 }
 
+/* The one metric or constraint that makes the problem concrete. Tabular, because these are
+   quantities and a card that states one is making a promise about the page. */
+.card__facts {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.2rem 0 0;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.8rem;
+}
+
+.card__facts div {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.card__facts dt {
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+}
+
+.card__facts dd {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
 .card__foot {
   margin-top: 0.35rem;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
+}
+
+.cta {
+  display: inline-block;
+  font-weight: 560;
+  text-decoration: none;
+}
+
+.cta:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.about {
+  margin: 2.5rem 0 0;
+}
+
+.about .lesson__block {
+  margin-top: 0.5rem;
+}
+
+.badge--demo {
+  color: var(--accent-ink);
 }
 
 .badge {
@@ -331,73 +439,235 @@ code {
   color: var(--warn);
 }
 
-/* ---------------------------------------------------------------- mode table */
+/* ================================================================= the bench
+ *
+ * An experiment page is a laboratory bench, not a document with a picture in it. The
+ * instrument takes the width; the controls sit beside it; the actions are always reachable;
+ * the reading appears once there is one; the documentation is underneath, folded. Sections
+ * follow the path a visitor takes — mission, configure, run, explore, check, keep,
+ * understand. See docs/architecture-decisions.md, ADR-017.
+ */
 
-.modes {
+.bench {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding: 0 1.25rem 2rem;
+}
+
+/* ------------------------------------------------------------------------- 1. mission */
+
+.mission {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1rem;
-  margin: 1.25rem 0;
+  gap: 1rem 2rem;
+  align-items: start;
+  padding: 1.75rem 0 1.25rem;
 }
 
-.mode {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 1rem;
-  background: var(--surface-raised);
-}
-
-.mode h3 {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.4rem;
-}
-
-.mode ul {
-  margin: 0;
-  padding-left: 1.1rem;
-  font-size: 0.9rem;
-  color: var(--ink-soft);
-}
-
-/* ---------------------------------------------------------------- experiment stage */
-
-.experiment {
-  display: grid;
-  gap: 1.25rem;
-  grid-template-columns: minmax(0, 1fr);
-  margin: 1.5rem 0;
-}
-
-@media (min-width: 940px) {
-  .experiment {
-    grid-template-columns: minmax(0, 1fr) 310px;
-    align-items: start;
+@media (min-width: 900px) {
+  .mission {
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
   }
 }
 
-.stage {
-  position: relative;
-  aspect-ratio: 3 / 2;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  overflow: hidden;
+.mission__eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.mission h1 {
+  margin: 0;
+}
+
+.panel--mission {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ---------------------------------------------------------- 2-4. configure / run / explore */
+
+.bench__layout {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+/* The workspace gets the room. On a wide screen it is roughly three quarters of the bench,
+   which is the whole point of the redesign: the field is the subject, not an illustration. */
+@media (min-width: 1024px) {
+  .bench__layout {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 22rem);
+  }
+}
+
+.workspace {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.workspace__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  align-items: center;
+}
+
+.toolgroup {
+  display: flex;
+  /* Wrapping, because the layer group grows with the experiment: the airfoil declares seven
+     annotation layers and seven labelled buttons in one non-wrapping row is 855px, which
+     overflows a phone by more than the phone is wide. */
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  max-width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   background: var(--surface-sunken);
 }
 
-/* The editor is transparent and layers straight over the field viewer — the arrangement
-   Fenix Spoon's own airfoil demo uses. */
-.stage fs-viewer,
-.stage fs-geometry-2d {
+.toolgroup--density {
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15rem 0.55rem;
+  margin-left: auto;
+}
+
+.toolgroup--density .tool__density {
+  width: 5.5rem;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tool:hover:not(:disabled) {
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+.tool.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.tool:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.tool__icon {
+  font-size: 0.95em;
+  line-height: 1;
+}
+
+.tool__swatch {
+  width: 0.7rem;
+  height: 0.2rem;
+  border-radius: 1px;
+  background: var(--swatch, currentColor);
+  flex: none;
+}
+
+/* Under about 640px the labels would wrap the toolbar into four rows. The icons stay, the
+   accessible name stays, the words go. */
+@media (max-width: 640px) {
+  .toolgroup:not(.toolgroup--layers):not(.toolgroup--density) .tool__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* The stage clips; the zoom box inside it is what grows. The widget re-renders at whatever
+   size it is handed, so this is a real redraw rather than a magnified raster — and it is why
+   zooming does not need an API the pinned viewer has not got. */
+.workspace__frame {
+  position: relative;
+}
+
+.workspace__stage {
+  position: relative;
+  aspect-ratio: var(--domain-aspect, 13 / 6);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--surface-sunken);
+  scrollbar-width: thin;
+  touch-action: none;
+}
+
+/* A wind-tunnel view is wide and short; a phone is neither. Below the breakpoint the stage
+   is given a workable minimum height so the section does not become a line. */
+@media (max-width: 720px) {
+  .workspace__stage {
+    aspect-ratio: 4 / 3;
+    min-height: 260px;
+  }
+}
+
+.workspace__stage.is-zoomed {
+  cursor: grab;
+}
+
+.workspace__stage.is-dragging {
+  cursor: grabbing;
+}
+
+.workspace__stage[data-mode='probe'] {
+  cursor: crosshair;
+}
+
+.workspace__stage:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.workspace__zoom {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.workspace__zoom fs-viewer,
+.workspace__zoom fs-geometry-2d,
+.workspace__overlay {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
 
+.workspace__overlay {
+  pointer-events: none;
+}
+
+fs-geometry-2d[hidden] {
+  display: none;
+}
+
 fs-geometry-2d {
-  --fs-outline-fill: rgba(18, 22, 30, 0.5);
+  --fs-outline-fill: transparent;
   --fs-outline-stroke: #ffffff;
   --fs-handle-fill: #ffffff;
   --fs-handle-stroke: #2563eb;
@@ -405,11 +675,418 @@ fs-geometry-2d {
   --fs-hull-stroke: rgba(255, 255, 255, 0.32);
 }
 
+/* The colour scale is drawn by the lab, not by the widget: turning the widget's own bar off
+   is what makes its plot area exactly the element's box, and therefore what lets the
+   annotation layer align with the field without copying the widget's layout constants. */
+.workspace__scale {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: grid;
+  grid-template-columns: 14px auto;
+  gap: 0 0.4rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.workspace__scale[hidden] {
+  display: none;
+}
+
+.scale__bar {
+  width: 14px;
+  height: 150px;
+  border-radius: 2px;
+}
+
+.scale__ticks {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 3.4rem;
+  height: 150px;
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+}
+
+.scale__ticks li {
+  position: absolute;
+  top: var(--at);
+  transform: translateY(-50%);
+}
+
+.scale__caption {
+  grid-column: 1 / -1;
+  margin-top: 0.3rem;
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+.workspace__readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.7rem;
+  align-items: baseline;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  background: var(--surface-sunken);
+  font-size: 0.82rem;
+}
+
+.workspace__readout[hidden] {
+  display: none;
+}
+
+.readout__field {
+  font-family: var(--font-mono);
+  color: var(--ink-faint);
+}
+
+.readout__at {
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
+}
+
+.workspace__field {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.workspace__fieldpick {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.workspace__fieldpick select {
+  width: auto;
+  min-width: 14rem;
+}
+
+/* ------------------------------------------------------------------ annotations */
+
+.overlay__profile {
+  fill: none;
+  stroke: var(--overlay-profile);
+  stroke-width: 1.6;
+}
+
+.overlay__chordline,
+.overlay__arrow {
+  fill: none;
+  stroke-width: 1.4;
+}
+
+.overlay__chordline {
+  stroke: var(--overlay-chord);
+  stroke-dasharray: 5 4;
+}
+
+.overlay__stream .overlay__arrow {
+  stroke: var(--overlay-stream);
+}
+
+.overlay__resultant .overlay__arrow {
+  stroke: var(--overlay-cp);
+  stroke-width: 2;
+}
+
+.overlay__marker circle {
+  fill: none;
+  stroke-width: 1.6;
+}
+
+.overlay__marker .overlay__dot {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* A halo rather than a theme colour: these labels sit on the *field*, whose colours are the
+   data's and change with every run, so neither the light nor the dark page colour is a safe
+   background to assume. A dark outline under a bright glyph reads on both ends of every
+   colormap the lab uses. */
+.overlay__marker text,
+.overlay__stream text,
+.overlay__resultant text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  paint-order: stroke;
+  stroke: rgba(10, 12, 16, 0.8);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.overlay__stream text {
+  fill: var(--overlay-stream);
+}
+
+.overlay__resultant text {
+  fill: var(--overlay-cp);
+}
+
+.overlay__quarter {
+  color: var(--overlay-chord);
+  stroke: var(--overlay-chord);
+  fill: var(--overlay-chord);
+}
+
+.overlay__cp {
+  color: var(--overlay-cp);
+  stroke: var(--overlay-cp);
+  fill: var(--overlay-cp);
+}
+
+.overlay__peak {
+  color: var(--overlay-peak);
+  stroke: var(--overlay-peak);
+  fill: var(--overlay-peak);
+}
+
+.overlay__ac {
+  color: var(--overlay-ac);
+  stroke: var(--overlay-ac);
+  fill: var(--overlay-ac);
+}
+
+.overlay__region {
+  fill: none;
+  stroke-width: 1.4;
+}
+
+.overlay__region--core {
+  stroke: var(--core);
+}
+
+.overlay__region--winding {
+  stroke: var(--winding);
+}
+
+/* A streamline is not a contour, and must not look like one: the viewer draws iso-lines of the
+   displayed scalar as thin white curves, so an integral curve of the velocity gets its own
+   colour — the same one as the free-stream arrow — over a dark halo that reads on any field. */
+.overlay__streamlines path {
+  fill: none;
+  stroke: var(--overlay-streamline);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
+.overlay__streamlines--halo path {
+  stroke: rgba(10, 12, 16, 0.45);
+  stroke-width: 3;
+}
+
+.overlay__pin line {
+  stroke: var(--overlay-peak);
+  stroke-width: 1.5;
+}
+
+/* --------------------------------------------------------------------- 2. the controls */
+
+.controls {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  padding: 0.9rem 1rem;
+}
+
+.group > h3 {
+  margin: 0 0 0.7rem;
+  font-size: 0.76rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.group h4 {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.group--advanced {
+  padding: 0;
+}
+
+.group--advanced > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  font-size: 0.76rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  list-style-position: inside;
+}
+
+.group--advanced > summary:hover {
+  color: var(--ink);
+}
+
+.group__note {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.78rem;
+}
+
+.group__body {
+  padding: 0 1rem 1rem;
+}
+
+.disclose {
+  padding: 0.25rem 0;
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font-size: 0.8rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------------- 3. the actions */
+
+/* Sticky, because Run used to sit above most of the inputs: a visitor who scrolled down to
+   set an incidence had to scroll back up to solve it. */
+.actionbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 -2px 12px rgb(0 0 0 / 8%);
+}
+
+.actionbar__status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  flex-wrap: wrap;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+  min-width: 0;
+}
+
+.actionbar__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .panel {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface-raised);
   padding: 1rem;
+}
+
+.panel__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 620;
+}
+
+/* A folded detail inside a panel: the full metrics table, the cost of the solve. Present,
+   one click away, and not in the way of the six numbers that answer the question. */
+.subpanel {
+  margin: 0.9rem 0 0;
+  border-top: 1px solid var(--line);
+  padding-top: 0.6rem;
+}
+
+.subpanel > summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+}
+
+.subpanel > summary:hover {
+  color: var(--ink);
+}
+
+.subpanel > *:not(summary) {
+  margin-top: 0.7rem;
+}
+
+/* ------------------------------------------------------------------------- 5. the answer */
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.9rem 1.1rem;
+}
+
+.kpi {
+  display: grid;
+  gap: 0.1rem;
+  align-content: start;
+}
+
+.kpi__name {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.kpi__symbol {
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.kpi__value {
+  font-size: 1.5rem;
+  line-height: 1.15;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.kpi__value--absent {
+  font-size: 0.88rem;
+  font-weight: 400;
+  color: var(--ink-faint);
+  padding-block: 0.42rem;
+}
+
+.kpi__unit {
+  font-size: 0.74rem;
+  color: var(--ink-faint);
+}
+
+.kpi.is-absent .kpi__name {
+  color: var(--ink-faint);
 }
 
 /* The cross-section diagram, for experiments whose geometry has no editor widget.
@@ -668,9 +1345,25 @@ input:focus-visible {
   }
 }
 
+/* Nothing on these pages animates for decoration, so honouring the preference is a short
+   list: the pulsing status dot, and the smooth scroll that Keep result and Compare use to
+   move the page. Both become instant rather than absent. */
 @media (prefers-reduced-motion: reduce) {
   .status-dot[data-state='running'] {
     animation: none;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -711,28 +1404,49 @@ input:focus-visible {
 
 /* ---------------------------------------------------------------- didactics */
 
+/* Understand the model: every word kept, folded away from the experiment.
+ *
+ * The prose used to sit in a three-column grid of open panels under the page, which meant a
+ * visitor scrolled past several thousand words of correct physics to reach the run table. One
+ * block per section, closed, is the same content in an order somebody will actually read. */
+
 .lesson {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   margin: 2.5rem 0 0;
 }
 
-.lesson section {
+.lesson__blocks {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.lesson__block {
   border: 1px solid var(--line);
   border-left: 3px solid var(--accent);
   border-radius: var(--radius);
-  padding: 1rem 1.1rem;
   background: var(--surface-raised);
 }
 
-.lesson section.is-caution {
+.lesson__block.is-caution {
   border-left-color: var(--warn);
 }
 
-.lesson h2 {
-  font-size: 1rem;
-  margin-bottom: 0.45rem;
+.lesson__block > summary {
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  font-weight: 560;
+  font-size: 0.95rem;
+  color: var(--ink);
+  list-style-position: inside;
+}
+
+.lesson__block > summary:hover {
+  color: var(--accent-ink);
+}
+
+.lesson__body {
+  padding: 0 1rem 0.5rem;
+  max-width: var(--measure);
 }
 
 .lesson p,
@@ -743,7 +1457,7 @@ input:focus-visible {
 
 .lesson p:last-child,
 .lesson ul:last-child {
-  margin-bottom: 0;
+  margin-bottom: 0.6rem;
 }
 
 .lesson ol,
@@ -798,10 +1512,6 @@ input:focus-visible {
    an answer kept apart from the cost of computing it, residuals shown against their
    tolerances, and a table of runs that can be compared. */
 
-.challenge {
-  border-left: 3px solid var(--accent);
-}
-
 .challenge__statement {
   margin: 0 0 0.8rem;
   max-width: var(--measure);
@@ -824,6 +1534,26 @@ input:focus-visible {
   color: var(--ink-soft);
 }
 
+/* The target and this run's reading, side by side: the comparison the visitor is making. */
+.challenge__wording {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  align-items: baseline;
+}
+
+.challenge__wording strong {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.challenge__reading {
+  font-size: 0.86rem;
+  color: var(--ink-faint);
+}
+
 .challenge__mark {
   font-weight: 700;
 }
@@ -840,9 +1570,14 @@ input:focus-visible {
   color: var(--ink-faint);
 }
 
+/* Two disqualifications, never merged into one sentence: "the model does not apply here" and
+   "the solve did not verify" are different facts, and a visitor has to know which of their
+   choices to change. */
 .challenge__blocked,
 .challenge__done {
   margin: 0.8rem 0 0;
+  padding-left: 0.7rem;
+  border-left: 2px solid currentColor;
   font-size: 0.9rem;
   max-width: var(--measure);
 }
@@ -878,6 +1613,19 @@ input:focus-visible {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 1rem;
+  margin: 1rem 0;
+}
+
+.results[hidden] {
+  display: none;
+}
+
+/* A plot needs a whole row; a KPI panel does not. */
+.panel--wide {
+  grid-column: 1 / -1;
+}
+
+.panel--runs {
   margin: 1rem 0;
 }
 

@@ -30,7 +30,7 @@ Everything — pages, experiment content, code and documentation — is in Engli
 | Experiment | Physics | Status |
 |---|---|---|
 | **Airfoil design** | Ideal flow with a Kutta condition, by a panel method: hit a lift target under a pitching-moment constraint | **Available** — the first *exercise* |
-| **Solenoid magnetostatics** — *Magnetics lab* | Vector potential for an out-of-plane current: iron core, opposed windings, flux crowding into the iron | **Available** |
+| **Solenoid magnetostatics** — *Magnetics lab* | Vector potential for an out-of-plane current: iron core, opposed windings, flux crowding into the iron | **Available** — a demonstration, and honest about it |
 | **Heat sink conduction and convection** | Conduction in a finned body with convective surfaces | Planned |
 
 The two experiments deliberately exercise different halves of the protocol. The airfoil
@@ -57,9 +57,26 @@ engineering metrics, verification, saved result.
   It began by fixing the physics — the old model imposed no Kutta condition, so its lift was
   exactly zero at every incidence
   ([ADR-014](docs/architecture-decisions.md#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first)).
+- The next one, specified and deliberately **not** built:
+  **[docs/exercises/solenoid.md](docs/exercises/solenoid.md)**. The magnetics page has the whole
+  exercise shell and reports no engineering metric, because every metric a magnetic design is
+  judged on needs a definition in a two-dimensional slice that has not been verified here yet.
 
-The magnetics page is still a demonstration and is next in line
-([the five exercises](docs/exercise-contract.md#7-the-five-exercises)).
+### A page is a bench
+
+Containing the nine sections is not the same as showing them all at once, and the first version
+of the airfoil page did the second: 7,664 pixels tall, a 310-pixel column of twelve controls each
+with a paragraph under it, Run above most of the inputs that feed it, three panels reading
+"Nothing computed yet", and the field itself about a ninth of the first screen.
+
+Every experiment page is now arranged as one path — **mission → configure → run → explore →
+check → keep and compare → understand the model** — with the computed field as the largest thing
+on it and its own toolbar: pan, zoom, fit, reset, probe, vector glyphs, streamlines, annotation
+layers and image export. A tool the current result cannot support is **disabled with its
+reason** rather than absent. The explanations are not shortened; they are folded into
+*Understand the model*. See
+[ADR-017](docs/architecture-decisions.md#adr-017--an-experiment-page-is-a-bench-not-a-document)
+and [the contract's §7a](docs/exercise-contract.md#7a-the-order-a-page-presents-them-in).
 
 ---
 
@@ -108,14 +125,16 @@ physics_lab/          the app: main.py, settings.py
   solvers/              the airfoil panel method: panel, geometry, analytic, exercise, adapter
 frontend/             static site — no build step for the lab's own code
   index.html            homepage
-  experiments/airfoil/  the wind-tunnel experiment (index.html, app.js, content.json)
+  assets/thumbnails/    one real solve per experiment, made by scripts/make-thumbnails.py
+  experiments/airfoil/  the wind-tunnel exercise (index.html, app.js, content.json)
   experiments/solenoid/ the magnetics experiment, same three files
   shared/               lab.css, api.js, components.js, experiment.js (the page shell),
-                        exercise.js, curve.js, runs.js, atmosphere.js (the exercise contract)
+                        workspace.js (the field and its tools), exercise.js, curve.js,
+                        runs.js, atmosphere.js (the exercise contract)
   vendor/               Fenix Spoon widgets, built from the pin (generated, gitignored)
 tests/                pytest: the API seam, the served site
 e2e/                  Playwright: the browser loop, run against a deployment
-scripts/              fetch-widgets, check-pins, smoke-test, deploy
+scripts/              fetch-widgets, check-pins, make-thumbnails, smoke-test, deploy
 docs/                 architecture-decisions.md, exercise-contract.md, exercises/*.md
 Dockerfile            node stage (widgets) + runtime stage FROM the Fenix Spoon image
 compose.yaml          base stack — no published ports
@@ -423,6 +442,7 @@ pytest                     # the API seam and the served site
 ruff check .               # lint
 mypy                       # type check
 ./scripts/check-pins.sh    # every Fenix Spoon reference agrees
+./scripts/make-thumbnails.py   # regenerate the homepage cards from real solves
 
 npm install && npx playwright install chromium
 BASE_URL=http://127.0.0.1:8000 npx playwright test    # the browser loop

@@ -17,48 +17,49 @@
 
 import { JobFailedError } from '@fenix-spoon/client';
 
-import { MODES, client, paramSpec } from '/shared/api.js';
+import { MODES, client, modeOf, paramSpec } from '/shared/api.js';
 import { describeError, el, formatBytes, statEntries } from '/shared/components.js';
 
 /* ------------------------------------------------------------------ solver picker */
 
-/** Which conceptual mode a solver name belongs to, or `undefined` for a lab adapter. */
-export function modeOf(solverName) {
-  return Object.values(MODES).find((mode) => solverName.startsWith(mode.prefix));
-}
-
 /**
- * Fill a `<select>` with the server's solvers, preview modes first, and select a default.
+ * Fill a `<select>` with the capabilities this page can use, and select a default.
  *
- * The default is the fast preview where there is one: it is the mode you want while you are
- * still changing the geometry, and on a public server it is the one that will not queue
- * behind someone else's mesh.
+ * The order and the labels come from what each capability *declares* — its `availability`
+ * and its own title — rather than from its name, so a solver added upstream tomorrow is
+ * grouped correctly without this file changing. The default is the fast preview where there
+ * is one: it is the mode you want while you are still changing the geometry, and on a public
+ * server it is the one that will not queue behind someone else's mesh.
  *
  * @returns {string} the solver name left selected, or `''` for an empty catalogue
  */
 export function fillSolverPicker(select, catalogue) {
   const options = [];
+  const placed = new Set();
   for (const mode of Object.values(MODES)) {
     for (const solver of catalogue.byMode[mode.id] ?? []) {
       options.push(new Option(`${mode.label} — ${solver.title}`, solver.name));
+      placed.add(solver.name);
     }
   }
-  // Anything the server offers that is neither mock nor dolfinx still belongs in the list: a
-  // lab-specific adapter added later must show up without this file changing.
+  // An availability the lab has no wording for still belongs in the list, under the
+  // capability's own title. Silence would be the page hiding a solver the server offers.
   for (const solver of catalogue.all) {
-    if (!modeOf(solver.name)) options.push(new Option(solver.title, solver.name));
+    if (!placed.has(solver.name)) options.push(new Option(solver.title, solver.name));
   }
   select.replaceChildren(...options);
 
-  const preview = catalogue.byMode[MODES.preview.id]?.[0];
+  const preview = catalogue.byMode[MODES.mock.id]?.[0];
   if (preview) select.value = preview.name;
   return select.value;
 }
 
 /** One sentence about the selected solver, plus which modes this deployment lacks. */
 export function describeSolver(solver, catalogue) {
-  const mode = modeOf(solver.name);
-  const missing = Object.values(MODES).filter((m) => !(catalogue.byMode[m.id] ?? []).length);
+  const mode = modeOf(solver);
+  const missing = Object.values(MODES).filter(
+    (m) => m.id !== 'panel-method' && !(catalogue.byMode[m.id] ?? []).length,
+  );
   return [
     mode ? `${mode.summary} ${mode.caveat}` : solver.description,
     missing.length
@@ -126,12 +127,19 @@ function isUsable(value, spec) {
   return true;
 }
 
+/** The visible hint, or nothing at all — an empty `<span>` still costs a line of layout. */
+function hintOf(config) {
+  return config.hint ? el('span', { class: 'field__hint', text: config.hint }) : null;
+}
+
 function renderParam(config, spec, value, onChange) {
   const id = `param-${config.name}`;
-  // The solver's own `description` is upstream's wording for the parameter; it goes on the
-  // control as a tooltip rather than into the visible hint, which is the lab's own explanation
-  // aimed at a visitor. Showing both inline prints the same thing twice.
-  const title = spec.description ?? null;
+  // Where the exercise supplies its own `title` it wins, because it is written for a visitor;
+  // otherwise the solver's `description` is used, which is upstream's wording. Either way it
+  // is a tooltip rather than a paragraph under the control: a sentence beneath every slider
+  // turns a control panel into an essay and pushes the Run button off the screen. The full
+  // reasoning is not deleted — it lives in *Understand the model*.
+  const title = config.title ?? spec.description ?? null;
 
   if (typeof spec.default === 'boolean') {
     const input = el('input', { type: 'checkbox', id, checked: value === true, title });
@@ -139,8 +147,8 @@ function renderParam(config, spec, value, onChange) {
     return el(
       'div',
       { class: 'field' },
-      el('label', { class: 'check', for: id }, input, el('span', { text: config.label })),
-      el('span', { class: 'field__hint', text: config.hint }),
+      el('label', { class: 'check', for: id, title }, input, el('span', { text: config.label })),
+      hintOf(config),
     );
   }
 
@@ -156,9 +164,9 @@ function renderParam(config, spec, value, onChange) {
     return el(
       'div',
       { class: 'field' },
-      el('label', { class: 'field__label', for: id }, el('span', { text: config.label })),
+      el('label', { class: 'field__label', for: id, title }, el('span', { text: config.label })),
       select,
-      el('span', { class: 'field__hint', text: config.hint }),
+      hintOf(config),
     );
   }
 
@@ -200,12 +208,12 @@ function renderParam(config, spec, value, onChange) {
     { class: 'field' },
     el(
       'label',
-      { class: 'field__label', for: id },
+      { class: 'field__label', for: id, title },
       el('span', { text: config.label }),
       bounded ? readout : el('span'),
     ),
     input,
-    el('span', { class: 'field__hint', text: config.hint }),
+    hintOf(config),
   );
 }
 
@@ -249,12 +257,12 @@ export function buildShapeControls(container, controls, state, onChange) {
         { class: 'field' },
         el(
           'label',
-          { class: 'field__label', for: `shape-${control.key}` },
+          { class: 'field__label', for: `shape-${control.key}`, title: control.title ?? null },
           el('span', { text: control.label }),
           readout,
         ),
         input,
-        el('span', { class: 'field__hint', text: control.hint }),
+        control.hint ? el('span', { class: 'field__hint', text: control.hint }) : null,
       );
     }),
   );
@@ -436,9 +444,17 @@ export function richText(markdown) {
  *
  * The text lives in a data file rather than in the markup so that the physics prose can be
  * reviewed, translated or corrected without touching a line of JavaScript.
+ *
+ * **Collapsed by default, and not shortened.** The prose is the rigorous half of the lab and
+ * none of it is dropped — but a wall of it between a visitor and the experiment is read by
+ * nobody, so each section becomes a `<details>` under *Understand the model*. `open` names the
+ * ones that start expanded; everything else is one keystroke away. This is a change of
+ * arrangement, not of content: `renderLesson` reads the same shape it always did.
+ *
+ * @param {{content: object, intro: HTMLElement, lesson: HTMLElement, open?: string[]}} spec
  */
-export function renderLesson({ content, intro, lesson }) {
-  intro.textContent = content.intro;
+export function renderLesson({ content, intro, lesson, open = [] }) {
+  if (intro) intro.textContent = content.intro;
   document.title = `${content.title} — Spoon Physics`;
 
   lesson.replaceChildren(
@@ -447,7 +463,7 @@ export function renderLesson({ content, intro, lesson }) {
       // exercise with a `metrics` section and a `#metrics` panel would otherwise put the same
       // id on both, and every `getElementById` for it becomes a coin toss.
       const heading = `lesson-${section.id}`;
-      const children = [el('h2', { id: heading, text: section.heading })];
+      const children = [];
       if (section.lead) children.push(el('p', { class: 'question', text: section.lead }));
       for (const paragraph of section.body ?? []) {
         children.push(el('p', {}, richText(paragraph)));
@@ -455,11 +471,18 @@ export function renderLesson({ content, intro, lesson }) {
       if (section.steps) {
         children.push(el('ol', {}, ...section.steps.map((step) => el('li', {}, richText(step)))));
       }
-      return el(
-        'section',
-        { class: section.caution ? 'is-caution' : null, 'aria-labelledby': heading },
-        ...children,
+
+      const block = el(
+        'details',
+        {
+          class: `lesson__block${section.caution ? ' is-caution' : ''}`,
+          'data-section': section.id,
+          open: open.includes(section.id) ? true : null,
+        },
+        el('summary', { id: heading }, el('span', { text: section.heading })),
+        el('div', { class: 'lesson__body' }, ...children),
       );
+      return block;
     }),
   );
 }

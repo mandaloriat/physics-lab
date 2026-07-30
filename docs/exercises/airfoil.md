@@ -731,7 +731,7 @@ one of the sweep's stations; that each warning of §9 fires when its threshold i
 that a valid run raises none; that the report carries everything needed to recompute the run;
 and that two identical runs give byte-identical metrics.
 
-**The page — `e2e/airfoil.spec.mjs`, 12 tests in a real browser.** That the problem is stated
+**The page — `e2e/airfoil.spec.mjs`, in a real browser.** That the problem is stated
 before a solver is offered and every target reads *not run yet*; that the three parameter groups
 are separate panels with no control in two of them, and that density, viscosity and the speed of
 sound are not offered as free inputs at all; that the ISA table of §5.3 comes out to the digits
@@ -746,6 +746,21 @@ inputs without re-solving; that a NACA 4412 reaches the lift and **fails** the m
 so the challenge still discriminates; that the camber position really moves for a 2312 against a
 2512, read from the camber line the solver extracted rather than from the outline's highest
 point; and that the geometry the solver read is reported back.
+
+Since the redesign ([ADR-017](../architecture-decisions.md#adr-017--an-experiment-page-is-a-bench-not-a-document))
+the same file also holds what makes the page an *instrument*: that the mission names quantities
+by symbol and that no storage key — `l_prime`, `c_m_c4` — appears anywhere in the rendered text
+at any stage, including the comparison table; that Advanced starts closed and nothing numerical
+is on the main path; that the page opens with no empty result panels; that Explore results and
+Edit shape are separate modes and the control points exist only in the second; that pan, zoom,
+probe, fit and reset work on a computed field, from the keyboard as well as the pointer; that a
+tool the result cannot support is disabled with a readable reason, and that vector glyphs and
+streamlines become available exactly when the solver publishes a velocity field; that changing
+the density of glyphs and streamlines submits no job; that locking the colour scale is refused
+with the upstream reason rather than silently missing; that the centre of pressure is *drawn on
+the field* and can be switched off; that Run, Keep result and image export all work from the
+action bar; and that the workspace takes most of the bench on a desktop and stacks without
+overflowing on a phone.
 
 ---
 
@@ -788,15 +803,17 @@ does not exist.
    Joukowski cusp cannot be resolved to 0.5 % by any reasonable panel count, and every profile
    the exercise offers has a finite trailing-edge angle anyway (§8.2).
 
+4. **The mode selector reads the declaration, not the name.** *Resolved.* `shared/api.js` now
+   merges `GET /api/v1/capabilities` into the catalogue and groups by the declared
+   `availability`, so `lab.airfoil_panel2d` is presented as a **panel method** rather than
+   falling through a `mock.`/`dolfinx.` prefix test into a nameless bucket. The same read fixed
+   a separate bug on the magnetics page, where filtering on geometry kind alone offered a
+   heat-sink solver for a solenoid — `mock.heat2d` also accepts `regions2d`. Pages now filter on
+   the declared `physics`. A server too old to publish either degrades to the old behaviour
+   rather than to an empty menu, and a browser test holds that open.
+
 **Still open.**
 
-4. **Does the mode selector stay prefix-based?** `api.js` maps `mock.` to "fast preview" and
-   `dolfinx.` to "FEniCSx computation". `lab.airfoil_panel2d` is neither, and calling a panel
-   method a "preview" would be wrong — it is the most accurate surface solution on the page.
-   The adapter declares `availability = "panel-method"`, and the pin now publishes that field
-   through `capability.describe`, so the honest fix is for the page to read it instead of
-   parsing the name. That is page work, and it is the one thing in `shared/api.js` this
-   exercise wants changed.
 5. **How many catalogue profiles?** Eight are implemented in the challenge table of §1, which is
    enough to make the camber/moment trade visible. Five-digit and 6-series profiles need a
    different generator and are a separate decision.

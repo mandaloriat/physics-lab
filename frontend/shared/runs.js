@@ -176,12 +176,49 @@ export function renderTable(container, rows, handlers) {
 }
 
 /**
+ * What each top-level block of a row is called in front of a person.
+ *
+ * The comparison used to print the flattened path itself — `metrics.l_prime`,
+ * `verification.cl_consistency_rel` — which is the storage key and nothing a visitor should
+ * ever have to learn. The export keeps the raw keys, because a CSV is read by a program and
+ * a renamed column is a broken script; the table on screen does not.
+ */
+const BLOCKS = {
+  exercise: 'Exercise',
+  solver: 'Solver',
+  model: 'Model',
+  geometry: 'Geometry',
+  physical: 'Conditions',
+  numerics: 'Numerics',
+  dimensionless: 'Dimensionless',
+  metrics: 'Answer',
+  sweep: 'Sweep',
+  verification: 'Verification',
+  validity: 'Validity',
+  cost: 'Cost',
+};
+
+/** A flattened path as a heading: `metrics.l_prime` → `Answer · L′`. */
+function humanise(path, labels = {}) {
+  const [block, ...rest] = path.split('.');
+  const key = rest.join('.');
+  const named = labels[key] ?? labels[path];
+  const tail = named
+    ? (named.symbol ?? named.label ?? String(named))
+    : key.replace(/_/g, ' ') || block.replace(/_/g, ' ');
+  return rest.length ? `${BLOCKS[block] ?? block} · ${tail}` : tail;
+}
+
+/**
  * Render a comparison of two or more rows: one line per field, differences marked.
  *
  * Fields that are identical across every selected row are hidden behind a count, because the
  * point of a comparison is what changed.
+ *
+ * @param {{labels?: Record<string, {label: string, symbol?: string}>}} [options] wording for
+ *   the row headings, keyed by the path within its block (`l_prime`) or by the full path
  */
-export function renderComparison(container, rows) {
+export function renderComparison(container, rows, options = {}) {
   container.replaceChildren();
   if (rows.length < 2) {
     container.append(
@@ -219,7 +256,9 @@ export function renderComparison(container, rows) {
           el(
             'tr',
             {},
-            el('th', { scope: 'row', text: path }),
+            // `title` carries the storage key, so the mapping is discoverable by anyone who
+            // wants it without being imposed on everyone who does not.
+            el('th', { scope: 'row', title: path, text: humanise(path, options.labels) }),
             ...flats.map((flat) => el('td', { class: 'num', text: show(flat[path]) })),
           ),
         ),

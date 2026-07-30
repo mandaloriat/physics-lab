@@ -16,8 +16,12 @@
  * actually name — bore, winding thickness, permeability — so the controls are those quantities
  * and the cross-section is drawn from them.
  *
- * The page shell (parameter form, solver picker, status, result panel, lesson) is
- * `shared/experiment.js`. What is here is the magnetics.
+ * **Still a demonstration, on purpose.** The redesign brings this page into the same shell as
+ * the airfoil — workspace, toolbar, progressive controls, folded didactics — and stops there.
+ * Turning it into an exercise needs metrics, and the metrics a magnetic design is judged on
+ * have definitions in a 2-D slice that have not been verified here yet. `docs/exercises/
+ * solenoid.md` says which they are and what each one has to survive before it is printed. The
+ * extension points are marked in this file and in the markup rather than half-built.
  */
 
 import '@fenix-spoon/viewer';
@@ -39,8 +43,19 @@ import {
   showStats,
   syncFieldOptions,
 } from '/shared/experiment.js';
+import { createWorkspace, polyline, svgNode } from '/shared/workspace.js';
 
 const GEOMETRY_TYPE = 'regions2d';
+/**
+ * The physics this page is about.
+ *
+ * Load-bearing, and the reason this line exists: `mock.heat2d` also accepts `regions2d`, so a
+ * page filtering on geometry alone offered a heat-sink solver in a magnetics solver menu — and
+ * would have submitted a solenoid to it. The filter is the capability's own declared
+ * `physics`, read from `GET /api/v1/capabilities`, rather than a list of solver names kept
+ * here, which would go stale the first time one was renamed or added. See `shared/api.js`.
+ */
+const PHYSICS = 'magnetostatics';
 
 /** Vacuum permeability, in H/m. The same constant the solvers use. */
 const MU0 = 4e-7 * Math.PI;
@@ -54,31 +69,39 @@ const MU0 = 4e-7 * Math.PI;
  */
 const WINDOW_MM = 60;
 
-const dom = {
-  intro: document.getElementById('intro'),
-  lesson: document.getElementById('lesson'),
-  viewer: document.getElementById('viewer'),
-  schematic: document.getElementById('schematic'),
-  core: document.getElementById('core'),
-  windingLeft: document.getElementById('winding-left'),
-  windingRight: document.getElementById('winding-right'),
-  status: document.getElementById('status'),
-  dot: document.getElementById('dot'),
-  progress: document.getElementById('progress'),
-  run: document.getElementById('run'),
-  cancel: document.getElementById('cancel'),
-  reset: document.getElementById('reset'),
-  solver: document.getElementById('solver'),
-  solverHint: document.getElementById('solver-hint'),
-  solverParams: document.getElementById('solver-params'),
-  shapeControls: document.getElementById('shape-controls'),
-  shapeNote: document.getElementById('shape-note'),
-  field: document.getElementById('field'),
-  fieldHint: document.getElementById('field-hint'),
-  stats: document.getElementById('stats'),
-  artifacts: document.getElementById('artifacts'),
-  maintenance: document.getElementById('maintenance'),
-};
+const dom = Object.fromEntries(
+  [
+    'intro',
+    'lesson',
+    'viewer',
+    'workspace',
+    'schematic',
+    'core',
+    'windingLeft',
+    'windingRight',
+    'status',
+    'dot',
+    'progress',
+    'run',
+    'cancel',
+    'reset',
+    'solver',
+    'solverHint',
+    'numerical',
+    'conditions',
+    'shapeControls',
+    'shapeNote',
+    'field',
+    'fieldHint',
+    'stats',
+    'artifacts',
+    'results',
+    'maintenance',
+  ].map((key) => [
+    key,
+    document.getElementById(key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)),
+  ]),
+);
 
 /* ---------------------------------------------------------------- the magnet */
 
@@ -108,8 +131,11 @@ const shape = { ...SHAPE_DEFAULTS };
  * from the core* instead (core half-width, then an air gap, then a thickness) makes every
  * combination geometrically valid by construction: there is no ordering left to violate, and
  * their maxima sum to 44 mm inside a 60 mm window.
+ *
+ * Split into two groups by what kind of decision each is — the shape of the magnet, and what
+ * it is made of and driven with — which is the same Design/Conditions split the airfoil uses.
  */
-const SHAPE_CONTROLS = [
+const DESIGN_CONTROLS = [
   {
     key: 'coreHalfWidth',
     label: 'Core half-width',
@@ -117,7 +143,7 @@ const SHAPE_CONTROLS = [
     max: 14,
     step: 0.5,
     unit: ' mm',
-    hint: 'Half the thickness of the iron bar down the middle. The magnetic circuit is the core.',
+    title: 'Half the thickness of the iron bar down the middle. The magnetic circuit is the core.',
   },
   {
     key: 'gap',
@@ -126,7 +152,7 @@ const SHAPE_CONTROLS = [
     max: 10,
     step: 0.5,
     unit: ' mm',
-    hint: 'Clearance between the core and the winding — the space insulation and formers take.',
+    title: 'Clearance between the core and the winding — the space insulation and formers take.',
   },
   {
     key: 'winding',
@@ -135,7 +161,7 @@ const SHAPE_CONTROLS = [
     max: 20,
     step: 0.5,
     unit: ' mm',
-    hint: 'How far the copper extends outward. Thicker winding, more total current.',
+    title: 'How far the copper extends outward. Thicker winding, more total current.',
   },
   {
     key: 'halfHeight',
@@ -144,8 +170,11 @@ const SHAPE_CONTROLS = [
     max: 45,
     step: 1,
     unit: ' mm',
-    hint: 'Half the length of the core and the coil, along the axis.',
+    title: 'Half the length of the core and the coil, along the axis.',
   },
+];
+
+const CONDITION_CONTROLS = [
   {
     key: 'muExponent',
     label: 'Core permeability μᵣ',
@@ -158,7 +187,7 @@ const SHAPE_CONTROLS = [
     // between 1000 and 10 000, where almost nothing changes, so the slider carries the
     // exponent and the readout shows the value.
     format: (value) => permeabilityFrom(value).toLocaleString('en-US'),
-    hint: 'How much more easily the core carries flux than air. 1 means no core; iron is 10³–10⁴.',
+    title: 'How much more easily the core carries flux than air. 1 means no core; iron is 10³–10⁴.',
   },
   {
     key: 'currentDensity',
@@ -167,7 +196,7 @@ const SHAPE_CONTROLS = [
     max: 10,
     step: 0.5,
     unit: ' A/mm²',
-    hint: 'Current per unit area of copper. Around 5 A/mm² is a conventionally cooled winding.',
+    title: 'Current per unit area of copper. Around 5 A/mm² is a conventionally cooled winding.',
   },
 ];
 
@@ -255,6 +284,7 @@ function applyShape() {
   dom.shapeNote.textContent =
     `Core ${2 * a} mm across in a ${2 * bore} mm bore, ${w} mm of winding, ` +
     `${2 * h} mm long. μᵣ = ${permeability}, and ${turns} ampere-turns per side.`;
+  workspace?.draw();
 }
 
 function setRect(node, x, y, width, height) {
@@ -274,6 +304,10 @@ function setRect(node, x, y, width, height) {
  * and emits `mesh2d` only. The form is generated from whichever schema the selected solver
  * publishes, so listing both here is how one page serves both — and `report_every` is left out
  * because how often the solver reports its progress is not a physical question.
+ *
+ * All of them are numerical: none changes the magnet, only how well it is approximated. That
+ * is why they all live under Advanced, and it is the same distinction the exercise contract's
+ * §5 draws for the airfoil.
  */
 const PARAM_UI = [
   {
@@ -284,13 +318,13 @@ const PARAM_UI = [
   {
     name: 'mesh_size',
     label: 'Mesh size',
-    hint: 'Reference element length, in metres. Smaller means more elements: the server refuses values that overrun its cell budget.',
+    hint: 'Reference element length, in metres. The server refuses values that overrun its cell budget.',
     step: 0.001,
   },
   {
     name: 'iterations',
     label: 'Iterations',
-    hint: 'Sweeps of the iterative solve. A high-permeability core needs more of them to settle.',
+    hint: 'Sweeps of the iterative solve. A high-permeability core needs more to settle.',
   },
   {
     name: 'output',
@@ -303,6 +337,7 @@ const PARAM_UI = [
 
 let params = {};
 let catalogue = { all: [], byMode: {} };
+let workspace = null;
 
 function selectedSolver() {
   return catalogue.all.find((solver) => solver.name === dom.solver.value) ?? null;
@@ -312,7 +347,7 @@ function onSolverChange() {
   const solver = selectedSolver();
   if (!solver) return;
   dom.solverHint.textContent = describeSolver(solver, catalogue);
-  params = buildParamForm(dom.solverParams, solver, PARAM_UI, params);
+  params = buildParamForm(dom.numerical, solver, PARAM_UI, params);
 }
 
 /* --------------------------------------------------------------------- the solve */
@@ -324,7 +359,7 @@ async function run() {
   if (running) return;
   const solver = selectedSolver();
   if (!solver) {
-    setStatusOn(dom, 'No solver is available on this server.', 'error');
+    setStatusOn(dom, 'No magnetostatics solver is available on this server.', 'error');
     return;
   }
 
@@ -344,10 +379,12 @@ async function run() {
     if (!result) return;
 
     addFieldStrength(result);
-    dom.viewer.result = result;
+    dom.results.hidden = false;
+    workspace.setResult(result);
     syncFieldOptions(dom.viewer, dom.field, FIELD_VIEW, dom.fieldHint);
     showStats(dom.stats, result);
     showArtifacts(dom.artifacts, result.artifacts);
+    declareOverlays();
     setStatusOn(dom, 'Done.', 'done');
   } finally {
     running = false;
@@ -397,10 +434,14 @@ function addFieldStrength(result) {
  * and so runs along its level sets. Contours of |B| are perfectly meaningful curves but they
  * are *not* field lines, and drawing them in the same white line style would invite exactly
  * that misreading. So A gets contours and nothing else does, and the hints say why.
+ *
+ * This is also why the workspace's *Streamlines* tool is correctly unavailable here: these
+ * solvers publish scalars only, and a streamline is an integral of a vector field. The
+ * contours of A are the honest device, and they are upstream's.
  */
 const FIELD_VIEW = {
   B: {
-    option: '|B| (flux density)',
+    option: 'Flux density, |B|',
     caption: 'T',
     colormap: 'viridis',
     contours: 0,
@@ -409,7 +450,7 @@ const FIELD_VIEW = {
       'the flux is concentrated. Switch to A to see the field lines it runs along.',
   },
   A: {
-    option: 'A (vector potential)',
+    option: 'Vector potential, A_z (field lines)',
     caption: 'Wb/m',
     colormap: 'viridis',
     contours: 14,
@@ -419,7 +460,7 @@ const FIELD_VIEW = {
       'of them is the same everywhere along their length.',
   },
   H: {
-    option: 'H (field strength)',
+    option: 'Field strength, H',
     caption: 'kA/m',
     colormap: 'plasma',
     contours: 0,
@@ -428,7 +469,7 @@ const FIELD_VIEW = {
       'inside the core: B is large there and H is small, which is what a high permeability means.',
   },
   mu_r: {
-    option: 'μᵣ (material map)',
+    option: 'Material map, μᵣ',
     caption: 'μᵣ',
     // Greyscale, and no contours: this is not a computed field but a picture of which material
     // the solver put where. On the FEniCSx mesh it shows the region tagging directly — the
@@ -441,33 +482,84 @@ const FIELD_VIEW = {
   },
 };
 
+/* --------------------------------------------------------------- the annotation layer */
+
+/** Region outlines over the field: exactly where the solver was told the materials are. */
+function declareOverlays() {
+  workspace.setOverlays([
+    { id: 'regions', label: 'Core & windings', colour: 'var(--core)', on: true },
+    { id: 'axis', label: 'Axis', colour: 'var(--overlay-chord)', on: false },
+  ]);
+}
+
+function drawOverlay({ svg, project, layerOn, bounds }) {
+  if (layerOn('regions')) {
+    const payload = buildGeometry();
+    const group = svgNode('g', { class: 'overlay__regions' });
+    for (const region of payload.regions) {
+      const ring = [...region.shape.points, region.shape.points[0]].map(project);
+      group.append(polyline(ring, `overlay__region overlay__region--${region.name.split('_')[0]}`));
+    }
+    svg.append(group);
+  }
+  if (layerOn('axis')) {
+    const [xmin, ymin, xmax, ymax] = bounds;
+    const group = svgNode('g', { class: 'overlay__chord' });
+    group.append(polyline([project([0, ymin]), project([0, ymax])], 'overlay__chordline'));
+    group.append(polyline([project([xmin, 0]), project([xmax, 0])], 'overlay__chordline'));
+    svg.append(group);
+  }
+}
+
+/** The box "Fit magnet" frames: the core and both windings, in metres. */
+function magnetBox() {
+  const outer = (shape.coreHalfWidth + shape.gap + shape.winding) / 1000;
+  const half = shape.halfHeight / 1000;
+  return [-outer, -half, outer, half];
+}
+
 /* ---------------------------------------------------------------------- start-up */
 
 mountChrome('experiments');
-buildShapeControls(dom.shapeControls, SHAPE_CONTROLS, shape, applyShape);
+buildShapeControls(dom.shapeControls, DESIGN_CONTROLS, shape, applyShape);
+buildShapeControls(dom.conditions, CONDITION_CONTROLS, shape, applyShape);
+
+workspace = createWorkspace({
+  root: dom.workspace,
+  viewer: dom.viewer,
+  editor: null,
+  fitLabel: 'Fit magnet',
+  exportName: 'solenoid-field',
+  subject: magnetBox,
+  onDraw: drawOverlay,
+});
+
 applyShape();
+declareOverlays();
 
 dom.run.addEventListener('click', run);
 dom.cancel.addEventListener('click', () => currentJob?.cancel());
 dom.reset.addEventListener('click', () => {
   Object.assign(shape, SHAPE_DEFAULTS);
-  buildShapeControls(dom.shapeControls, SHAPE_CONTROLS, shape, applyShape);
+  buildShapeControls(dom.shapeControls, DESIGN_CONTROLS, shape, applyShape);
+  buildShapeControls(dom.conditions, CONDITION_CONTROLS, shape, applyShape);
   applyShape();
 });
 dom.solver.addEventListener('change', onSolverChange);
 dom.field.addEventListener('change', () => {
   dom.viewer.field = dom.field.value;
   applyFieldView(dom.viewer, FIELD_VIEW, dom.field.value, dom.fieldHint);
+  workspace.draw();
 });
 
 try {
   const [content, info, solvers] = await Promise.all([
     fetch('/experiments/solenoid/content.json').then((response) => response.json()),
     health().catch(() => null),
-    solversFor(GEOMETRY_TYPE),
+    solversFor(GEOMETRY_TYPE, { physics: PHYSICS }),
   ]);
 
-  renderLesson({ content, intro: dom.intro, lesson: dom.lesson });
+  renderLesson({ content, intro: dom.intro, lesson: dom.lesson, open: ['question'] });
   catalogue = solvers;
 
   if (catalogue.all.length) {
@@ -484,7 +576,7 @@ try {
   // Run is enabled here and nowhere else — see `applyMaintenance` for why it starts disabled.
   // Each branch leaves the status line saying something that is true of this deployment.
   if (!catalogue.all.length) {
-    setStatusOn(dom, 'This server exposes no solver compatible with this geometry.', 'error');
+    setStatusOn(dom, 'This server exposes no magnetostatics solver for this geometry.', 'error');
   } else if (!canSolve) {
     setStatusOn(dom, 'Simulations are paused for maintenance.');
   } else {

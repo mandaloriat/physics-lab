@@ -126,6 +126,18 @@ export function statEntries(stats = {}) {
   }));
 }
 
+/**
+ * Bring a panel into view, respecting `prefers-reduced-motion`.
+ *
+ * The CSS media query cannot help here: an explicit `behavior: 'smooth'` in a
+ * `scrollIntoView` call overrides `scroll-behavior`, so the preference has to be read in
+ * JavaScript or it is quietly ignored on exactly the pages that asked for it.
+ */
+export function revealPanel(node) {
+  const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  node?.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+}
+
 /** `catch` receives anything, not just an Error; a bare `.message` would print "undefined". */
 export function describeError(error) {
   return error instanceof Error ? error.message : String(error);
