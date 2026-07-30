@@ -4,11 +4,11 @@ Every page in this lab is an **exercise**: a quantitative objective under constr
 model whose assumptions are written down, a result that can be judged right, wrong or
 improvable, and a verification number that says how much the result can be trusted.
 
-That is a change of kind, not of degree. The two pages shipped so far ask *"what changes in
-the field?"* (airfoil) and *"what does the core do?"* (solenoid). Both are guided
-demonstrations: there is nothing a visitor can get wrong, so there is nothing to compare and
-nothing to improve. This document defines the shape every exercise page has instead, and it
-is the contract the five planned exercises implement.
+That is a change of kind, not of degree. The lab's first two pages asked *"what changes in the
+field?"* (airfoil) and *"what does the core do?"* (solenoid) — guided demonstrations, in which
+there is nothing a visitor can get wrong, so there is nothing to compare and nothing to improve.
+This document defines the shape an exercise page has instead. The airfoil is built to it; the
+magnetics page is not yet, and §7 lists what remains.
 
 Nothing here changes the architecture. It changes what a page *is for*, which then decides
 what `content.json` carries, what the parameter panels are allowed to mix, and what a solver
@@ -71,8 +71,8 @@ say *target met* or *not met* instead of leaving the visitor to compare two numb
   "challenge": {
     "statement": "Pick a NACA profile and an incidence that generate 800 N/m of sectional lift, keeping |C_m,c/4| below 0.08, without leaving the model's domain of validity.",
     "targets": [
-      { "metric": "L_prime", "comparator": "==", "value": 800, "unit": "N/m", "tolerance": 0.02, "tolerance_kind": "relative" },
-      { "metric": "abs_C_m_c4", "comparator": "<", "value": 0.08, "unit": "1" }
+      { "metric": "l_prime", "comparator": "==", "value": 800, "unit": "N/m", "tolerance": 0.02, "tolerance_kind": "relative" },
+      { "metric": "c_m_c4", "comparator": "<", "value": 0.08, "unit": "1", "absolute": true }
     ],
     "requires_valid": true,
     "requires_verified": { "metric": "cl_consistency_rel", "below": 0.02 }
@@ -89,6 +89,15 @@ Three rules make this honest rather than a game:
    cannot pass either. A converged wrong answer is still wrong.
 3. The page reports *met / not met / not applicable* per target, and never rewrites the
    target. There is no partial credit and no encouragement.
+
+`absolute: true` compares the magnitude, and it has to be asked for. Inferring it from the
+comparator is how `|C_m| < 0.08` silently becomes `C_m < 0.08`, which every nose-down profile
+passes however large its moment — a bug this contract had until a real run walked into it.
+
+A target's verdict is about its own number, and whether the *run* counts is a separate
+question answered once: a satisfied target still reads as satisfied on a disqualified run, and
+the disqualification is stated on its own line. Marking a good number with a cross because
+something else was wrong tells the visitor the wrong thing.
 
 ### The rest of `content.json`
 
@@ -240,7 +249,7 @@ a caller learns what a run will report before running it.
 
 | Exercise | Challenge | Metrics | Verification | State |
 |---|---|---|---|---|
-| **Airfoil design** | Hit a target sectional lift by choosing profile and incidence | *C<sub>p</sub>*, *C<sub>L</sub>*, *C<sub>m</sub>*, centre of pressure, aerodynamic centre; *C<sub>D</sub>* and *L*/*D* only at model level 2 | Thin-airfoil theory, exact Joukowski and cylinder solutions, circulation-vs-pressure consistency, panel convergence | specified: [`exercises/airfoil.md`](exercises/airfoil.md) |
+| **Airfoil design** | Hit a target sectional lift by choosing profile and incidence | *C<sub>p</sub>*, *C<sub>L</sub>*, *C<sub>m</sub>*, centre of pressure, aerodynamic centre; *C<sub>D</sub>* and *L*/*D* only at model level 2 | Thin-airfoil theory, exact Kármán–Trefftz and cylinder solutions, circulation-vs-pressure consistency, panel convergence | **built**: [`exercises/airfoil.md`](exercises/airfoil.md) |
 | **Lightweight bracket** | Remove mass while keeping stress and deflection admissible | displacement, von Mises, reactions, mass, compliance, safety factor | Euler–Bernoulli beam, hole stress-concentration factor *K<sub>t</sub>*, reaction balance, mesh convergence | not specified |
 | **Electromagnet gap** | Produce a required gap force at minimum current | **B**, **H**, flux, force, losses, saturation margin | magnetic-circuit estimate, energy balance | not specified; reworks the existing solenoid page |
 | **Heat-sink challenge** | Dissipate a given power below a maximum temperature, with less material | *T*, heat flux, *T*<sub>max</sub>, *R*<sub>θ</sub>, mass, fin efficiency | energy balance, 1-D fin theory | not specified |
@@ -277,10 +286,18 @@ renderer. The contract adds:
 - **a run table** — the store, the row renderer, compare and export.
 - **a challenge banner** — the objective, and per-target met / not met.
 
+All of it now exists, built with the airfoil exercise: the grouped panels in `exercise.js`
+alongside the metrics, verification and validity renderers and the challenge banner, the plot in
+`curve.js`, the store and its table in `runs.js`, and the atmosphere in `atmosphere.js`.
+
 That is a real amount of shared code, and it is the point at which
 [ADR-009](architecture-decisions.md#adr-009--no-front-end-framework-and-no-bundler)'s
-"revisit at a fourth or fifth experiment" clause should be *re-read* rather than assumed
-still to hold. The judgement stands for now: none of the above needs a component model or a
-reactive store, and all of it is functions over DOM nodes. The first time two of these panels
-have to share mutable state is the moment to revisit, and the run table is the likeliest
-trigger.
+"revisit at a fourth or fifth experiment" clause should be *re-read* rather than assumed still to
+hold. The judgement stands: none of it needed a component model or a reactive store, and all of
+it is functions over DOM nodes. One thing found while building it is worth recording, because it
+is exactly the failure a framework is usually adopted to prevent — the page kept its parameter
+values in a *copy* of the object the generated controls mutate, so every control silently stopped
+having any effect. It looked right, and only moving a slider and watching the result not change
+revealed it. The fix was to stop copying, not to adopt a state container. The first time two of
+these panels genuinely have to share mutable state is the moment to revisit, and the run table is
+still the likeliest trigger.

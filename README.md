@@ -29,7 +29,7 @@ Everything — pages, experiment content, code and documentation — is in Engli
 
 | Experiment | Physics | Status |
 |---|---|---|
-| **Airfoil potential flow** — *Wind tunnel* | Laplace equation for the streamfunction around an editable NACA profile | **Available** |
+| **Airfoil design** | Ideal flow with a Kutta condition, by a panel method: hit a lift target under a pitching-moment constraint | **Available** — the first *exercise* |
 | **Solenoid magnetostatics** — *Magnetics lab* | Vector potential for an out-of-plane current: iron core, opposed windings, flux crowding into the iron | **Available** |
 | **Heat sink conduction and convection** | Conduction in a finned body with convective surfaces | Planned |
 
@@ -42,23 +42,24 @@ there is no outline to drag and the controls are physical dimensions instead; se
 The remaining experiment has its preview solver upstream already; what it needs is the
 didactic work. The homepage lists it as planned rather than pretending otherwise.
 
-### Where this is going: exercises instead of demonstrations
+### Exercises, not demonstrations
 
-Both pages are guided demonstrations — they ask *what changes in the field?* rather than
-setting a problem with a right, wrong or better answer. The next revision turns each page
-into an **exercise** with the same nine sections (problem, model, boundary conditions,
-initial conditions where the problem is transient, physical inputs, fields, engineering
-metrics, verification, saved result), a machine-checked objective, and a run table of
-reproducible, comparable results.
+A demonstration asks *what changes in the field?* — a question with no wrong answer, so nothing
+can be compared and nothing improved. An **exercise** sets a quantitative target under
+constraints, reports the engineering metrics that answer it, and says on every run how far those
+numbers can be trusted. Every page has the same nine sections: problem, model, boundary
+conditions, initial conditions *only* where the problem is transient, physical inputs, fields,
+engineering metrics, verification, saved result.
 
 - The contract every page implements: **[docs/exercise-contract.md](docs/exercise-contract.md)**
   ([ADR-013](docs/architecture-decisions.md#adr-013--the-pages-become-exercises-not-demonstrations)).
-- The first one specified in full: **[docs/exercises/airfoil.md](docs/exercises/airfoil.md)**
-  — which begins by fixing the physics, since the current model has no Kutta condition and
-  therefore no lift to report
+- The first one, specified and built: **[docs/exercises/airfoil.md](docs/exercises/airfoil.md)**.
+  It began by fixing the physics — the old model imposed no Kutta condition, so its lift was
+  exactly zero at every incidence
   ([ADR-014](docs/architecture-decisions.md#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first)).
 
-Neither is implemented yet. Nothing on the live site has changed.
+The magnetics page is still a demonstration and is next in line
+([the five exercises](docs/exercise-contract.md#7-the-five-exercises)).
 
 ---
 
@@ -103,12 +104,14 @@ subclassed:
 ### Layout
 
 ```
-physics_lab/          the app: main.py, settings.py, solvers/ (registered, empty by design)
+physics_lab/          the app: main.py, settings.py
+  solvers/              the airfoil panel method: panel, geometry, analytic, exercise, adapter
 frontend/             static site — no build step for the lab's own code
   index.html            homepage
   experiments/airfoil/  the wind-tunnel experiment (index.html, app.js, content.json)
   experiments/solenoid/ the magnetics experiment, same three files
-  shared/               lab.css, api.js, components.js, experiment.js (the page shell)
+  shared/               lab.css, api.js, components.js, experiment.js (the page shell),
+                        exercise.js, curve.js, runs.js, atmosphere.js (the exercise contract)
   vendor/               Fenix Spoon widgets, built from the pin (generated, gitignored)
 tests/                pytest: the API seam, the served site
 e2e/                  Playwright: the browser loop, run against a deployment

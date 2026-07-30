@@ -791,3 +791,324 @@ input:focus-visible {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ------------------------------------------------- the exercise: challenge, answer, checks */
+
+/* Everything below serves docs/exercise-contract.md: an objective that can be met or missed,
+   an answer kept apart from the cost of computing it, residuals shown against their
+   tolerances, and a table of runs that can be compared. */
+
+.challenge {
+  border-left: 3px solid var(--accent);
+}
+
+.challenge__statement {
+  margin: 0 0 0.8rem;
+  max-width: var(--measure);
+  color: var(--ink);
+}
+
+.challenge__targets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+}
+
+.challenge__target {
+  display: grid;
+  grid-template-columns: 1.3rem 1fr;
+  align-items: baseline;
+  color: var(--ink-soft);
+}
+
+.challenge__mark {
+  font-weight: 700;
+}
+
+.challenge__target.is-met .challenge__mark {
+  color: var(--ok);
+}
+
+.challenge__target.is-missed .challenge__mark {
+  color: var(--warn);
+}
+
+.challenge__target.is-pending .challenge__mark {
+  color: var(--ink-faint);
+}
+
+.challenge__blocked,
+.challenge__done {
+  margin: 0.8rem 0 0;
+  font-size: 0.9rem;
+  max-width: var(--measure);
+}
+
+.challenge__blocked {
+  color: var(--warn);
+}
+
+.challenge__done {
+  color: var(--ok);
+}
+
+/* The three parameter groups are marked, faintly, because the distinction between a physical
+   input and a numerical setting is the point and not a detail. */
+.panel--physical > h3 {
+  border-bottom-color: var(--accent);
+}
+
+.panel--numerical > h3,
+.panel--study > h3 {
+  border-bottom-color: var(--line-strong);
+}
+
+.panel h4 {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+}
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.metrics {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.metrics th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--ink-soft);
+  padding: 0.28rem 0;
+}
+
+.metrics td {
+  padding: 0.28rem 0 0.28rem 0.6rem;
+}
+
+.metrics__symbol {
+  font-family: var(--font-mono);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+  margin-left: 0.4rem;
+}
+
+.metrics__unit {
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+  width: 4.5rem;
+}
+
+.metrics tr.is-absent th,
+.metrics tr.is-absent td {
+  color: var(--ink-faint);
+}
+
+.metrics--checks tr.is-met td:last-child {
+  color: var(--ok);
+}
+
+.metrics--checks tr.is-missed td:last-child {
+  color: var(--warn);
+}
+
+.validity {
+  margin: 0.9rem 0 0;
+  font-size: 0.9rem;
+  max-width: var(--measure);
+}
+
+.validity--ok {
+  color: var(--ink-soft);
+}
+
+.validity--warn {
+  padding-left: 1.1rem;
+  color: var(--warn);
+  display: grid;
+  gap: 0.45rem;
+}
+
+/* ------------------------------------------------------------------------------ line plots */
+
+.plot {
+  margin: 0.2rem 0 0;
+}
+
+.curve {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.curve__grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.curve__mark {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.curve__tick,
+.curve__axis {
+  fill: var(--ink-faint);
+  font-family: var(--font-text);
+  font-size: 10px;
+}
+
+.curve__axis {
+  font-size: 11px;
+}
+
+.curve__trace {
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+.curve__trace--0 {
+  stroke: var(--accent);
+}
+
+.curve__trace--1 {
+  stroke: var(--core);
+}
+
+.curve__trace--2 {
+  stroke: var(--winding);
+}
+
+.curve-legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.curve-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.swatch--trace-0 {
+  background: var(--accent);
+}
+
+.swatch--trace-1 {
+  background: var(--core);
+}
+
+.swatch--trace-2 {
+  background: var(--winding);
+}
+
+.curve-legend .swatch {
+  width: 0.85rem;
+  height: 0.2rem;
+  border-radius: 1px;
+  display: inline-block;
+}
+
+.sweep-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(160px, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .sweep-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------------------- kept runs */
+
+.table-scroll {
+  overflow-x: auto;
+  margin: 0.6rem 0 0;
+}
+
+.runs {
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  width: 100%;
+}
+
+.runs th,
+.runs td {
+  padding: 0.35rem 0.55rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.runs thead th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+
+.runs td.num,
+.metrics td.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* A run that raised a validity warning is marked in the table, because it cannot meet the
+   challenge however good its numbers look. */
+.runs tr.is-warned th,
+.runs tr.is-warned td {
+  color: var(--warn);
+}
+
+.runs--compare th[scope='row'] {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+button.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+}
+
+button.link:hover {
+  color: var(--accent-ink);
+}
+
+.field__hint--read {
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}

@@ -185,9 +185,13 @@ def verify(
     coeff: Coefficients,
     solution: PanelSolution,
     reference: ThinAirfoil,
-    coarse: Coefficients | None = None,
+    refined: Coefficients | None = None,
 ) -> Verification:
-    """Assemble the residuals. ``coarse`` is the same case at half the panels, if it was run."""
+    """Assemble the residuals.
+
+    ``refined`` is the same case solved at *twice* the panel count, when the convergence check
+    was asked for. Twice and not half: the question is whether refining would move the answer.
+    """
     scale = max(abs(coeff.c_l), CN_FLOOR)
     circulation_scale = max(abs(solution.circulation), 1e-9)
     return Verification(
@@ -195,7 +199,7 @@ def verify(
         circulation_consistency_rel=abs(solution.circulation - solution.circulation_surface)
         / circulation_scale,
         cd_pressure_spurious=abs(coeff.c_a_spurious),
-        cl_convergence_rel=None if coarse is None else abs(coeff.c_l - coarse.c_l) / scale,
+        cl_convergence_rel=None if refined is None else abs(coeff.c_l - refined.c_l) / scale,
         thin_airfoil_alpha_l0_deg=float(np.degrees(reference.alpha_l0)),
         thin_airfoil_cm_c4=reference.cm_c4,
     )

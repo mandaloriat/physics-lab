@@ -1,9 +1,10 @@
 # Exercise 1 — Airfoil design
 
-**Status:** level 1 **implemented** — `physics_lab/solvers/` and `tests/test_panel_method.py`,
-`tests/test_airfoil_solver.py`. The page that presents it is not built yet. Level 2 (§13) is
-specification only. Where implementation contradicted this document, the document was corrected
-and the correction is marked in place rather than quietly applied.
+**Status:** level 1 **built and live** — solver in `physics_lab/solvers/`, page in
+`frontend/experiments/airfoil/`, verified by `tests/test_panel_method.py`,
+`tests/test_airfoil_solver.py` and `e2e/airfoil.spec.mjs`. Level 2 (§13) is specification only.
+Where implementation contradicted this document, the document was corrected and the correction is
+marked in place rather than quietly applied.
 **Implements:** [the exercise contract](../exercise-contract.md).
 **Replaces:** the *Wind tunnel* page's "how does the flow field change as you increase the
 camber?" framing.
@@ -730,16 +731,21 @@ one of the sweep's stations; that each warning of §9 fires when its threshold i
 that a valid run raises none; that the report carries everything needed to recompute the run;
 and that two identical runs give byte-identical metrics.
 
-**Still to do, with the page (§4 of this list is the page's own work):**
-
-- ISA: the five-row table of §5.3 to the digits shown — the atmosphere is resolved in the
-  browser, so this is a browser test.
-- A run row round-trips: save → export → re-import → identical metrics.
-- Playwright: the three parameter groups are distinct sections; a metric the model cannot
-  produce is absent rather than zero; the challenge banner reports *not met* for a run with a
-  validity warning even when the numeric targets are hit; a sweep-only metric is labelled
-  unavailable before a sweep; the *C<sub>p</sub>* curve's *y* axis is inverted; Save adds
-  exactly one row and Compare shows the differing fields.
+**The page — `e2e/airfoil.spec.mjs`, 12 tests in a real browser.** That the problem is stated
+before a solver is offered and every target reads *not run yet*; that the three parameter groups
+are separate panels with no control in two of them, and that density, viscosity and the speed of
+sound are not offered as free inputs at all; that the ISA table of §5.3 comes out to the digits
+shown *in the browser*, and that the altitude control drives it; that the intended solution
+reports the target met with every check passed and an explicit validity statement; that the
+*C<sub>p</sub>* curve is drawn with the suction peak upward; that drag and efficiency cannot be
+talked out of the model; that a run at Mach 0.44 is disqualified however good its numbers; that
+the aerodynamic centre is unavailable until a sweep and lands between 0.23 and 0.29 chords when
+it is; that turning the Kutta condition off returns the page to zero lift and says why; that a
+kept run carries every input, that two runs can be compared, and that loading one restores its
+inputs without re-solving; that a NACA 4412 reaches the lift and **fails** the moment constraint,
+so the challenge still discriminates; that the camber position really moves for a 2312 against a
+2512, read from the camber line the solver extracted rather than from the outline's highest
+point; and that the geometry the solver read is reported back.
 
 ---
 

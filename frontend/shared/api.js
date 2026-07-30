@@ -75,9 +75,21 @@ export async function solversFor(geometryType) {
  *   description?: string}}
  */
 export function paramSpec(solver, name) {
-  const property = solver?.params_schema?.properties?.[name];
-  if (!property) return null;
+  const declared = solver?.params_schema?.properties?.[name];
+  if (!declared) return null;
+
+  // An optional parameter is emitted by pydantic as `anyOf: [{...}, {type: 'null'}]`, which
+  // hides the type and the bounds one level down. Unwrap it, and remember that null is
+  // allowed — a form that lost the bounds of a nullable field would render a number box with
+  // no limits and send values the server refuses.
+  const branches = Array.isArray(declared.anyOf) ? declared.anyOf : null;
+  const nullable = Boolean(branches?.some((branch) => branch.type === 'null'));
+  const property = nullable
+    ? { ...(branches.find((branch) => branch.type !== 'null') ?? {}), default: declared.default }
+    : declared;
+
   const spec = {
+    nullable,
     name,
     type: property.type ?? 'number',
     default: property.default,

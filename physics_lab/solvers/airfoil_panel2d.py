@@ -259,17 +259,20 @@ class AirfoilPanel2D(Solver):
         primary = solve(nodes, params.u_inf, alpha, circulation)
         coeff = exercise.coefficients(primary, profile.chord, params.rho)
 
-        coarse = None
-        if params.convergence_check and params.panels >= 80:
-            half = solve(
-                resample(profile, params.panels // 2, closed_te=closed_te),
-                params.u_inf,
-                alpha,
-                circulation,
+        refined = None
+        if params.convergence_check:
+            # Solved at *twice* the panels, not half. The question a convergence check answers is
+            # "would refining this change the answer?", and halving answers a different and much
+            # harsher one: the step from 120 to 240 panels is 1.4 %, the step from 240 to 480 is
+            # 0.15 %, and reporting the first against a 0.5 % tolerance would put a warning on
+            # every run made at the default settings.
+            finer = min(2 * params.panels, PANEL_CEILING)
+            solution = solve(
+                resample(profile, finer, closed_te=closed_te), params.u_inf, alpha, circulation
             )
-            coarse = exercise.coefficients(half, profile.chord, params.rho)
+            refined = exercise.coefficients(solution, profile.chord, params.rho)
 
-        checks = exercise.verify(coeff, primary, reference, coarse)
+        checks = exercise.verify(coeff, primary, reference, refined)
         warnings = exercise.validity(
             coeff,
             conditions,
@@ -348,6 +351,10 @@ class AirfoilPanel2D(Solver):
 
 
 VERSION = "1.0.0"
+
+#: The convergence check may not refine past this. Twice 400 panels is 800, whose matrix is
+#: still trivial; the cap exists so the ceiling is a stated number rather than a consequence.
+PANEL_CEILING = 800
 
 
 def _sweep_angles(params: "AirfoilPanel2D.Params") -> np.ndarray:
