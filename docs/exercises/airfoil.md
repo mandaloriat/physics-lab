@@ -1,6 +1,9 @@
 # Exercise 1 — Airfoil design
 
-**Status:** specification. Nothing in this document is implemented yet.
+**Status:** level 1 **implemented** — `physics_lab/solvers/` and `tests/test_panel_method.py`,
+`tests/test_airfoil_solver.py`. The page that presents it is not built yet. Level 2 (§13) is
+specification only. Where implementation contradicted this document, the document was corrected
+and the correction is marked in place rather than quietly applied.
 **Implements:** [the exercise contract](../exercise-contract.md).
 **Replaces:** the *Wind tunnel* page's "how does the flow field change as you increase the
 camber?" framing.
@@ -20,14 +23,14 @@ There are two ways out, and this specification chooses the first:
 |---|---|---|
 | Produces | *C<sub>p</sub>*, *C<sub>L</sub>*, *C<sub>m</sub>*, *x<sub>cp</sub>*, *x<sub>ac</sub>*, *L*′ | the above, plus *C<sub>D</sub>*, *L*/*D*, a polar, separation onset |
 | Cost | milliseconds | seconds to minutes |
-| Verifiable against | exact cylinder and Joukowski solutions, thin-airfoil theory | wind-tunnel data only |
+| Verifiable against | exact cylinder and Kármán–Trefftz solutions, thin-airfoil theory | wind-tunnel data only |
 | Ships | **first** | later, on the same page |
 
 Level 1 first, with the interface designed to host both. The reasons, in order:
 
 1. **It is verifiable to the last digit.** Two exact solutions (a circular cylinder with
-   circulation, a Joukowski airfoil) and one asymptotic theory (thin airfoil) bracket the
-   answer. A viscous model has no closed form to check against — its verification is
+   circulation, a conformally mapped profile) and one asymptotic theory (thin airfoil) bracket
+   the answer — and the measured agreement is 0.05 % on the case that matters (§8.2). A viscous model has no closed form to check against — its verification is
    correlation with experiment, which is a much weaker claim for a lab whose whole argument is
    that the numbers can be checked.
 2. **The Kutta condition is precisely the missing physics.** It is what selects the
@@ -66,18 +69,35 @@ Pass conditions, as the page checks them:
 | Verification | circulation-vs-pressure consistency below 2 % (§8.4) |
 
 The constraint is what makes it an exercise rather than a slider hunt. At *c* = 1 m, 40 m/s
-and sea level the required *C<sub>L</sub>* is 0.816, which several profiles can reach — but a
-NACA 4412 reaches it at 3.3° with |*C<sub>m,c/4</sub>*| ≈ 0.106 and **fails the moment
-constraint**, while a 2412 reaches it at 5.4° with 0.053 and passes. Camber buys lift at low
-incidence and costs pitching moment; the exercise is that trade, and the run table is where
-it becomes visible.
+and sea level the required *C<sub>L</sub>* is 0.816, which every catalogue profile can reach —
+but not all of them legally. These are the solver's own answers, not estimates:
+
+| Profile | *α* for 800 N/m | *C<sub>m,c/4</sub>* | Moment constraint | *C<sub>p,min</sub>* |
+|---|---|---|---|---|
+| NACA 0009 | 6.92° | −0.006 | passes | **−4.77** |
+| NACA 0012 | 6.76° | −0.009 | passes | −3.30 |
+| NACA 1412 | 5.69° | −0.035 | passes | −2.41 |
+| NACA 2312 | 4.76° | −0.052 | passes | −1.66 |
+| NACA 2412 | 4.61° | −0.061 | passes | −1.72 |
+| NACA 2415 | 4.44° | −0.064 | passes | −1.55 |
+| NACA 4412 | 2.47° | −0.113 | **fails** | −1.06 |
+| NACA 4415 | 2.28° | −0.115 | **fails** | −1.17 |
+
+There is no profile that wins on everything, which is the point. Camber buys the lift at low
+incidence and pays for it in pitching moment: the 4412 needs only 2.5° and is disqualified by
+the moment constraint. A symmetric section has no moment to speak of and pays instead in
+incidence and in suction — the 0009 reaches the target only at 6.9°, with a *C<sub>p,min</sub>*
+of −4.8 that a real boundary layer would not survive, and which this model cannot warn about
+except by reporting the number. The run table is where that trade becomes visible.
 
 Two further challenges reuse the same machinery and are worth shipping as alternatives:
 
-- *Same lift, minimum suction peak* — hit 800 N/m with the least negative *C<sub>p,min</sub>*
-  (the level-2 proxy for "least likely to separate").
+- *Same lift, minimum suction peak* — hit 800 N/m with the least negative *C<sub>p,min</sub>*.
+  The table above says the answer is a moderately cambered, thicker section, and the reasoning
+  is exactly the reasoning level 2 will later be able to check.
 - *Locate the aerodynamic centre* — from an incidence sweep, report *x<sub>ac</sub>*/*c* and
-  compare with the thin-airfoil value of 0.25.
+  compare with the thin-airfoil value of 0.25. (The solver finds 0.262 for a 2412: thickness
+  moves it aft, and the sweep's *R*² of 0.9997 says the fit is entitled to three digits.)
 
 ---
 
@@ -213,7 +233,12 @@ second code path. From the outline it derives:
   curves;
 - **incidence** *α* — the angle between the chord line and the free-stream direction, reported
   back so that a custom outline has a meaningful incidence and a catalogue profile's reported
-  *α* can be checked against the one requested;
+  *α* can be checked against the one requested. The two are *not* identical, and the difference
+  is real rather than an error: the nose point of a cambered outline sits slightly above the
+  mean line's origin, so the longest-diagonal chord of a NACA 2412 is tilted about 0.13° from
+  the chord the generating formula uses. The run row therefore carries `alpha_requested_deg`,
+  `chord_angle_deg` and the derived `alpha_deg`, and the thin-airfoil reference is computed in
+  the *same* frame, so the tilt cancels in every comparison that matters;
 - **camber line and thickness distribution** — by intersecting chord-normal lines with the two
   surfaces, which is what §8.3 needs to compare a custom shape against thin-airfoil theory.
 
@@ -372,7 +397,7 @@ class Params(BaseModel):
     sound_speed: float = Field(default=340.29, gt=0.0)
     kutta: Literal["enforced", "none"] = "enforced"
     # numerical
-    panels: int = Field(default=160, ge=40, le=400)
+    panels: int = Field(default=240, ge=40, le=400)   # see 7.1
     trailing_edge: Literal["closed", "as_drawn"] = "closed"
     resolution: int = Field(default=192, ge=16, le=512)   # sampling grid for the field
     convergence_check: bool = True                        # also solve at 2N, report the delta
@@ -402,8 +427,10 @@ separately.
 ### 7.1 Panels
 
 *N* panels, cosine-clustered towards the leading edge and the trailing edge, resampled from
-the submitted outline by arclength. Default 160; 40 is visibly coarse and 400 is beyond the
-point where anything changes. The *only* legitimate effect of this control is on the
+the submitted outline. **Default 240**, chosen against the measured consistency residual of
+§8.4 rather than by eye: at 160 panels that residual is 1.6 % against a 2 % tolerance, which
+leaves no room, and at 240 it is 1.0 % at the worst incidence and 0.5 % at the interesting
+ones. 40 is visibly coarse and 400 is past the point where anything moves. The *only* legitimate effect of this control is on the
 verification residuals, and the page says so where it is rendered.
 
 ### 7.2 Domain truncation (FEniCSx variant only)
@@ -460,19 +487,44 @@ circle with Γ imposed, and require the *C<sub>p</sub>* error in the ∞-norm be
 *N* = 200. With Γ = 0 this is the familiar 1 − 4 sin²*θ*, and the integrated force must vanish
 in both components.
 
-### 8.2 Joukowski airfoil (exact, unit test)
+### 8.2 Kármán–Trefftz and Joukowski (exact, unit test)
 
 The conformal map *z* = *ζ* + *b*²/*ζ* takes a circle of radius *R* centred at *ζ*<sub>0</sub>
 and passing through *ζ* = *b* to a profile with a sharp trailing edge at *z* = 2*b*. The Kutta
 condition is a *stagnation point at ζ = b*, which gives the circulation in closed form,
 
-$$\Gamma = 4\pi U R \sin(\alpha + \beta),\qquad \beta = \arcsin\!\big(\Im\{\zeta_0\}/R\big)$$
+$$\Gamma = 4\pi U R \sin(\alpha + \beta),\qquad \beta = -\arg(b - \zeta_0)$$
 
 and hence *C<sub>L</sub>* = 2Γ/(*U*<sub>∞</sub>*c*) with *c* measured on the mapped profile.
 This is the one exact solution for a *lifting body with a sharp trailing edge*, which makes it
 the single most valuable test in the suite: it validates the Kutta implementation itself, not
-merely the Laplace solve. Required agreement: *C<sub>L</sub>* within 0.5 % at *N* = 200, over
-at least a symmetric case, a cambered case and *α* ∈ {0°, 5°, 10°}.
+merely the Laplace solve.
+
+**With one correction the implementation forced, and it is worth recording.** A Joukowski
+trailing edge is a **cusp** — the two surfaces arrive parallel — and that is the hardest
+trailing edge a panel method can be given: the measured error falls only at first order, from
+3.6 % at 100 panels to 1.4 % at 400. It never reaches 0.5 %, so the tolerance this section
+originally asked for was unachievable against that geometry, and no amount of care in the
+solver would have fixed it.
+
+The **Kármán–Trefftz** map generalises Joukowski to a trailing edge that closes at a *finite*
+included angle,
+
+$$\frac{z - kb}{z + kb} = \left(\frac{\zeta - b}{\zeta + b}\right)^{k},\qquad k = 2 - \tau/\pi$$
+
+and it is nearly free: the flow around the circle is unchanged, so the circulation is the same
+closed form and only the map differs. It is also the *representative* case — every profile the
+exercise offers has a finite wedge angle, about 16° for a 12 %-thick four-digit section — and
+against it the panel method is exact to **0.0–0.6 %** at 200 panels (0.05 % at 5°, 0.00 % at
+10°; the largest residual is at zero incidence, where *C<sub>L</sub>* itself is small).
+
+So the suite requires:
+
+- **Kármán–Trefftz, *τ* = 16°**, three thickness/camber combinations × *α* ∈ {0°, 5°, 10°}:
+  *C<sub>L</sub>* within 0.5 % **or** 0.005 absolute, whichever is larger.
+- **Joukowski cusp**, kept deliberately: the error must *fall* with panel count and be inside
+  2 % by 400 panels. The test also asserts that it does **not** pass at 0.5 % — so if a future
+  change makes it, the caveat in this section is stale and the test says so.
 
 ### 8.3 Thin-airfoil theory (asymptotic, page-visible)
 
@@ -503,21 +555,39 @@ twice:
 Report `cl_consistency_rel` = |Δ*C<sub>L</sub>*| / max(|*C<sub>L</sub>*|, 0.05). The two routes
 share the solution but not the arithmetic, so panelling error, a sign convention mistake or a
 misapplied Kutta condition breaks their agreement. Tolerance 2 %, and it is the residual the
-challenge gates on.
+challenge gates on. Measured 0.5 % at the default 240 panels, falling by half for each
+doubling — the pressure route is the first-order one, because it integrates a C_p that varies
+fastest exactly where the panels are shortest.
+
+The circulation itself is taken from the **vortex strength**, `-gamma * perimeter`, not from
+integrating the surface velocity: a source sheet carries no circulation and the vortex sheet
+carries all of it, so that expression is exact for the discrete solution while the surface
+integral is a midpoint approximation to it. Their difference is reported too, as
+`circulation_consistency_rel`.
 
 ### 8.5 d'Alembert's paradox (theorem, page-visible)
 
 The chordwise component of the integrated pressure force must be zero. The residual
 `cd_pressure_spurious` is therefore **not a drag coefficient but an error bar** — and the page
-labels it that way, in the row where a visitor would otherwise look for drag. Tolerance 0.002.
-With `kutta: none` the lift must also vanish, to the same tolerance.
+labels it that way, in the row where a visitor would otherwise look for drag. Tolerance 0.002;
+measured 1.6e−5 for a NACA 2412 at 5.4° and 240 panels.
+
+With `kutta: none` the lift is zero identically — it is not integrated at all, it is
+`-gamma * perimeter` with `gamma` fixed at zero — but the *pressure* residual for that model
+does **not** converge, and the reason is the whole argument for the Kutta condition: with no
+circulation the flow has to turn the sharp trailing edge, so the velocity there is unbounded.
+The measured peak deepens without limit as panels are added — C_p of −13 at 80 panels, −42 at
+160, −141 at 320 — so the pressure integral near it converges to nothing. The page reports
+that as a warning naming the singularity rather than as a residual to be squinted at, and the
+non-lifting model is excluded from the challenge for this reason as well as for its zero lift.
 
 ### 8.6 Convergence (page-visible)
 
 With `convergence_check` on, the same geometry is also solved at 2*N* panels (cheap: one more
 factorisation) and `cl_convergence_delta` = |*C<sub>L</sub>*(2*N*) − *C<sub>L</sub>*(*N*)| is
-reported. Tolerance 0.5 %. It is the weakest of the six on its own and the page says so — it
-shows the discretisation has settled, not that it settled on the truth.
+reported. Tolerance 0.5 %; measured 0.15 % for a NACA 2412 at 5.4° between 120 and 240 panels.
+It is the weakest of the six on its own and the page says so — it shows the discretisation has
+settled, not that it settled on the truth.
 
 ---
 
@@ -546,7 +616,13 @@ shows the discretisation has settled, not that it settled on the truth.
 | `velocity` | m/s | Vector. Protocol 1.1 carries vector fields; the viewer draws them. |
 | `speed` | m/s | Magnitude, alongside the vector for the reason upstream documents: the viewer colours by it every frame. |
 | `Cp` | 1 | Computed by the solver now, not derived in the browser — the panel solve knows the exact surface value, and a grid-derived *C<sub>p</sub>* would disagree with the surface curve at the very place both matter. Diverging colormap centred on zero. |
-| `psi` | m²/s | Streamfunction; its contours are the streamlines. |
+**There is no `psi` field, and that is a change from this specification's first draft.** The
+streamfunction of a *source* sheet is multivalued — its branch cut runs off along the panel's
+own line — so evaluating the superposition panel by panel lays a visible seam across the
+picture wherever a panel's line extension crosses the grid, and the seams cancel only if the
+net source strength does, which it does not do pointwise. The velocity field carries the same
+information without that hazard: protocol 1.1 puts vectors on the wire and the viewer draws
+them, so streamline *direction* is not lost, only the scalar whose contours drew them.
 
 No temperature field (§2). No vorticity field: it is identically zero, and a picture of
 rounding error is not a result.
@@ -620,30 +696,50 @@ cannot be recomputed is not saved.
 
 ## 12. Acceptance criteria
 
-**Physics (pytest, no browser, no FEniCSx):**
+**Physics — `tests/test_panel_method.py`, 35 tests, no server and no FEniCSx.** All passing;
+each line names what is checked and against what.
 
-1. Cylinder, Γ = 0: *C<sub>p</sub>* within 1 % (∞-norm) of 1 − 4 sin²*θ*; both force
-   components zero within 1e−3.
-2. Cylinder, Γ ≠ 0: lift equals *ρU*Γ within 0.5 %.
-3. Joukowski, three incidences × three profiles: *C<sub>L</sub>* within 0.5 % of the exact
-   value.
-4. NACA 2412: *α*<sub>L=0</sub> within 0.5° of −2.08°, *C<sub>m,c/4</sub>* within 0.02 of
-   −0.053, d*C<sub>L</sub>*/d*α* inside [2π, 1.15 × 2π].
-5. Symmetric profile at *α* = 0: *C<sub>L</sub>* and *C<sub>m</sub>* zero within 1e−6.
-6. `kutta: none` reproduces zero lift within 1e−3 — the current page's model as a limit case.
-7. Panel convergence: *C<sub>L</sub>* changes by less than 0.5 % from *N* = 160 to 320.
-8. Sweep: *x<sub>ac</sub>*/*c* within 0.02 of 0.25 for a 12 % four-digit profile.
-9. ISA: the five-row table of §5.3 to the digits shown.
-10. A run row round-trips: save → export → re-import into a solve → identical metrics.
+| # | Check | Tolerance | Measured |
+|---|---|---|---|
+| 1 | Cylinder, Γ = 0, against 1 − 4 sin²*θ* | 1 % (∞-norm) | 1.5e−14 |
+| 2 | Cylinder, Γ = 0: both force components | 1e−3 | exact to machine precision |
+| 3 | Cylinder, Γ ≠ 0: lift against *ρU*Γ | 0.5 % | passes at 300 panels |
+| 4 | Kármán–Trefftz (*τ* = 16°), 3 sections × *α* ∈ {0°, 5°, 10°} | 0.5 % or 0.005 | 0.00–0.58 % |
+| 5 | Joukowski cusp: error falls with panels, inside 2 % at 400 | see §8.2 | 3.6 → 1.4 % |
+| 6 | Thin-airfoil *α*<sub>L=0</sub> and *C<sub>m,c/4</sub>* for five catalogue profiles, from the **extracted** camber line | 0.15°, 0.005 | passes |
+| 7 | NACA 2412 lift slope inside [2π, 1.15 × 2π] and *α*<sub>L=0</sub> ≈ −2.08° | 0.5° | 6.91 /rad, −2.15° |
+| 8 | Symmetric profile at *α* = 0: *C<sub>L</sub>*, *C<sub>m</sub>* | 1e−6 | 9e−18, 5e−16 |
+| 9 | Centre of pressure absent, not infinite, when *C<sub>N</sub>* → 0 | — | reported as `null` |
+| 10 | `kutta: none` gives zero lift at every incidence | 1e−12 | exact |
+| 11 | `kutta: none` trailing-edge peak deepens without limit, and the Kutta condition removes it | — | −13 → −141 |
+| 12 | Circulation-vs-pressure consistency, and that it *falls* with panel count | 2 % | 0.5 % at 240 |
+| 13 | Panel convergence, 240 → 480 | 0.5 % | 0.15 % |
+| 14 | *x<sub>ac</sub>*/*c* from a sweep | 0.02 of 0.25 | 0.262, *R*² 0.9997 |
+| 15 | A sweep equals the same angles solved one at a time | 1e−12 | identical, 10× faster |
+| 16 | The profile reads the same in any frame (rotated 30°, translated) | 1e−6 | passes |
+| 17 | No zero-length panel for either trailing-edge treatment | — | passes |
 
-**Page (Playwright):** the three parameter groups are distinct sections; a metric the model
-cannot produce is absent rather than zero; the challenge banner reports *not met* for a run
-with a validity warning even when the numeric targets are hit; a sweep-only metric is labelled
-as unavailable before a sweep; the *C<sub>p</sub>* curve's *y* axis is inverted; Save adds
-exactly one row and Compare shows the differing fields.
+**The seam with Fenix Spoon — `tests/test_airfoil_solver.py`, 24 tests.** That the adapter
+registers itself by import alone; that the params schema publishes every bound and description
+the page's form is generated from; that **every declared metric is actually reported**; that the
+declared artifact is the one written; that both result kinds validate against `ResultEnvelope`;
+that `stats` and the metrics share no key; that the masked interior carries no flow; that the
+cost estimate matches the grid returned; that the withheld quantities are absent *and* named;
+that a sweep is required before *x<sub>ac</sub>* appears; that the requested incidence is always
+one of the sweep's stations; that each warning of §9 fires when its threshold is crossed and
+that a valid run raises none; that the report carries everything needed to recompute the run;
+and that two identical runs give byte-identical metrics.
 
-**Documentation:** this file's tolerances and the code's constants come from one place — a
-test reads the numbers out of the solver module and fails if they drift from the table above.
+**Still to do, with the page (§4 of this list is the page's own work):**
+
+- ISA: the five-row table of §5.3 to the digits shown — the atmosphere is resolved in the
+  browser, so this is a browser test.
+- A run row round-trips: save → export → re-import → identical metrics.
+- Playwright: the three parameter groups are distinct sections; a metric the model cannot
+  produce is absent rather than zero; the challenge banner reports *not met* for a run with a
+  validity warning even when the numeric targets are hit; a sweep-only metric is labelled
+  unavailable before a sweep; the *C<sub>p</sub>* curve's *y* axis is inverted; Save adds
+  exactly one row and Compare shows the differing fields.
 
 ---
 
@@ -670,25 +766,35 @@ does not exist.
 
 ---
 
-## 14. Decisions still open
+## 14. Decisions, resolved and still open
 
-1. **Does the exercise keep the upstream solvers on the page at all?** §2 argues for keeping
-   the no-circulation model as an explicit selector, which `mock.laplace2d` and
-   `dolfinx.potential_flow2d` already implement — but they impose the stream along *x* only,
-   so with incidence as a stream direction (§5.1) they can no longer express a non-zero
-   incidence. Either the lab's own solver implements `kutta: none` itself (simplest, one code
-   path, recommended), or the upstream pair stays for *α* = 0 only.
-2. **Where does the pin land?** The lab is pinned to `7c89be3`; upstream `main` is at `988ad64`
-   with protocol 1.2, capability discovery and the `Solver` declaration attributes this
-   specification uses (`physics`, `availability`, `metrics`, `artifacts`, `examples`). The
-   declaration fields are what make §10.3 discoverable, so **the pin bump comes before the
-   solver**, following
-   [ADR-007](../architecture-decisions.md#adr-007--the-dependency-is-pinned-to-a-commit-in-four-places-checked-by-a-script).
-3. **Does the mode selector stay prefix-based?** `api.js` maps `mock.` to "fast preview" and
-   `dolfinx.` to "FEniCSx computation". A `lab.` solver falls into neither, and calling a panel
+**Resolved by the implementation.**
+
+1. **Does the page keep the upstream solvers?** No. The lab's own solver implements
+   `kutta: none` itself, so the no-circulation model is one code path with the lifting one and
+   is exercised by the same tests. Keeping `mock.laplace2d` on the page would have meant a
+   second model that cannot express a non-zero incidence (it imposes the stream along *x*), for
+   a comparison the selector already provides.
+2. **Where does the pin land?** Bumped: `712dea2` → `988ad64`, protocol 1.2, which is what makes
+   `MetricSpec` and `ArtifactSpec` available. Verified additive first — no shipped solver's
+   `Params` changed a field — and both images exist for the new commit. See ADR-007.
+3. **Kármán–Trefftz, not Joukowski, is the primary exact check.** Forced by measurement: a
+   Joukowski cusp cannot be resolved to 0.5 % by any reasonable panel count, and every profile
+   the exercise offers has a finite trailing-edge angle anyway (§8.2).
+
+**Still open.**
+
+4. **Does the mode selector stay prefix-based?** `api.js` maps `mock.` to "fast preview" and
+   `dolfinx.` to "FEniCSx computation". `lab.airfoil_panel2d` is neither, and calling a panel
    method a "preview" would be wrong — it is the most accurate surface solution on the page.
-   After the pin bump, `capability.list` publishes `availability` and `physics` per capability,
-   which is the honest source for that label.
-4. **How many catalogue profiles?** Ten is enough to make the camber/moment trade visible;
-   more is a data-entry exercise. Five-digit and 6-series profiles are a separate decision, and
-   the generator would have to be written for them.
+   The adapter declares `availability = "panel-method"`, and the pin now publishes that field
+   through `capability.describe`, so the honest fix is for the page to read it instead of
+   parsing the name. That is page work, and it is the one thing in `shared/api.js` this
+   exercise wants changed.
+5. **How many catalogue profiles?** Eight are implemented in the challenge table of §1, which is
+   enough to make the camber/moment trade visible. Five-digit and 6-series profiles need a
+   different generator and are a separate decision.
+6. **Does the FEniCSx cross-check get built?** §6.2 specifies it and nothing depends on it. Its
+   value is a second implementation of the same physics; its cost is a mesh, a truncated far
+   field and its own convergence study. Worth doing when there is a reason to doubt the panel
+   method, and the exact solutions of §8.2 are currently a better use of the same effort.
