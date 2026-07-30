@@ -167,17 +167,32 @@ it is for.
 
 ## ADR-007 — The dependency is pinned to a commit, in four places, checked by a script
 
-**Decision.** Fenix Spoon is pinned to commit `712dea2738d1165fa0afc563f2965e5a48df32cb`.
+**Decision.** Fenix Spoon is pinned to commit `988ad64b8cd25f94e52b985bf2d2456230a9eed3`.
 Never `main`, never `latest`.
+
+**What this pin carries, and why the lab moved to it.** Protocol 1.2, and with it the
+capability declaration a solver adapter can make: `physics`, `availability`, `requires`,
+`metrics`, `artifacts`, `features` and `examples`, plus the three progressive-discovery
+operations (`GET /api/v1/capabilities`, `.../capabilities/{name}`, `GET /api/v1/environment`).
+The lab needs `MetricSpec` and `ArtifactSpec` to declare what the airfoil exercise reports
+before a visitor runs it (ADR-014), and they do not exist in the previous pin. The upgrade was
+verified to be purely additive first: between the two commits no shipped solver's `Params`
+model changed a field, which is the one thing that would have altered the parameter form the
+pages generate from `params_schema`.
+
+Note what the declaration still is at this commit: **declared, not computed.** Upstream says
+so plainly — the values are issue #46 — so a metric a solver publishes in `metrics` is a
+promise about what it will report, and the result envelope has nowhere to put the number yet.
+That is why a lab solver carries its metrics in a declared artifact for now (ADR-015).
 
 **Why a commit and not a release.** There is no release and no tag to use: upstream's
 `git ls-remote --tags` is empty. A commit SHA is the strongest pin available, and it is a
 complete one — it fixes the server, the solvers, the protocol models and the widget source
 together.
 
-**Why the image tags are what they are.** GHCR carries `sha-712dea2` (FEniCSx, dolfinx
-v0.11.0, digest `sha256:84697160…`) and `sha-712dea2-slim` (mock solvers only, digest
-`sha256:9d5820ca…`). `dolfinx-v0.11.0` is the same image today but is re-pointed on every
+**Why the image tags are what they are.** GHCR carries `sha-988ad64` (FEniCSx, dolfinx
+v0.11.0, digest `sha256:9066f980…`) and `sha-988ad64-slim` (mock solvers only, digest
+`sha256:99230d7e…`). `dolfinx-v0.11.0` is the same image today but is re-pointed on every
 push to `main`, so it is not a pin. And `latest` / `latest-slim` **do not exist**, despite
 what upstream's README says — the publish workflow tags `latest` only on a `v*` git tag,
 and none has been pushed. Anyone debugging a failed pull should know that before they
@@ -517,8 +532,9 @@ apologise for — and the export button is the answer for anyone who wants to ke
 ## ADR-016 — The product is called Spoon Physics
 
 **Decision.** The lab is **Spoon Physics** — *Interactive problems. Computed fields.
-Checkable answers.* Not "Andolfatto Physics Lab". The rename is its own change, and this
-record precedes it.
+Checkable answers.* Not the founder's surname, which is what it was called until this record
+was written. **Carried out**: the name now reads that way everywhere the product names
+itself.
 
 **Why not the old name.** There is a real
 [Andolfatto Lab at Columbia](https://andolfattolab.com/), a genetics group. A personal
@@ -531,15 +547,21 @@ as a school worksheet. "Spoon Labs" is stronger but taken several times over, in
 [spoonLabs AI](https://spoonlabs.ai/). "Spoon Physics Lab" is the more descriptive variant and
 stays available as a fallback if the shorter name proves ambiguous in use.
 
-**What the rename touches.** `settings.site_name()` and its environment default, the page
-titles built in `experiment.js` and both `index.html`s, the homepage masthead, the README, the
-`pyproject.toml` project name, and the assertions in `tests/` and `e2e/` that read the visible
-name. `lab.andolfatto.eu` stays as the hostname: a domain is infrastructure, and it need not
-be the product's name — the pages should stop presenting it as one.
+**What the rename touched.** `settings.site_name()` and its environment default, the page
+titles built in `experiment.js` and all three `index.html`s, the homepage masthead and the
+favicon's `aria-label`, the README, the `pyproject.toml` and `package.json` project names, and
+the assertions in `tests/`, `e2e/` and `scripts/smoke-test.sh` that read the visible name.
 
-**Cost.** A rename touches strings in a dozen files and invalidates any bookmark that
-remembered the title. Doing it before the exercise revision means the exercise pages are
-written under the final name; doing it after means one more page to sweep.
+**What it deliberately left alone.** `lab.andolfatto.eu` stays as the hostname: a domain is
+infrastructure, and it need not be the product's name — what changed is that the pages stop
+presenting it as one. The `LICENSE` copyright and the ACME contact address are the author's
+and stay the author's. The image labels keep the `eu.andolfatto.lab.*` reverse-DNS namespace,
+because that namespace is derived from the domain, which did not change; renaming it would
+break label queries on already-published images for no gain.
+
+**Cost.** Any bookmark that remembered the old title is now inconsistent with the page, and
+the repository name still reads `physics-lab`. Done before the exercise pages exist, so they
+are written under the final name rather than swept afterwards.
 
 ---
 

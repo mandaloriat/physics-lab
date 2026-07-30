@@ -1,47 +1,109 @@
 {
   "id": "airfoil",
-  "title": "Wind tunnel",
-  "subtitle": "Potential flow around an airfoil",
-  "intro": "An airfoil sitting in a uniform stream that arrives from the left. You can reshape it two ways: with the sliders, which rebuild a four-digit NACA profile, or by dragging the control points on the drawing directly. Then press Run and watch what happens to the field.",
+  "title": "Airfoil design",
+  "subtitle": "Ideal flow with a Kutta condition",
+  "intro": "A wing section in a uniform stream. Pick a profile, pick an incidence, and hit a lift target without breaking the constraint that comes with it. The solver reports what the section actually does — pressure distribution, lift, pitching moment, centre of pressure — and, on every run, how far those numbers can be trusted.",
+  "challenge": {
+    "statement": "Choose a profile and an angle of attack that generate 800 N/m of sectional lift at 40 m/s and sea level, keeping the pitching moment small: |C_m,c/4| below 0.08. Runs that leave the model's domain of validity do not count.",
+    "targets": [
+      {
+        "metric": "l_prime",
+        "comparator": "==",
+        "value": 800,
+        "unit": "N/m",
+        "tolerance": 0.02,
+        "tolerance_kind": "relative"
+      },
+      {
+        "metric": "c_m_c4",
+        "comparator": "<",
+        "value": 0.08,
+        "unit": "1",
+        "absolute": true
+      }
+    ],
+    "requires_valid": true,
+    "requires_verified": {
+      "metric": "cl_consistency_rel",
+      "below": 0.02
+    }
+  },
   "sections": [
     {
-      "id": "question",
-      "heading": "The question",
-      "lead": "How does the flow field change as you increase the camber of the profile?",
+      "id": "problem",
+      "heading": "The problem",
+      "lead": "Get 800 N/m of lift out of one metre of chord, and keep the pitching moment under control.",
       "body": [
-        "A symmetric profile splits the stream into two equal halves. The moment you introduce camber the two faces stop being equivalent: one becomes longer than the other, and the flow has to cover it faster. It is from this asymmetry that, in a more complete model than ours, lift arises."
+        "At 40 m/s and sea level the dynamic pressure is 980 Pa, so on a one-metre chord the target asks for a lift coefficient of 0.816. Almost any section will reach it at some incidence. The constraint is what makes it a design problem: **|C_m,c/4| < 0.08**, because pitching moment is what a tail has to trim out, and a section that needs a large tail is not free.",
+        "Camber buys lift at low incidence and charges for it in pitching moment. A NACA 4412 reaches the target at 2.5° and is **disqualified** at |C_m| ≈ 0.11. A symmetric 0009 has almost no moment, and pays instead in incidence — 6.9° — and in suction: its C_p,min is about −4.8, a pressure peak a real boundary layer would not survive. Nothing in this model will stop you choosing it, which is exactly why the number is on the screen.",
+        "There is no profile that wins on every count. Find one that passes, keep the run, then find a different one that also passes and compare the two."
       ]
     },
     {
-      "id": "what-to-change",
-      "heading": "What to change",
+      "id": "model",
+      "heading": "The model",
       "body": [
-        "**Camber** moves the mean line of the profile: at 0 % the profile is symmetric, at 6 % it curves distinctly upward.",
-        "**Thickness** inflates the profile around that same mean line, without changing its camber.",
-        "**Angle of attack** rotates the whole profile about the quarter-chord point.",
-        "**Resolution** (preview) or **mesh size** (FEniCSx) decide how fine the discretisation is: finer means more accurate and slower.",
-        "The white **control points** on the drawing can be dragged with the mouse or, once selected with Tab, with the arrow keys. From then on the shape is yours and the sliders no longer govern it until you press Reset."
+        "Steady, two-dimensional, incompressible, inviscid, irrotational flow around a closed profile: **Laplace's equation**, with pressure recovered from Bernoulli. One scalar more than that is needed to make the problem well posed, and it is the whole point of this page — the **circulation**, fixed by the Kutta condition at the trailing edge.",
+        "Without that condition the problem has a one-parameter family of solutions, of which the zero-lift one is no more correct than any other; and zero lift is what the earlier version of this page computed. You can still ask for it: set **Kutta condition** to *none* and watch the lift go to zero and the trailing-edge velocity go to infinity.",
+        "**Material.** Air, at constant density and viscosity. The atmosphere is set by ISA altitude or entered by hand. Density scales the dimensional outputs and nothing else: every coefficient on this page is independent of it.",
+        "**Temperature is an input, not a result.** The model is isothermal and solves no energy equation, so there is no temperature field to show. Temperature enters only through density, viscosity and the speed of sound.",
+        "**No initial conditions.** The problem is steady, so there is no state at t = 0. Where a transient exercise would list one, this page has nothing to list, and inventing something to fill the gap would be a lie about the model.",
+        "**Units.** SI throughout. Angles are degrees at the interface and radians inside."
       ]
     },
     {
-      "id": "what-to-watch",
-      "heading": "What to watch",
+      "id": "boundary-conditions",
+      "heading": "Boundary conditions",
       "body": [
-        "In the **speed** field, look for where the colour brightens: that is where the flow accelerates. On a cambered profile the bright region over the upper surface is larger and more intense than the one underneath.",
-        "In the **psi** field (the streamfunction) the contour lines **are** the streamlines. Watch where they crowd together: close lines mean fast flow, widely spaced lines mean slow flow.",
-        "Switch to **Cp**, the pressure coefficient, for the clearest view of all: blue is suction (pressure below ambient), red is compression, and the single red spot near the leading edge is the stagnation point, where the flow is brought to rest and Cp reaches its maximum of 1. On a cambered profile the blue patch over the upper surface is deeper and wider than anything underneath — that difference in pressure is what a real wing turns into lift.",
-        "**psi** is the least dramatic of the three on purpose. Nearly all of its vertical gradient is the far-field condition psi = U·y imposed at the boundary, which swamps the body's own contribution in the colour scale — so read the contour lines, which are the streamlines, rather than the colour.",
-        "Follow the leading edge: the point where the stream divides in two shifts as you increase camber or angle of attack.",
-        "Hover over the field to read the value at the point under the cursor."
+        "**On the profile: flow tangency.** The surface is solid, impermeable and frictionless, so the velocity component through it is zero. Imposed at the midpoint of every panel.",
+        "**At the trailing edge: the Kutta condition.** The flow leaves the trailing edge smoothly — equal tangential speed on the two surfaces, no pressure jump across it. This is the one condition that selects the circulation, and therefore the lift.",
+        "**At infinity: the free stream.** The velocity tends to the undisturbed stream at infinite distance. Note *infinite*: a panel method satisfies this analytically, so unlike a mesh solve there is no outer boundary placed at some finite distance and no blockage error to converge away.",
+        "**In the wake: nothing.** The flow is steady, inviscid and irrotational everywhere outside the body, so there is no wake sheet, no velocity deficit and no separation. The bound circulation is the whole vortical content of the solution."
       ]
     },
     {
-      "id": "try-this",
-      "heading": "Try this",
-      "steps": [
-        "Set camber to 0 % and run. Then take it to 6 % without touching anything else. Compare how far the fast region extends above and below the profile: how much has the symmetry changed?",
-        "Put camber back to 0 % and raise the angle of attack to 8° instead. Does the field resemble the cambered profile's? Where does it differ?",
-        "If the server has FEniCSx, compute the same geometry in both modes and compare the statistics below, and how the field looks near the leading edge — where the preview's regular grid struggles most."
+      "id": "inputs",
+      "heading": "What to change, and what kind of thing it is",
+      "body": [
+        "The controls are in three groups, and the split is not cosmetic.",
+        "**Physical inputs** are the problem: profile, chord, angle of attack, free-stream speed, atmosphere. Change one and the answer *should* change.",
+        "**Numerical settings** are the approximation: panel count, trailing-edge treatment, the sampling grid for the picture. Change one and the answer should *not* change — the amount by which it does is the discretisation error, and that is what the verification panel measures.",
+        "**Study** decides how many solves to do. A single incidence gives a pressure distribution and a lift. An incidence sweep additionally gives the lift-curve slope, the zero-lift angle and the **aerodynamic centre**, which cannot be had from one solve at all. A sweep costs no more than one solve here: the influence matrix does not depend on incidence, so every extra angle is one more back-substitution.",
+        "**Angle of attack tilts the stream, not the profile.** The profile stays in its own axes and the free stream arrives at an angle. That is the convention every section-aerodynamics plot uses, it keeps x/c exact, and it is what lets a whole sweep share one geometry.",
+        "The white **control points** can be dragged with the mouse, or with the arrow keys once selected by Tab. From then on the shape is yours, the profile menu no longer describes it — and the solver still reports its chord, its incidence, its camber line and its thickness, because it reads all of that from the outline rather than from the menu."
+      ]
+    },
+    {
+      "id": "fields",
+      "heading": "The fields, and how to read them",
+      "body": [
+        "**C_p** is the pressure coefficient, and it is the field to look at. Blue is suction, red is compression, and the single red point near the nose at C_p = 1 is the stagnation point. The suction over the upper surface is where the lift comes from, and with a Kutta condition imposed it no longer cancels: that is the difference between this page and its predecessor.",
+        "**Speed** is the velocity magnitude, and **velocity** is the vector field — the arrows show where the flow actually goes, including the turn it makes at the trailing edge.",
+        "There is **no streamfunction field**, which is a change from the previous version of this page. A panel method represents the body by source and vortex sheets, and a source sheet's streamfunction is multivalued: evaluating it panel by panel would draw a visible seam across the picture along every panel's line. The velocity field carries the same information without that hazard.",
+        "The **surface C_p curve** below the field is the plot an aerodynamicist reads first: pressure against x/c for both surfaces, drawn suction-upward as convention demands. The area between the two traces is the lift.",
+        "Hover over the field to read the value under the cursor."
+      ]
+    },
+    {
+      "id": "metrics",
+      "heading": "The answer",
+      "body": [
+        "**C_L** is computed twice, by two routes that share the solution and nothing else: from the circulation via Kutta–Joukowski, and by integrating the surface pressure. Their disagreement is a verification residual, not a curiosity.",
+        "**C_m,c/4** is the moment about the quarter chord, positive nose-up. **x_cp** is the centre of pressure — and when the normal force approaches zero it is reported as *not applicable* rather than as a number, because the centre of pressure genuinely runs off to infinity there.",
+        "**x_ac**, the aerodynamic centre, is the point about which the moment does not change with incidence. It is a property of several solves, so it stays unavailable until you run a sweep.",
+        "**What is not here: drag, and efficiency.** This model is inviscid and its flow is attached, so d'Alembert's paradox makes the pressure drag identically zero and there is no wall friction to add. C_D would be zero and L/D would be a division by it. Both are listed as withheld rather than shown as zero, and the chordwise force that *does* come out of the pressure integration is labelled what it is — an error bar."
+      ]
+    },
+    {
+      "id": "verification",
+      "heading": "How far to trust it",
+      "body": [
+        "Four checks run on every solve and are reported with the tolerance they are read against.",
+        "**Lift two ways** — circulation against integrated pressure. Panelling error, a sign convention mistake or a misapplied Kutta condition all break their agreement.",
+        "**d'Alembert** — the chordwise force must vanish in exact potential flow, so what comes out is a measure of the discretisation error and not a drag.",
+        "**Convergence** — the same geometry is also solved at half the panels, and the change in C_L is reported. It shows the discretisation has settled, not that it settled on the truth, which is why it is the weakest of the four.",
+        "**Thin-airfoil theory** — the zero-lift angle and quarter-chord moment for this profile's own camber line, computed from the outline as drawn. A band rather than an equality: thin-airfoil theory has no thickness, and a real section's lift-curve slope is a few per cent above its 2π.",
+        "Two exact solutions live in the test suite rather than on the page, because they need geometries this exercise does not offer: a circular cylinder with prescribed circulation, and a Kármán–Trefftz profile whose lifting solution is known in closed form. The panel method matches the second to better than 0.1 % at the incidences that matter — that is the check which validates the Kutta condition itself."
       ]
     },
     {
@@ -49,12 +111,12 @@
       "heading": "Limits of the model",
       "caution": true,
       "body": [
-        "This is **potential flow**: it solves the Laplace equation for the streamfunction. The fluid is taken to be incompressible, inviscid and irrotational.",
-        "There is no viscosity, so there is no boundary layer, no wall friction and no aerodynamic drag.",
-        "There is no turbulence, no flow separation and no stall: you can push the angle of attack to values at which a real wing would already be in trouble, and the model will keep producing an orderly, plausible field that does not correspond to reality.",
-        "No Kutta condition is imposed, so there is no circulation and the computed lift would be **zero** at any angle of attack. What you are looking at is how the body deflects and accelerates the stream, not how much lift it generates.",
-        "The **Cp** field is real Bernoulli pressure, but it is derived from this same idealised flow, so it inherits every limitation above. In particular: integrate that pressure around the profile and the vertical component sums to **zero**. The suction over the upper surface looks like the origin of lift, and in a real flow it is — here it is exactly cancelled by the pressure recovery behind the profile, because there is no circulation to break the symmetry.",
-        "The result is not a complete aerodynamic simulation and must not be used to size anything."
+        "**No viscosity, so no drag and no stall.** There is no boundary layer, no wall friction and no separation. Lift here grows with incidence forever; a real section stops somewhere between 10° and 16° and then loses most of it. The page warns when a run is past the range where the comparison is meaningful, but it cannot tell you what the real section would do.",
+        "**Incompressible.** Valid to about Mach 0.3. Past that the page warns, and the pressures are wrong by more than the difference between two profiles.",
+        "**A suction peak is not free.** C_p,min is reported precisely because this model will happily produce −5 and say nothing about the separation that would follow.",
+        "**Two-dimensional.** Everything is per unit span. There is no finite wing, no downwash and no induced drag; a span is not an input because it would imply a model that does not exist here.",
+        "**The geometry that is solved is the outline that was drawn.** The profile menu builds a spline through control points, and that spline is what the solver reads. The thickness and camber it recovered from your outline are shown next to the geometry, so any difference from the nominal profile is visible rather than assumed away.",
+        "The result is not a wing and must not be used to size anything."
       ]
     }
   ]

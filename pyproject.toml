@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "andolfatto-physics-lab"
+name = "spoon-physics"
 version = "0.1.0"
 description = "An interactive physics laboratory built on Fenix Spoon and FEniCSx"
 readme = "README.md"
@@ -15,7 +15,7 @@ dependencies = [
     # available — see docs/architecture-decisions.md, ADR-007, for the upgrade procedure.
     # This SHA must match FENIX_SPOON_COMMIT everywhere else in the repository;
     # scripts/check-pins.sh fails CI when it does not.
-    "fenixspoon @ git+https://github.com/mandaloriat/fenix-spoon@712dea2738d1165fa0afc563f2965e5a48df32cb#subdirectory=server",
+    "fenixspoon @ git+https://github.com/mandaloriat/fenix-spoon@988ad64b8cd25f94e52b985bf2d2456230a9eed3#subdirectory=server",
 ]
 
 [project.optional-dependencies]
@@ -44,7 +44,23 @@ target-version = "py311"
 select = ["E", "F", "W", "I", "UP", "B"]
 
 [tool.mypy]
-python_version = "3.11"
+# 3.12, not the 3.11 floor in `requires-python`, and the reason is a dependency's stubs rather
+# than our own code. `physics_lab.solvers` imports NumPy, so mypy follows NumPy's type stubs —
+# and from NumPy 2.5 those stubs use `type X = ...`, which mypy refuses when told to target 3.11:
+#
+#   numpy/__init__.pyi:737: error: Type statement is only supported in Python 3.12 and greater
+#
+# The failure is environment-dependent, which is how it reached CI unseen: NumPy 2.5 requires
+# Python >= 3.12, so a 3.11 checkout resolves NumPy 2.4 and its stubs parse under any target.
+# That is also why raising the target cannot backfire — the stubs needing 3.12 exist only where
+# the interpreter running mypy is 3.12 or newer.
+#
+# What this gives up is mypy checking our code against 3.11 *semantics*. Two things in CI keep
+# that promise instead: ruff's `target-version = "py311"` refuses anything newer than the floor,
+# and the pytest matrix runs the suite on 3.11. The alternative — telling mypy to skip NumPy's
+# stubs — would leave every array expression in the panel method unchecked, which is most of the
+# code this setting exists to check.
+python_version = "3.12"
 files = ["physics_lab"]
 ignore_missing_imports = true
 warn_unused_ignores = true

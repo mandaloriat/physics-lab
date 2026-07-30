@@ -32,7 +32,7 @@ def test_homepage_names_the_experiments_and_carries_the_disclaimer(client):
     # asserting on the raw source would fail the next time the file is re-wrapped.
     body = re.sub(r"\s+", " ", client.get("/").text)
 
-    assert "Andolfatto Physics Lab" in body
+    assert "Spoon Physics" in body
     # Every available experiment is linked from the homepage; an experiment that ships
     # without a way in has not shipped.
     for name in EXPERIMENTS:

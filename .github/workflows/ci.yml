@@ -13,7 +13,7 @@ concurrency:
 
 env:
   # The one place CI names the pin. Kept in step with everything else by check-pins.
-  FENIX_SPOON_SLIM_IMAGE: ghcr.io/mandaloriat/fenix-spoon:sha-712dea2-slim
+  FENIX_SPOON_SLIM_IMAGE: ghcr.io/mandaloriat/fenix-spoon:sha-988ad64-slim
 
 jobs:
   # ────────────────────────────────────────────────────────────────── static checks

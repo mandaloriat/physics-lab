@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Wind tunnel — Andolfatto Physics Lab</title>
+<title>Airfoil design — Spoon Physics</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Potential flow around an airfoil: reshape the geometry, run the solver, and watch how the field changes.">
+<meta name="description" content="An airfoil design exercise: hit a lift target under a pitching-moment constraint, with computed fields, engineering metrics and a verification residual on every run.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/shared/lab.css">
@@ -28,7 +28,7 @@
 
 <main class="wrap">
 
-  <h1>Wind tunnel</h1>
+  <h1>Airfoil design</h1>
   <p class="lede prose" id="intro"></p>
 
   <p id="widgets-missing" class="notice notice--warn" hidden>
@@ -37,12 +37,19 @@
   </p>
   <p id="maintenance" class="notice notice--warn" hidden></p>
 
+  <!-- 1. Problem. The objective is data in content.json, so the page can say whether this run
+       met it instead of leaving two numbers to be compared by eye. -->
+  <section class="challenge panel" aria-labelledby="challenge-heading">
+    <h2 id="challenge-heading">The challenge</h2>
+    <div id="challenge"></div>
+  </section>
+
   <div class="experiment">
 
     <div>
       <div class="stage">
-        <fs-viewer id="viewer" field="speed" colormap="viridis" contours="10"></fs-viewer>
-        <fs-geometry-2d id="editor" bounds="-1,-1,2,1" mode="spline" samples="10"
+        <fs-viewer id="viewer" field="Cp" colormap="coolwarm" contours="12" symmetric></fs-viewer>
+        <fs-geometry-2d id="editor" bounds="-1,-1,2,1" mode="spline" samples="16"
                         aria-label="Airfoil profile: draggable control points"></fs-geometry-2d>
       </div>
 
@@ -55,25 +62,28 @@
         <progress id="progress" value="0" max="1" hidden></progress>
       </div>
 
-      <div class="panel" style="margin-top: 1rem;">
-        <h3>Result</h3>
-        <dl class="stats" id="stats"><span class="field__hint">Nothing computed yet.</span></dl>
-        <p class="artifacts" id="artifacts"></p>
-      </div>
-
+      <!-- 6. Fields. -->
       <div class="panel">
-        <h3>Display</h3>
+        <h3>Field shown</h3>
         <div class="field">
-          <label class="field__label" for="field">Field shown</label>
           <select id="field" aria-label="Field shown"></select>
           <p class="field__hint" id="field-hint"></p>
         </div>
+      </div>
+
+      <div class="panel">
+        <h3>Surface pressure</h3>
+        <div id="cp-curve" class="plot"></div>
+        <p class="field__hint">
+          Drawn suction-upward, as an aerodynamicist expects. The area between the two traces
+          is the lift.
+        </p>
       </div>
     </div>
 
     <div>
       <div class="panel">
-        <h3>Computation mode</h3>
+        <h3>Solver</h3>
         <div class="field">
           <select id="solver" aria-label="Solver"></select>
           <p class="field__hint" id="solver-hint"></p>
@@ -84,22 +94,116 @@
         </div>
       </div>
 
-      <div class="panel">
-        <h3>Geometry</h3>
+      <!-- 5. Physical inputs: the problem itself. Nothing numerical in this column. -->
+      <div class="panel panel--physical">
+        <h3>Physical inputs</h3>
+        <div class="field">
+          <label class="field__label" for="profile"><span>Profile</span></label>
+          <select id="profile" aria-label="Profile"></select>
+          <p class="field__hint">
+            Real four-digit sections, all three digits free. Move the sliders and you have a
+            profile of your own; drag the control points and you have a shape of your own.
+          </p>
+        </div>
         <div id="shape-controls"></div>
         <div class="button-row">
-          <button id="reset" type="button">Reset geometry</button>
+          <button id="reset" type="button">Reset profile</button>
         </div>
-        <p class="field__hint" id="shape-note" style="margin-top:0.6rem"></p>
+        <p class="field__hint" id="shape-note"></p>
+        <p class="field__hint field__hint--read" id="geometry-readback"></p>
       </div>
 
-      <div class="panel">
-        <h3>Solver parameters</h3>
-        <div id="solver-params"></div>
+      <div class="panel panel--physical">
+        <h3>Flow and air</h3>
+        <div id="physical"></div>
+        <div id="atmosphere"></div>
+        <h4>Follows from the above</h4>
+        <dl class="stats stats--derived" id="derived"></dl>
+        <p class="field__hint">
+          The Reynolds number is reported and changes nothing: this model has no viscosity. It
+          is here so two runs can be compared, and so the page can say when the model has been
+          left behind.
+        </p>
+      </div>
+
+      <!-- 5. …and the numerics, kept apart from it on purpose. -->
+      <div class="panel panel--numerical">
+        <h3>Numerical settings</h3>
+        <p class="field__hint">
+          These change the error, not the answer. How much they change it is what the
+          verification panel measures.
+        </p>
+        <div id="numerical"></div>
+      </div>
+
+      <div class="panel panel--study">
+        <h3>Study</h3>
+        <p class="field__hint">
+          A single incidence, or a sweep. A sweep is the only way to get an aerodynamic centre,
+          and it costs one solve rather than one per angle.
+        </p>
+        <div id="study"></div>
       </div>
     </div>
 
   </div>
+
+  <div class="results">
+
+    <!-- 7. Engineering metrics: the answer. -->
+    <section class="panel" aria-labelledby="answer-heading">
+      <h2 id="answer-heading">The answer</h2>
+      <div id="metrics"></div>
+      <h4>What the solve cost</h4>
+      <dl class="stats" id="stats"><span class="field__hint">Nothing computed yet.</span></dl>
+      <p class="artifacts" id="artifacts"></p>
+      <p class="field__hint">
+        No drag and no lift-to-drag ratio: this model is inviscid, so both are zero and a ratio
+        of zeroes is not a metric. The chordwise force that does come out of the pressure
+        integration is in the verification panel, where it belongs — it is an error bar.
+      </p>
+    </section>
+
+    <!-- 8. Verification, and the domain of validity. -->
+    <section class="panel" aria-labelledby="verification-heading">
+      <h2 id="verification-heading">How far to trust it</h2>
+      <div id="verification"></div>
+      <div id="validity"></div>
+    </section>
+
+  </div>
+
+  <section class="panel" id="sweep-panel" aria-labelledby="sweep-heading" hidden>
+    <h2 id="sweep-heading">Across the sweep</h2>
+    <div class="sweep-layout">
+      <div id="sweep-curve" class="plot"></div>
+      <dl class="stats" id="sweep-metrics"></dl>
+    </div>
+    <p class="field__hint">
+      The aerodynamic centre is the regression slope of C_m against C_L, subtracted from the
+      quarter chord. Thin-airfoil theory says 0.25; thickness moves it slightly aft. The fit's
+      R² is shown because a straight line through a curve is not a point.
+    </p>
+  </section>
+
+  <!-- 9. Save result. -->
+  <section class="panel" aria-labelledby="runs-heading">
+    <h2 id="runs-heading">Kept runs</h2>
+    <div class="button-row">
+      <button id="keep" class="primary" type="button" disabled>Keep run</button>
+      <button id="export-csv" type="button" disabled>Export CSV</button>
+      <button id="export-json" type="button" disabled>Export JSON</button>
+      <button id="clear-runs" type="button" disabled>Delete all</button>
+    </div>
+    <p class="field__hint" id="runs-note"></p>
+    <div id="runs-table" class="table-scroll"></div>
+    <h4>Comparison</h4>
+    <div id="compare" class="table-scroll"></div>
+    <p class="field__hint">
+      A kept run records every input, not the interesting ones, so it can be recomputed. It
+      lives in this browser and nowhere else — export it if you want to keep it.
+    </p>
+  </section>
 
   <p class="disclaimer">
     <strong>Note.</strong>

@@ -117,6 +117,9 @@ function isUsable(value, spec) {
   if (value === undefined) return false;
   if (spec.enum) return spec.enum.includes(value);
   if (typeof spec.default === 'boolean') return typeof value === 'boolean';
+  // `null` is a value, not a missing one, when the schema says the parameter is optional: it is
+  // how a caller says "no incidence sweep" rather than "sweep from zero".
+  if (value === null) return spec.nullable === true;
   if (typeof value !== 'number' || !Number.isFinite(value)) return false;
   if (spec.min !== undefined && value < spec.min) return false;
   if (spec.max !== undefined && value > spec.max) return false;
@@ -160,7 +163,9 @@ function renderParam(config, spec, value, onChange) {
   }
 
   const integer = spec.type === 'integer';
-  const bounded = spec.min !== undefined && spec.max !== undefined;
+  // An optional parameter gets a number input whatever its bounds, because a slider has no way
+  // to express "not set" — and "not set" is the whole meaning of a nullable parameter.
+  const bounded = spec.min !== undefined && spec.max !== undefined && !spec.nullable;
   const step = config.step ?? (integer ? 1 : 0.1);
   const readout = el('span', { class: 'field__value', text: formatNumber(value, integer) });
 
@@ -177,6 +182,13 @@ function renderParam(config, spec, value, onChange) {
     max: spec.max,
   });
   input.addEventListener('input', () => {
+    // An empty optional field means null, and null is what the server is sent. Anything else
+    // would turn "leave the sweep off" into "sweep from NaN", which is a 422.
+    if (input.value === '' && spec.nullable) {
+      readout.textContent = formatNumber(null, integer);
+      onChange(null);
+      return;
+    }
     const parsed = Number(input.value);
     if (!Number.isFinite(parsed)) return;
     readout.textContent = formatNumber(parsed, integer);
@@ -198,6 +210,7 @@ function renderParam(config, spec, value, onChange) {
 }
 
 function formatNumber(value, integer) {
+  if (value === null || value === undefined) return 'not set';
   return integer ? String(Math.round(value)) : String(Number(value.toFixed(4)));
 }
 
@@ -426,11 +439,15 @@ export function richText(markdown) {
  */
 export function renderLesson({ content, intro, lesson }) {
   intro.textContent = content.intro;
-  document.title = `${content.title} — Andolfatto Physics Lab`;
+  document.title = `${content.title} — Spoon Physics`;
 
   lesson.replaceChildren(
     ...content.sections.map((section) => {
-      const children = [el('h2', { id: section.id, text: section.heading })];
+      // Namespaced, because a section id and an element id live in the same document: an
+      // exercise with a `metrics` section and a `#metrics` panel would otherwise put the same
+      // id on both, and every `getElementById` for it becomes a coin toss.
+      const heading = `lesson-${section.id}`;
+      const children = [el('h2', { id: heading, text: section.heading })];
       if (section.lead) children.push(el('p', { class: 'question', text: section.lead }));
       for (const paragraph of section.body ?? []) {
         children.push(el('p', {}, richText(paragraph)));
@@ -440,7 +457,7 @@ export function renderLesson({ content, intro, lesson }) {
       }
       return el(
         'section',
-        { class: section.caution ? 'is-caution' : null, 'aria-labelledby': section.id },
+        { class: section.caution ? 'is-caution' : null, 'aria-labelledby': heading },
         ...children,
       );
     }),

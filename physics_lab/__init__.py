@@ -1,4 +1,4 @@
-"""Andolfatto Physics Lab — an interactive physics laboratory built on Fenix Spoon.
+"""Spoon Physics — an interactive physics laboratory built on Fenix Spoon.
 
 The lab is an *application*. Fenix Spoon is the toolkit it is built from: the wire
 protocol, the job lifecycle, the solver-adapter contract, the browser widgets and the

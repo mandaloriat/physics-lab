@@ -59,7 +59,7 @@ services:
   api:
     build:
       args:
-        FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-712dea2}
+        FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-988ad64}
     image: ${LAB_IMAGE:-physics-lab:prod}
     # No `ports`. Caddy reaches it over the compose network; nothing else can.
     environment:
@@ -104,8 +104,8 @@ services:
     build:
       context: .
       args:
-        FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-712dea2738d1165fa0afc563f2965e5a48df32cb}
-        FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-712dea2}
+        FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-988ad64b8cd25f94e52b985bf2d2456230a9eed3}
+        FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-988ad64}
     image: ${LAB_IMAGE:-physics-lab:prod}
     restart: unless-stopped
     # arq drains the queue the API dispatches to. The lab's own adapters are registered
@@ -113,7 +113,7 @@ services:
     # installed — same image, same catalogue, by construction.
     command: ["arq", "fenixspoon.worker.WorkerSettings"]
     environment:
-      FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-712dea2738d1165fa0afc563f2965e5a48df32cb}
+      FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-988ad64b8cd25f94e52b985bf2d2456230a9eed3}
       FENIXSPOON_DATA_DIR: /data
       FENIXSPOON_REDIS_URL: redis://redis:6379
       # One solve per container. Keep it at 1 and scale containers instead, so the memory
