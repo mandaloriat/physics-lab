@@ -30,3 +30,6 @@ playwright-report/
 
 # Local job data, when running outside Docker
 /.lab-data/
+
+# Local scratch for screenshots and one-off scripts. Never committed.
+.scratch/

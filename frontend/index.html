@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Spoon Physics</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="An interactive laboratory for exploring physical phenomena by changing geometries, materials and boundary conditions, with fast previews and FEniCSx computations.">
+<meta name="description" content="Interactive problems. Computed fields. Checkable answers. An interactive laboratory: set a quantitative target, change the geometry and the conditions, compute the field, and check the answer.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/shared/lab.css">
@@ -16,104 +16,142 @@
 <main class="wrap">
 
   <section class="hero">
-    <h1>A physics laboratory you can change</h1>
+    <h1>Interactive problems.<br>Computed fields. Checkable answers.</h1>
     <p class="lede">
-      Change a geometry, a material or a boundary condition, press <em>Run</em>, and watch how
-      the field responds. Every experiment really runs: there is a solver behind it, not a
-      recorded animation.
-    </p>
-    <p class="disclaimer">
-      <strong>Note.</strong>
-      The simulations are demonstrative and educational. They are not a substitute for
-      professional engineering verification.
+      Each experiment sets a quantitative target under constraints. Change the geometry and the
+      conditions, run a real solver, explore the field it computes — and find out whether you
+      met the target, and how far the numbers can be trusted.
     </p>
   </section>
 
+  <!-- The cards come first and carry a real field each, because what a visitor wants before
+       clicking is what the thing looks like when it works. Every thumbnail is a solve, made by
+       scripts/make-thumbnails.py from the same solver the page runs — not an illustration. -->
   <section aria-labelledby="experiments">
-    <h2 id="experiments">Experiments</h2>
+    <h2 id="experiments" class="visually-hidden">Experiments</h2>
     <ul class="card-grid">
 
       <li class="card card--available">
-        <span class="badge badge--available">Available</span>
-        <h3><a href="/experiments/airfoil/">Airfoil design</a></h3>
-        <p>
-          Hit a lift target by choosing a profile and an incidence, without breaking the
-          pitching-moment constraint that comes with it. Ideal flow with a Kutta condition, so
-          the lift is real — and every run reports how far to trust it.
-        </p>
-        <p class="card__foot"><a href="/experiments/airfoil/">Open the exercise →</a></p>
+        <a class="card__shot" href="/experiments/airfoil/" tabindex="-1" aria-hidden="true">
+          <img src="/assets/thumbnails/airfoil.png" alt="" width="480" height="222" loading="lazy">
+        </a>
+        <div class="card__body">
+          <span class="badge badge--available">Exercise</span>
+          <h3><a href="/experiments/airfoil/">Airfoil design</a></h3>
+          <p class="card__problem">
+            Find a wing section that lifts <strong>800 N per metre of span</strong> at 40 m/s —
+            without a pitching moment a tail could not trim out.
+          </p>
+          <dl class="card__facts">
+            <div><dt>Target</dt><dd class="num">L′ = 800 N/m ± 2 %</dd></div>
+            <div><dt>Constraint</dt><dd class="num">|C_m,c/4| &lt; 0.08</dd></div>
+            <div><dt>Checked by</dt><dd>lift computed two independent ways</dd></div>
+          </dl>
+          <p class="card__foot"><a class="cta" href="/experiments/airfoil/">Design an airfoil →</a></p>
+        </div>
       </li>
 
       <li class="card card--available">
-        <span class="badge badge--available">Available</span>
-        <h3><a href="/experiments/solenoid/">Magnetics lab</a></h3>
-        <p>
-          The cross-section of a solenoid: an iron core, current-carrying windings, and the
-          magnetic flux crowding into the iron as you raise its permeability — up to the point
-          where the air it returns through becomes what limits it.
-        </p>
-        <p class="card__foot"><a href="/experiments/solenoid/">Open the experiment →</a></p>
+        <a class="card__shot" href="/experiments/solenoid/" tabindex="-1" aria-hidden="true">
+          <img src="/assets/thumbnails/solenoid.png" alt="" width="480" height="480" loading="lazy">
+        </a>
+        <div class="card__body">
+          <span class="badge badge--demo">Demonstration</span>
+          <h3><a href="/experiments/solenoid/">Magnetics lab</a></h3>
+          <p class="card__problem">
+            Watch magnetic flux choose the iron over the air — and find the point where making
+            the core better stops buying anything at all.
+          </p>
+          <dl class="card__facts">
+            <div><dt>You set</dt><dd class="num">μᵣ from 1 to 10 000</dd></div>
+            <div><dt>You read</dt><dd>flux density, field strength, field lines</dd></div>
+            <div><dt>Not yet</dt><dd>a target: its metrics are unverified in 2-D</dd></div>
+          </dl>
+          <p class="card__foot"><a class="cta" href="/experiments/solenoid/">Build an electromagnet →</a></p>
+        </div>
       </li>
 
       <li class="card card--planned">
-        <span class="badge badge--planned">In preparation</span>
-        <h3>Heat sink</h3>
-        <p>
-          Conduction through a finned body with convective exchange at its surfaces: how many
-          fins actually help, and when they stop helping.
-        </p>
-        <p class="card__foot">The preview solver exists upstream; the lesson, and a FEniCSx mode, do not.</p>
+        <span class="card__shot card__shot--planned" aria-hidden="true">
+          <img src="/assets/thumbnails/heatsink.png" alt="" width="480" height="320" loading="lazy">
+        </span>
+        <div class="card__body">
+          <span class="badge badge--planned">In preparation</span>
+          <h3>Heat sink</h3>
+          <p class="card__problem">
+            Dissipate a given power below a maximum temperature, using less metal. How many fins
+            actually help, and when do they stop?
+          </p>
+          <dl class="card__facts">
+            <div><dt>Would target</dt><dd class="num">T_max under a stated limit</dd></div>
+            <div><dt>Status</dt><dd>the preview solver exists upstream — the field above is one of its solves. The lesson does not.</dd></div>
+          </dl>
+        </div>
       </li>
 
     </ul>
   </section>
 
-  <section id="modes" aria-labelledby="modes-title">
-    <h2 id="modes-title">Two ways to compute the same thing</h2>
-    <p class="prose">
-      The same problem can be solved quickly and approximately, or slowly and more faithfully.
-      The lab offers both routes and always tells you which one you are looking at — because
-      the difference between them <em>is</em> part of what there is to learn.
-    </p>
+  <p class="disclaimer">
+    <strong>Note.</strong>
+    The simulations are demonstrative and educational. They are not a substitute for
+    professional engineering verification.
+  </p>
 
-    <div class="modes">
-      <div class="mode">
-        <h3><span class="badge badge--mock">Preview</span> Fast preview</h3>
+  <!-- Below the fold, and folded. Both sections are worth reading and neither is worth
+       putting between a visitor and the experiment they came for. -->
+  <section class="about" id="modes" aria-labelledby="about-heading">
+    <h2 id="about-heading">How it works</h2>
+
+    <details class="lesson__block">
+      <summary><span>Two ways to compute the same thing</span></summary>
+      <div class="lesson__body">
+        <p>
+          The same problem can be solved quickly and approximately, or slowly and more
+          faithfully. The lab offers both routes and always tells you which one you are looking
+          at — because the difference between them <em>is</em> part of what there is to learn.
+        </p>
         <ul>
-          <li>A regular Cartesian grid, solved in NumPy.</li>
-          <li>Near-instant response: ideal while you are reshaping the profile.</li>
-          <li>Approximate by construction — the grid does not follow the body's outline.</li>
+          <li>
+            <strong>Fast preview</strong> — a regular Cartesian grid solved in NumPy.
+            Near-instant, and approximate by construction: the grid does not follow the body's
+            outline.
+          </li>
+          <li>
+            <strong>FEniCSx computation</strong> — an unstructured triangular mesh generated
+            with Gmsh, solved with P1 finite elements. Slower, more faithful close to the body,
+            and it produces a VTK file that opens in ParaView.
+          </li>
+          <li>
+            <strong>Panel method</strong> — for the airfoil, neither of the above: source and
+            vortex sheets on the body itself, so the boundary is exact rather than meshed. It is
+            not a preview of something better; it is the most accurate surface solution here.
+          </li>
         </ul>
+        <p id="capability" class="notice">Checking what is installed on this server…</p>
       </div>
-      <div class="mode">
-        <h3><span class="badge badge--fenics">FEniCSx</span> FEniCSx computation</h3>
-        <ul>
-          <li>An unstructured triangular mesh generated with Gmsh.</li>
-          <li>P1 finite elements: slower, more faithful close to the profile.</li>
-          <li>Produces a downloadable VTK file that opens in ParaView.</li>
-        </ul>
+    </details>
+
+    <details class="lesson__block">
+      <summary><span>How it is made</span></summary>
+      <div class="lesson__body">
+        <p>
+          The lab is an application built on
+          <a href="https://github.com/mandaloriat/fenix-spoon">Fenix Spoon</a>, an open-source
+          toolkit that puts a finite-element solver behind a web page: the protocol, the job
+          handling, the solvers and the browser widgets all come from there. What you find here
+          is the teaching experience built on top — the problems, the explanations, the design
+          and the public deployment.
+        </p>
+        <p>
+          The code for this lab is on
+          <a href="https://github.com/mandaloriat/physics-lab">GitHub</a> under the MIT
+          licence. The real computations are carried out by
+          <a href="https://fenicsproject.org/">FEniCSx</a>, and the fast previews and the panel
+          method by <a href="https://numpy.org/">NumPy</a>.
+        </p>
       </div>
-    </div>
-
-    <p id="capability" class="notice">Checking what is installed on this server…</p>
-  </section>
-
-  <section aria-labelledby="how-its-made">
-    <h2 id="how-its-made">How it is made</h2>
-    <p class="prose">
-      The lab is an application built on
-      <a href="https://github.com/mandaloriat/fenix-spoon">Fenix Spoon</a>, an open-source
-      toolkit that puts a finite-element solver behind a web page: the protocol, the job
-      handling, the solvers and the browser widgets all come from there. What you find here is
-      the teaching experience built on top — the texts, the experiments, the design and the
-      public deployment.
-    </p>
-    <p class="prose">
-      The code for this lab is on
-      <a href="https://github.com/mandaloriat/physics-lab">GitHub</a> under the MIT
-      licence. The real computations are carried out by
-      <a href="https://fenicsproject.org/">FEniCSx</a>.
-    </p>
+    </details>
   </section>
 
 </main>
@@ -137,7 +175,7 @@ try {
   parts.push(
     hasFenics
       ? 'Both modes are active on this server.'
-      : 'Only the fast preview is active on this server: no FEniCSx solver is installed. The experiments remain fully usable.',
+      : 'Only the fast preview is active on this server: no FEniCSx solver is installed. The experiments remain fully usable, and the airfoil exercise does not need one.',
   );
   if (info.jobs_enabled === false) {
     parts.push('New simulations are temporarily suspended for maintenance.');

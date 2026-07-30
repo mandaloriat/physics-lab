@@ -1,15 +1,18 @@
 /**
  * Airfoil design — the first exercise.
  *
- * The page's job is to set a problem, keep the visitor's inputs honest about what kind of thing
- * each one is, and present the answer with its verification. The physics is
- * `lab.airfoil_panel2d`; the shared page shell is `shared/experiment.js`; the exercise-shaped
- * parts — challenge, metrics, verification, validity — are `shared/exercise.js`.
+ * The page's job is to set a problem, keep the visitor's inputs honest about what kind of
+ * thing each one is, and present the answer with its verification. The physics is
+ * `lab.airfoil_panel2d` and is untouched by the redesign; the workspace is
+ * `shared/workspace.js`; the exercise-shaped parts — challenge, KPIs, metrics, verification,
+ * validity — are `shared/exercise.js`.
  *
- * What is left here is this exercise: the profile catalogue, the atmosphere, which parameter is
- * physical and which is numerical, and how each number should be read.
+ * What is left here is this exercise: the profile catalogue, the atmosphere, which parameter
+ * is physical and which is numerical, what each number should be called in front of a person,
+ * and what is worth drawing on top of the field.
  *
  * Specification: docs/exercises/airfoil.md. Contract: docs/exercise-contract.md.
+ * Arrangement: ADR-017.
  */
 
 import '@fenix-spoon/geometry-2d';
@@ -17,11 +20,12 @@ import '@fenix-spoon/viewer';
 
 import { groups, isa } from '/shared/atmosphere.js';
 import { client, solversFor } from '/shared/api.js';
-import { describeError, el, health, mountChrome } from '/shared/components.js';
+import { describeError, el, health, mountChrome, revealPanel } from '/shared/components.js';
 import { drawCurve } from '/shared/curve.js';
 import {
   groupParameters,
   renderChallenge,
+  renderKpis,
   renderMetrics,
   renderValidity,
   renderVerification,
@@ -38,27 +42,33 @@ import {
   showStats,
   syncFieldOptions,
 } from '/shared/experiment.js';
+import { createWorkspace, marker, polyline, svgNode } from '/shared/workspace.js';
 import * as runs from '/shared/runs.js';
 
 const EXERCISE = 'airfoil';
 const GEOMETRY_TYPE = 'domain2d';
-/** This exercise's model is ideal flow *with* a Kutta condition, so only a solver that has one
- *  can implement it. The no-circulation model is reachable, but as a model selector rather than
- *  as a different solver — see docs/exercises/airfoil.md §14. */
+/** The physics this page is about, matched against what each capability declares. */
+const PHYSICS = 'potential-flow';
+/** This exercise's model is ideal flow *with* a Kutta condition, so only a solver that has
+ *  one can implement it. The no-circulation model is reachable, but as a model selector
+ *  rather than as a different solver — see docs/exercises/airfoil.md §14. */
 const SOLVER_PREFIX = 'lab.airfoil';
 
 const dom = Object.fromEntries(
   [
-    'intro',
     'lesson',
     'editor',
     'viewer',
+    'workspace',
     'status',
     'dot',
     'progress',
     'run',
     'cancel',
+    'keep',
+    'compareJump',
     'reset',
+    'editShape',
     'solver',
     'solverHint',
     'field',
@@ -67,24 +77,29 @@ const dom = Object.fromEntries(
     'artifacts',
     'maintenance',
     'challenge',
+    'kpis',
     'metrics',
     'verification',
     'validity',
     'physical',
     'numerical',
     'study',
+    'advanced',
     'profile',
     'shapeControls',
     'shapeNote',
     'geometryReadback',
     'atmosphere',
     'derived',
+    'derivedWrap',
+    'derivedToggle',
+    'results',
     'cpCurve',
     'sweepPanel',
     'sweepCurve',
     'sweepMetrics',
-    'keep',
     'runsTable',
+    'runsPanel',
     'compare',
     'exportCsv',
     'exportJson',
@@ -176,7 +191,7 @@ function controlPoints({ m, p, t }) {
   };
 
   const points = [[1, 0]]; // trailing edge, once
-  for (let i = stations.length - 2; i >= 0; i -= 1) points.push(surface(stations[i], -1)); // lower, aft to fore
+  for (let i = stations.length - 2; i >= 0; i -= 1) points.push(surface(stations[i], -1)); // lower
   points.push([0, 0]); // leading edge
   for (let i = 0; i < stations.length - 1; i += 1) points.push(surface(stations[i], +1)); // upper
   return points;
@@ -191,27 +206,21 @@ function applyShape() {
   }
   geometry.source = geometry.source === 'catalogue' ? 'catalogue' : 'parametric';
   describeGeometry();
+  workspace?.draw();
 }
 
 function describeGeometry(report) {
-  const nominal =
+  dom.shapeNote.textContent =
     geometry.source === 'custom'
-      ? 'You are editing the points by hand, so the profile menu no longer describes this shape. Reset to go back to a catalogue profile.'
-      : `${geometry.label}: camber ${(100 * shape.m).toFixed(1)} %, position ${(100 * shape.p).toFixed(0)} % of chord, thickness ${(100 * shape.t).toFixed(1)} %.`;
+      ? 'Edited by hand, so the profile menu no longer describes this shape.'
+      : `${geometry.label} — camber ${(100 * shape.m).toFixed(1)} %, at ${(100 * shape.p).toFixed(0)} % of chord, thickness ${(100 * shape.t).toFixed(1)} %.`;
 
-  dom.shapeNote.textContent = nominal;
-  dom.geometryReadback.replaceChildren();
-  if (!report) return;
-
-  // What the solver read back out of the outline it was actually given. Shown because the
-  // spline through the control points is the geometry of record, and any difference from the
-  // nominal profile should be visible rather than assumed away (§4.4).
-  const read = report.geometry;
-  dom.geometryReadback.append(
-    el('span', {
-      text: `The solver read: chord ${read.chord_m.toFixed(3)} m, thickness ${(100 * read.thickness_over_c).toFixed(1)} %, camber ${(100 * read.camber_over_c).toFixed(2)} %, ${read.panels} panels from ${read.vertices} outline vertices.`,
-    }),
-  );
+  dom.geometryReadback.textContent = report
+    ? // What the solver read back out of the outline it was actually given. Shown because the
+      // spline through the control points is the geometry of record, and any difference from
+      // the nominal profile should be visible rather than assumed away (§4.4).
+      `The solver read: chord ${report.geometry.chord_m.toFixed(3)} m, thickness ${(100 * report.geometry.thickness_over_c).toFixed(1)} %, camber ${(100 * report.geometry.camber_over_c).toFixed(2)} %, ${report.geometry.panels} panels from ${report.geometry.vertices} outline vertices.`
+    : '';
 }
 
 /* ------------------------------------------------------------------------- physical inputs */
@@ -224,7 +233,8 @@ const SHAPE_CONTROLS = [
     max: 0.06,
     step: 0.002,
     unit: '',
-    hint: 'Maximum camber, as a fraction of chord. At 0 the profile is symmetric.',
+    hint: '',
+    title: 'Maximum camber, as a fraction of chord. At 0 the profile is symmetric.',
     format: (v) => `${(100 * v).toFixed(1)} %`,
   },
   {
@@ -234,7 +244,8 @@ const SHAPE_CONTROLS = [
     max: 0.6,
     step: 0.05,
     unit: '',
-    hint: 'Where the maximum camber sits along the chord. Fixed at 0.4 in the previous version of this page, which is why a NACA 2312 could not be expressed.',
+    hint: '',
+    title: 'Where the maximum camber sits along the chord — the third four-digit parameter.',
     format: (v) => `${(100 * v).toFixed(0)} % chord`,
   },
   {
@@ -244,66 +255,79 @@ const SHAPE_CONTROLS = [
     max: 0.2,
     step: 0.005,
     unit: '',
-    hint: 'Maximum thickness, as a fraction of chord.',
+    hint: '',
+    title: 'Maximum thickness, as a fraction of chord.',
     format: (v) => `${(100 * v).toFixed(1)} %`,
   },
 ];
 
-/** Parameters this page offers from the solver's schema, and which group each belongs to.
- *  Every one is classified: an unclassified parameter would land in whichever panel came last,
- *  which is how a mesh size ends up looking like a fact about the air. */
+/**
+ * Parameters this page offers from the solver's schema, and which group each belongs to.
+ *
+ * Every one is classified: an unclassified parameter would land in whichever panel came last,
+ * which is how a mesh size ends up looking like a fact about the air. The long explanations
+ * that used to sit under every control are now `title` — a tooltip and an accessible
+ * description — because a sentence under each slider turned the panel into an essay that
+ * nobody read and that pushed Run off the screen. Nothing is deleted: the full reasoning is
+ * in *Understand the model*.
+ */
 const PARAM_UI = [
   {
     name: 'alpha_deg',
     group: 'physical',
     label: 'Angle of attack',
-    hint: 'Direction of the free stream relative to the chord line. The stream tilts; the profile does not.',
+    hint: '',
+    title:
+      'Direction of the free stream relative to the chord line. The stream tilts; the profile does not.',
     step: 0.1,
   },
   {
     name: 'u_inf',
     group: 'physical',
     label: 'Free-stream speed',
-    hint: 'Undisturbed speed far upstream, in m/s.',
+    hint: '',
+    title: 'Undisturbed speed far upstream, in m/s.',
     step: 1,
   },
   {
     name: 'kutta',
     group: 'physical',
     label: 'Kutta condition',
-    hint: 'A model choice. Turn it off and the circulation, and therefore the lift, is zero at every incidence — which is what this page computed before.',
+    hint: '',
+    title:
+      'A model choice. Turn it off and the circulation, and therefore the lift, is zero at every incidence — which is what this page computed before it had one.',
     optionLabels: { enforced: 'enforced (lifting model)', none: 'none (no circulation)' },
   },
   {
     name: 'panels',
     group: 'numerical',
     label: 'Panels',
-    hint: 'Panels around the outline. Its only legitimate effect is on the verification residuals below.',
+    hint: 'Its only legitimate effect is on the verification residuals.',
   },
   {
     name: 'trailing_edge',
     group: 'numerical',
     label: 'Trailing edge',
-    hint: 'Close the trailing edge, or keep the gap the outline has. An open base makes the Kutta condition depend on how it is closed.',
+    hint: 'An open base makes the Kutta condition depend on how it is closed.',
     optionLabels: { closed: 'closed', as_drawn: 'as drawn' },
   },
   {
     name: 'resolution',
     group: 'numerical',
     label: 'Field resolution',
-    hint: 'Sampling grid for the picture. Affects the picture and no reported number.',
+    hint: 'Affects the picture and no reported number.',
   },
   {
     name: 'convergence_check',
     group: 'numerical',
     label: 'Check convergence',
-    hint: 'Also solve at half the panels, and report how far C_L moved.',
+    hint: 'Also solve at twice the panels, and report how far the lift moved.',
   },
   {
     name: 'sweep_from_deg',
     group: 'study',
     label: 'Sweep from',
-    hint: 'Leave empty for a single incidence. A sweep is what makes the aerodynamic centre available.',
+    hint: 'Leave empty for a single incidence.',
     step: 1,
   },
   { name: 'sweep_to_deg', group: 'study', label: 'Sweep to', hint: 'End of the sweep.', step: 1 },
@@ -316,6 +340,13 @@ const PARAM_UI = [
   },
 ];
 
+/**
+ * How each reported quantity is named in front of a person.
+ *
+ * One table, read by three things — the mission's targets, the headline tiles and the full
+ * table — so `l_prime` and `c_m_c4` cannot leak onto the screen from one of them while the
+ * other two are polite. The keys are the report's; nothing else on the page knows them.
+ */
 const METRICS = [
   {
     key: 'c_l',
@@ -327,19 +358,19 @@ const METRICS = [
   },
   {
     key: 'l_prime',
-    label: 'Sectional lift',
-    symbol: "L'",
+    label: 'Lift per metre of span',
+    symbol: 'L′',
     unit: 'N/m',
     digits: 1,
     hint: 'The dimensional answer the target is set in.',
   },
   {
     key: 'c_m_c4',
-    label: 'Moment about c/4',
-    symbol: 'C_m',
+    label: 'Pitching moment',
+    symbol: 'C_m,c/4',
     unit: '1',
     digits: 4,
-    hint: 'Nose-up positive.',
+    hint: 'About the quarter chord, nose-up positive.',
   },
   {
     key: 'x_cp_over_c',
@@ -369,6 +400,35 @@ const METRICS = [
   },
 ];
 
+/** The `key -> wording` table the challenge reads, built from the same list. */
+const METRIC_LABELS = Object.fromEntries(METRICS.map((metric) => [metric.key, metric]));
+
+/** The few numbers that answer the mission, shown before any table. */
+const KPIS = [
+  { key: 'c_l', label: 'Lift coefficient', symbol: 'C_L', unit: '1', digits: 3 },
+  { key: 'l_prime', label: 'Lift per metre', symbol: 'L′', unit: 'N/m', digits: 0 },
+  { key: 'c_m_c4', label: 'Pitching moment', symbol: 'C_m,c/4', unit: '1', digits: 4 },
+  {
+    key: 'x_cp_over_c',
+    label: 'Centre of pressure',
+    symbol: 'x_cp/c',
+    unit: '1',
+    digits: 3,
+    absent: 'not defined here',
+  },
+  { key: 'cp_min', label: 'Suction peak', symbol: 'C_p,min', unit: '1', digits: 2 },
+  {
+    key: 'x_ac_over_c',
+    label: 'Aerodynamic centre',
+    symbol: 'x_ac/c',
+    unit: '1',
+    digits: 3,
+    from: (report) => report.sweep?.x_ac_over_c,
+    absent: 'needs a sweep',
+    hint: 'A property of several incidences, so one solve cannot produce it.',
+  },
+];
+
 const CHECKS = [
   {
     key: 'cl_consistency_rel',
@@ -386,32 +446,25 @@ const CHECKS = [
     key: 'cl_convergence_rel',
     label: 'Panel convergence',
     tolerance: 'cl_convergence_tolerance',
-    describe: 'Change in C_L when the panel count is halved.',
+    describe: 'Change in the lift coefficient when the panel count is doubled.',
   },
 ];
 
 const FIELD_VIEW = {
   Cp: {
-    option: 'Cp (pressure)',
+    option: 'Pressure coefficient, C_p',
     caption: 'Cp',
     colormap: 'coolwarm',
     contours: 12,
     symmetric: true,
-    hint: 'Pressure coefficient. Blue is suction, red compression, and Cp = 1 marks the stagnation point. With the Kutta condition imposed the suction over the upper surface no longer cancels — that is the lift.',
+    hint: 'Blue is suction, red compression, and C_p = 1 marks the stagnation point. With the Kutta condition imposed the suction over the upper surface no longer cancels — that is the lift. The thin white curves are contours of C_p, not streamlines: switch Streamlines on to see the flow itself, integrated from the velocity field.',
   },
   speed: {
-    option: 'speed',
+    option: 'Speed',
     caption: 'm/s',
     colormap: 'viridis',
     contours: 10,
     hint: 'Velocity magnitude. Bright is fast.',
-  },
-  velocity: {
-    option: 'velocity (vectors)',
-    caption: 'm/s',
-    colormap: 'viridis',
-    contours: 0,
-    hint: 'The velocity itself. Watch how the flow leaves the trailing edge: smoothly, which is what the Kutta condition asks for.',
   },
 };
 
@@ -430,6 +483,7 @@ let report = null;
 let running = false;
 let currentJob = null;
 let selected = new Set();
+let workspace = null;
 
 /** Every parameter, as the solver will receive it. */
 function currentParams() {
@@ -487,7 +541,10 @@ async function run() {
     if (!result) return;
 
     report = await fetchReport(result);
-    dom.viewer.result = result;
+    // Explore comes after Run: the result section only exists once there is a result, which
+    // is what removes the row of "Nothing computed yet" panels the page used to open with.
+    dom.results.hidden = false;
+    workspace.setResult(result);
     syncFieldOptions(dom.viewer, dom.field, FIELD_VIEW, dom.fieldHint);
     showStats(dom.stats, result);
     showArtifacts(dom.artifacts, result.artifacts);
@@ -519,12 +576,14 @@ async function fetchReport(result) {
 /* ------------------------------------------------------------------------- presentation */
 
 function present() {
-  renderChallenge(dom.challenge, content?.challenge, report);
+  renderChallenge(dom.challenge, content?.challenge, report, METRIC_LABELS);
+  renderKpis(dom.kpis, KPIS, report);
   renderMetrics(dom.metrics, METRICS, report);
   renderVerification(dom.verification, CHECKS, report);
   renderValidity(dom.validity, report);
   describeGeometry(report);
   renderDerived();
+  declareOverlays();
 
   if (!report) return;
 
@@ -544,8 +603,8 @@ function present() {
     const sweep = report.sweep;
     drawCurve(dom.sweepCurve, {
       traces: [
-        { name: 'C_L', points: sweep.alpha_deg.map((a, i) => [a, sweep.c_l[i]]) },
-        { name: 'C_m about c/4', points: sweep.alpha_deg.map((a, i) => [a, sweep.c_m_c4[i]]) },
+        { name: 'lift coefficient', points: sweep.alpha_deg.map((a, i) => [a, sweep.c_l[i]]) },
+        { name: 'pitching moment', points: sweep.alpha_deg.map((a, i) => [a, sweep.c_m_c4[i]]) },
       ],
       xLabel: 'angle of attack, degrees',
       yLabel: 'coefficient',
@@ -587,6 +646,249 @@ function renderDerived() {
   );
 }
 
+/* --------------------------------------------------------------- the annotation layer */
+
+/**
+ * The outline the solver was given, in domain coordinates, plus the chord it defines.
+ *
+ * The same rule the solver uses (`airfoil_geometry.read_profile`): the trailing edge is the
+ * vertex of greatest x, and the leading edge is the vertex furthest from it. Applied to the
+ * *outline* rather than to the control points, because the spline is the geometry of record.
+ */
+function outlineFrame() {
+  const points = (dom.editor.outlinePoints?.() ?? []).map(([x, y]) => [
+    x * physical.chord,
+    y * physical.chord,
+  ]);
+  if (points.length < 3) return null;
+
+  const te = points.reduce((best, p) => (p[0] > best[0] ? p : best), points[0]);
+  const le = points.reduce(
+    (best, p) =>
+      Math.hypot(p[0] - te[0], p[1] - te[1]) > Math.hypot(best[0] - te[0], best[1] - te[1])
+        ? p
+        : best,
+    points[0],
+  );
+  const axis = [te[0] - le[0], te[1] - le[1]];
+  const chord = Math.hypot(axis[0], axis[1]);
+  if (!(chord > 0)) return null;
+  const unit = [axis[0] / chord, axis[1] / chord];
+  return {
+    points,
+    le,
+    te,
+    chord,
+    /** A station along the chord, as a point in the domain. */
+    at: (fraction) => [le[0] + unit[0] * fraction * chord, le[1] + unit[1] * fraction * chord],
+    /** The outline point nearest a chordwise station, on the requested side. */
+    surface: (fraction, upper) => {
+      const target = fraction * chord;
+      let best = null;
+      let bestError = Infinity;
+      for (const p of points) {
+        const along = (p[0] - le[0]) * unit[0] + (p[1] - le[1]) * unit[1];
+        const across = -(p[0] - le[0]) * unit[1] + (p[1] - le[1]) * unit[0];
+        if (upper ? across < 0 : across > 0) continue;
+        const error = Math.abs(along - target);
+        if (error < bestError) {
+          bestError = error;
+          best = p;
+        }
+      }
+      return best;
+    },
+  };
+}
+
+/** Which surface carries the suction peak, read from the two published curves. */
+function peakSurface() {
+  if (!report?.curves) return null;
+  const low = (curve) => curve.reduce((best, p) => (p[1] < best[1] ? p : best), curve[0]);
+  const upper = low(report.curves.cp_upper);
+  const lower = low(report.curves.cp_lower);
+  return upper[1] <= lower[1]
+    ? { station: upper[0], upper: true }
+    : { station: lower[0], upper: false };
+}
+
+/**
+ * Which annotations this run can carry, and why the others cannot.
+ *
+ * Recomputed on every result, because availability is a property of the run: the aerodynamic
+ * centre exists only across a sweep, and the centre of pressure runs off to infinity as the
+ * normal force vanishes. Both are declared and disabled with that reason rather than dropped,
+ * so the absence is a statement about the physics instead of a gap in the interface.
+ */
+function declareOverlays() {
+  const noRun = 'Run the solve first.';
+  workspace.setOverlays([
+    { id: 'profile', label: 'Profile', colour: 'var(--overlay-profile)', on: true },
+    {
+      id: 'chord',
+      label: 'Chord & c/4',
+      colour: 'var(--overlay-chord)',
+      on: true,
+      title: 'The chord line, and the quarter chord the moment is taken about',
+    },
+    {
+      id: 'stream',
+      label: 'Free stream',
+      colour: 'var(--overlay-stream)',
+      on: true,
+      title: 'Direction and speed of the undisturbed flow',
+    },
+    {
+      id: 'cp',
+      label: 'Centre of pressure',
+      colour: 'var(--overlay-cp)',
+      on: true,
+      enabled: Boolean(report) && typeof report.metrics?.x_cp_over_c === 'number',
+      why: report
+        ? 'The normal force is too small to place a centre of pressure: it genuinely runs off to infinity here.'
+        : noRun,
+    },
+    {
+      id: 'resultant',
+      label: 'Resultant',
+      colour: 'var(--overlay-cp)',
+      enabled: Boolean(report) && typeof report.metrics?.x_cp_over_c === 'number',
+      why: report ? 'Drawn at the centre of pressure, which this run does not have.' : noRun,
+      title: 'The aerodynamic force, acting at the centre of pressure',
+    },
+    {
+      id: 'peak',
+      label: 'Suction peak',
+      colour: 'var(--overlay-peak)',
+      enabled: Boolean(report?.curves),
+      why: noRun,
+    },
+    {
+      id: 'ac',
+      label: 'Aerodynamic centre',
+      colour: 'var(--overlay-ac)',
+      enabled: Boolean(report?.sweep),
+      why: 'The aerodynamic centre is a property of several incidences. Run a sweep under Advanced.',
+    },
+  ]);
+}
+
+/** Paint the annotations. Called by the workspace on every resize, zoom, result and toggle. */
+function drawOverlay({ svg, project, layerOn, width, height }) {
+  const frame = outlineFrame();
+  if (!frame) return;
+
+  if (layerOn('profile')) {
+    const closed = [...frame.points, frame.points[0]];
+    svg.append(polyline(closed.map(project), 'overlay__profile'));
+  }
+
+  if (layerOn('chord')) {
+    const group = svgNode('g', { class: 'overlay__chord' });
+    group.append(polyline([project(frame.le), project(frame.te)], 'overlay__chordline'));
+    group.append(marker(project(frame.at(0.25)), 'c/4', 'overlay__quarter'));
+    svg.append(group);
+  }
+
+  if (layerOn('stream')) {
+    // In the domain frame the free stream arrives at exactly the requested incidence: the
+    // solve is done in the chord frame and the page's angle is measured there, so the two
+    // rotations cancel. §5.1 — the stream tilts, the profile does not.
+    const alpha = ((currentParams().alpha_deg ?? 0) * Math.PI) / 180;
+    const speed = currentParams().u_inf ?? 0;
+    const start = [width * 0.06, height * 0.16];
+    const length = Math.min(width, height) * 0.16;
+    const end = [start[0] + length * Math.cos(alpha), start[1] - length * Math.sin(alpha)];
+    const group = svgNode('g', { class: 'overlay__stream' });
+    group.append(polyline([start, end], 'overlay__arrow'));
+    for (const sweep of [2.6, -2.6]) {
+      const angle = Math.atan2(end[1] - start[1], end[0] - start[0]);
+      group.append(
+        polyline(
+          [end, [end[0] + 9 * Math.cos(angle + sweep), end[1] + 9 * Math.sin(angle + sweep)]],
+          'overlay__arrow',
+        ),
+      );
+    }
+    group.append(
+      svgNode(
+        'text',
+        { x: start[0], y: start[1] - 10 },
+        document.createTextNode(
+          `U∞ ${speed.toFixed(0)} m/s at ${(currentParams().alpha_deg ?? 0).toFixed(1)}°`,
+        ),
+      ),
+    );
+    svg.append(group);
+  }
+
+  if (!report) return;
+
+  const xcp = report.metrics?.x_cp_over_c;
+  if (layerOn('cp') && typeof xcp === 'number') {
+    svg.append(marker(project(frame.at(xcp)), `x_cp/c = ${xcp.toFixed(3)}`, 'overlay__cp'));
+  }
+
+  if (layerOn('resultant') && typeof xcp === 'number') {
+    // Perpendicular to the free stream, because in an inviscid attached flow the resultant
+    // *is* the lift: the chordwise component is d'Alembert's residual, and this page reports
+    // that as an error bar rather than drawing it as a force.
+    const alpha = ((currentParams().alpha_deg ?? 0) * Math.PI) / 180;
+    const at = project(frame.at(xcp));
+    const sign = (report.metrics.c_l ?? 0) >= 0 ? 1 : -1;
+    const length = Math.min(width, height) * 0.22 * sign;
+    const end = [at[0] - length * Math.sin(alpha), at[1] - length * Math.cos(alpha)];
+    const group = svgNode('g', { class: 'overlay__resultant' });
+    group.append(polyline([at, end], 'overlay__arrow'));
+    const angle = Math.atan2(end[1] - at[1], end[0] - at[0]);
+    for (const sweep of [2.6, -2.6]) {
+      group.append(
+        polyline(
+          [end, [end[0] + 9 * Math.cos(angle + sweep), end[1] + 9 * Math.sin(angle + sweep)]],
+          'overlay__arrow',
+        ),
+      );
+    }
+    group.append(
+      svgNode(
+        'text',
+        { x: end[0] + 8, y: end[1] },
+        document.createTextNode(`L′ ${Math.round(report.metrics.l_prime)} N/m`),
+      ),
+    );
+    svg.append(group);
+  }
+
+  const peak = peakSurface();
+  if (layerOn('peak') && peak) {
+    const at = frame.surface(peak.station, peak.upper);
+    if (at) {
+      svg.append(
+        marker(project(at), `C_p,min ${report.metrics.cp_min.toFixed(2)}`, 'overlay__peak'),
+      );
+    }
+  }
+
+  if (layerOn('ac') && report.sweep) {
+    svg.append(
+      marker(
+        project(frame.at(report.sweep.x_ac_over_c)),
+        `x_ac/c = ${report.sweep.x_ac_over_c.toFixed(3)}`,
+        'overlay__ac',
+      ),
+    );
+  }
+}
+
+/** The box the "Fit profile" action frames. */
+function profileBox() {
+  const frame = outlineFrame();
+  if (!frame) return null;
+  const xs = frame.points.map((p) => p[0]);
+  const ys = frame.points.map((p) => p[1]);
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+}
+
 /* -------------------------------------------------------------------------- the run table */
 
 /** What the table shows at a glance. Everything else stays in the row, for Compare and export. */
@@ -595,7 +897,7 @@ const COLUMNS = [
   { path: 'physical.alpha_deg', label: 'α °' },
   { path: 'metrics.c_l', label: 'C_L' },
   { path: 'metrics.l_prime', label: "L' N/m" },
-  { path: 'metrics.c_m_c4', label: 'C_m' },
+  { path: 'metrics.c_m_c4', label: 'C_m,c/4' },
   { path: 'metrics.cp_min', label: 'C_p,min' },
   { path: 'numerics.panels', label: 'panels' },
   { path: 'verification.cl_consistency_rel', label: 'consistency' },
@@ -692,6 +994,7 @@ function refreshRuns(rows = runs.load(EXERCISE), evicted = 0) {
   runs.renderComparison(
     dom.compare,
     rows.filter((entry) => selected.has(entry.saved_at)),
+    { labels: METRIC_LABELS },
   );
 
   const parts = [`${rows.length} of ${runs.CAPACITY} kept, in this browser only.`];
@@ -699,6 +1002,7 @@ function refreshRuns(rows = runs.load(EXERCISE), evicted = 0) {
   dom.runsNote.textContent = parts.join(' ');
   for (const button of [dom.exportCsv, dom.exportJson, dom.clearRuns])
     button.disabled = !rows.length;
+  dom.compareJump.hidden = rows.length < 2;
 }
 
 /** Put a saved row's inputs back on the page. Does not re-solve: Run is still the visitor's. */
@@ -709,6 +1013,7 @@ function loadRun(entry) {
   physical.rho = entry.physical.rho;
   physical.mu = entry.physical.mu;
   physical.a = entry.physical.sound_speed;
+  renderAtmosphere();
 
   if (entry.geometry.source !== 'custom' && entry.geometry.m !== null) {
     Object.assign(shape, { m: entry.geometry.m, p: entry.geometry.p, t: entry.geometry.t });
@@ -734,6 +1039,7 @@ function loadRun(entry) {
     resolution: entry.numerics.resolution,
   });
   renderDerived();
+  workspace.draw();
   setStatusOn(
     dom,
     `Loaded the inputs of the ${entry.geometry.label} run. Press Run to recompute it.`,
@@ -796,13 +1102,13 @@ function renderAtmosphere() {
       el(
         'label',
         { class: 'field__label', for: 'atmosphere-mode' },
-        el('span', { text: 'Atmosphere' }),
+        el('span', {
+          text: 'Atmosphere',
+          title:
+            'Altitude sets temperature, pressure, density, viscosity and the speed of sound together, because they are one decision and not five.',
+        }),
       ),
       mode,
-      el('span', {
-        class: 'field__hint',
-        text: 'Altitude sets temperature, pressure, density, viscosity and the speed of sound together, because they are one decision and not five.',
-      }),
     ),
   ];
 
@@ -834,6 +1140,7 @@ function renderAtmosphere() {
     numberField('chord', 'Chord', physical.chord, 0.05, 5, 0.05, 'm', (value) => {
       physical.chord = value;
       renderDerived();
+      workspace?.draw();
     }),
   );
 
@@ -865,8 +1172,25 @@ let content = null;
 
 mountChrome('experiments');
 buildShapeControls(dom.shapeControls, SHAPE_CONTROLS, shape, onShapeSlider);
-applyShape();
 renderAtmosphere();
+
+workspace = createWorkspace({
+  root: dom.workspace,
+  viewer: dom.viewer,
+  editor: dom.editor,
+  fitLabel: 'Fit profile',
+  exportName: 'airfoil-field',
+  subject: profileBox,
+  onDraw: drawOverlay,
+  onModeChange: (mode) => {
+    dom.editShape.classList.toggle('is-active', mode === 'edit');
+    dom.editShape.setAttribute('aria-pressed', String(mode === 'edit'));
+    dom.editShape.textContent = mode === 'edit' ? 'Done editing' : 'Edit shape';
+  },
+});
+
+applyShape();
+declareOverlays();
 
 dom.profile.replaceChildren(
   ...CATALOGUE.map(
@@ -895,7 +1219,18 @@ dom.editor.addEventListener('change', () => {
   geometry.source = 'custom';
   geometry.label = 'Custom';
   dom.profile.value = 'custom';
-  describeGeometry();
+  describeGeometry(report);
+  workspace.draw();
+});
+
+dom.editShape.addEventListener('click', () => {
+  workspace.setMode(workspace.mode === 'edit' ? 'pan' : 'edit');
+});
+
+dom.derivedToggle.addEventListener('click', () => {
+  const open = dom.derivedWrap.hidden;
+  dom.derivedWrap.hidden = !open;
+  dom.derivedToggle.setAttribute('aria-expanded', String(open));
 });
 
 dom.run.addEventListener('click', run);
@@ -912,12 +1247,15 @@ dom.reset.addEventListener('click', () => {
 dom.field.addEventListener('change', () => {
   dom.viewer.field = dom.field.value;
   applyFieldView(dom.viewer, FIELD_VIEW, dom.field.value, dom.fieldHint);
+  workspace.draw();
 });
 dom.keep.addEventListener('click', () => {
   if (!report) return;
   const { rows, evicted } = runs.save(EXERCISE, row());
   refreshRuns(rows, evicted);
+  revealPanel(dom.runsPanel);
 });
+dom.compareJump.addEventListener('click', () => revealPanel(dom.runsPanel));
 dom.exportCsv.addEventListener('click', () =>
   runs.download('airfoil-runs.csv', runs.toCsv(runs.load(EXERCISE)), 'text/csv'),
 );
@@ -936,12 +1274,12 @@ try {
   const [loaded, info, solvers] = await Promise.all([
     fetch('/experiments/airfoil/content.json').then((response) => response.json()),
     health().catch(() => null),
-    solversFor(GEOMETRY_TYPE),
+    solversFor(GEOMETRY_TYPE, { physics: PHYSICS }),
   ]);
 
   content = loaded;
   catalogue = solvers;
-  renderLesson({ content, intro: dom.intro, lesson: dom.lesson });
+  renderLesson({ content, intro: null, lesson: dom.lesson, open: ['problem'] });
   present();
   refreshRuns();
 
@@ -951,6 +1289,7 @@ try {
     dom.solverHint.textContent = chosen.description;
     buildForms();
     renderDerived();
+    workspace.draw();
   }
 
   const canSolve = applyMaintenance(

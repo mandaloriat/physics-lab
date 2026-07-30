@@ -41,6 +41,8 @@ def test_homepage_names_the_experiments_and_carries_the_disclaimer(client):
     # What is still planned is listed honestly rather than linked to nothing.
     assert "In preparation" in body
     assert "Heat sink" in body
+    # The tagline is the product's claim and is not negotiable wording (ADR-016).
+    assert "Interactive problems. Computed fields. Checkable answers." in body
     assert "not a substitute for professional engineering verification" in body
     assert "fenix-spoon" in body
 
@@ -51,6 +53,77 @@ def test_the_airfoil_page_uses_the_fenix_spoon_widgets(client):
     assert "<fs-geometry-2d" in body
     assert "<fs-viewer" in body
     assert '"@fenix-spoon/client"' in body
+
+
+@pytest.mark.parametrize("name", EXPERIMENTS)
+def test_every_experiment_page_carries_the_workspace(client, name):
+    """The instrument, and the markup the shared workspace module wires itself into.
+
+    The redesign made the field the centre of the page rather than an illustration in it
+    (ADR-017), and that shape is markup the page owns: a toolbar, a clipping stage, a zoom box,
+    an annotation overlay and a colour scale outside the scroll container. A page that lost one
+    of them would still load and would silently lose a tool, so the contract is asserted here
+    rather than only in the browser suite.
+    """
+    body = client.get(f"/experiments/{name}/").text
+    for hook in [
+        'class="workspace__toolbar"',
+        'class="workspace__stage"',
+        'class="workspace__zoom"',
+        'class="workspace__overlay"',
+        'class="workspace__scale"',
+        'class="actionbar"',
+    ]:
+        assert hook in body, f"the {name} page is missing {hook}"
+
+    # The viewer draws no colorbar of its own: the workspace draws one, and that is what makes
+    # the widget's plot area exactly the element's box — which is what the annotation overlay's
+    # alignment depends on. See the note in `frontend/shared/workspace.js`.
+    assert 'colorbar="off"' in body
+
+
+@pytest.mark.parametrize("name", EXPERIMENTS)
+def test_the_numerics_are_behind_a_closed_disclosure(client, name):
+    """Advanced ships closed, in the markup, so the main path is short before any script runs."""
+    markup = re.sub(r"<!--.*?-->", "", client.get(f"/experiments/{name}/").text, flags=re.DOTALL)
+    match = re.search(r'<details[^>]*id="advanced"[^>]*>', markup)
+    assert match, f"the {name} page must keep its numerics under an Advanced disclosure"
+    assert "open" not in match.group(0), "Advanced must not start expanded"
+
+
+def test_no_internal_identifier_is_written_into_the_markup(client):
+    """The pages name quantities the way a person reads them, not the way the report stores them.
+
+    ``l_prime`` and ``c_m_c4`` are keys in ``report.json``; a visitor should never meet either.
+    The browser suite checks the rendered text, which is the stronger claim — this checks the
+    static markup, which is where such a string is easiest to reintroduce by hand.
+    """
+    forbidden = ["l_prime", "c_m_c4", "x_cp_over_c", "cp_min_station", "cl_consistency_rel"]
+    for name in EXPERIMENTS:
+        body = client.get(f"/experiments/{name}/").text
+        markup = re.sub(r"<!--.*?-->", "", body, flags=re.DOTALL)
+        for key in forbidden:
+            assert key not in markup, f"{name}/index.html shows the internal identifier {key}"
+
+
+def test_the_homepage_shows_a_real_field_for_every_experiment(client):
+    """Every card carries a thumbnail that is a solve, not an illustration.
+
+    ``scripts/make-thumbnails.py`` runs each experiment's own solver and writes the field as a
+    PNG. A card whose image 404s says nothing at all, and the failure is invisible in the
+    Python suite unless the reference is followed — so it is followed.
+    """
+    body = client.get("/").text
+    sources = re.findall(r'src="(/assets/thumbnails/[^"]+)"', body)
+    assert len(sources) == 3, "each experiment card needs its own field thumbnail"
+    for source in sources:
+        response = client.get(source)
+        assert response.status_code == 200, f"{source} is on the homepage but not served"
+        assert response.content.startswith(b"\x89PNG"), f"{source} is not a PNG"
+
+    # And a concrete invitation rather than "open the experiment".
+    assert "Design an airfoil" in body
+    assert "Build an electromagnet" in body
 
 
 def test_the_solenoid_page_renders_the_field_and_draws_its_own_cross_section(client):
@@ -88,6 +161,11 @@ def test_the_solenoid_page_renders_the_field_and_draws_its_own_cross_section(cli
         "/shared/api.js",
         "/shared/components.js",
         "/shared/experiment.js",
+        "/shared/exercise.js",
+        "/shared/workspace.js",
+        "/shared/runs.js",
+        "/shared/curve.js",
+        "/shared/atmosphere.js",
         *(f"/experiments/{name}/app.js" for name in EXPERIMENTS),
         *(f"/experiments/{name}/content.json" for name in EXPERIMENTS),
     ],

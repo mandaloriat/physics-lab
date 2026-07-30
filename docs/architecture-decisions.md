@@ -565,6 +565,86 @@ are written under the final name rather than swept afterwards.
 
 ---
 
+## ADR-017 — An experiment page is a bench, not a document
+
+**Decision.** Every experiment page is arranged as one path — **mission → configure → run →
+explore → check → keep and compare → understand the model** — with the computed field as the
+largest thing on it and its own toolbar. The prose is not shortened; it is folded into
+*Understand the model*. Shared implementation: `frontend/shared/workspace.js`.
+
+**Why.** The airfoil page had almost every capability this record asks for and showed them all
+at once, which is a different failure from missing them. Measured on the page as shipped: 7,664
+pixels tall at 1440 wide, a 310-pixel sidebar carrying twelve controls each with a paragraph
+under it, the Run button *above* most of the inputs that feed it, three result panels reading
+"Nothing computed yet" before anything had been run, and the field — the only thing on the page
+that is a measurement — occupying about a ninth of the first screen. A visitor cannot tell what
+to do first because everything is offered with equal weight.
+
+Four things follow, and each is a decision rather than a tidy-up.
+
+**The field gets the room, and tools.** It is the instrument; everything else is arranged around
+it. That means a stated aspect ratio taken from the domain, roughly three quarters of the bench
+on a desktop, and a toolbar rather than a hover readout as the only way in. A tool the current
+result cannot support is **disabled with its reason**, never absent: "Vectors — this result
+publishes no vector field" is a true statement about the solve, where a missing button is
+indistinguishable from a broken page.
+
+**Explore and Edit are different modes.** The geometry editor used to be permanently layered
+over the viewer, so its control points were always visible and a drag was always a reshaping.
+With pan and zoom on the same surface that is an unresolvable conflict, so the editor is hidden
+and inert outside *Edit shape*. This also fixed a real misalignment nobody had noticed:
+`<fs-viewer>` reserves 38 px on the right for its colorbar and stretches the domain into what is
+left, while `<fs-geometry-2d>` uses the full width — so the draggable outline sat several per
+cent to the right of the hole it was supposed to be. Turning the widget's colorbar off and
+drawing the scale in the lab's own DOM removes the discrepancy *and* makes the plot area exactly
+the element's box, which is what lets an annotation layer align with the field without
+reproducing the widget's internal layout constants. That hazard is the one
+[ADR-012](#adr-012--the-second-experiment-shares-a-page-shell-and-brings-its-own-geometry-controls)
+declined to take on; it is taken on here only because the constant was eliminated rather than
+copied.
+
+**Nothing is reported before there is something to report.** The result sections do not exist
+until the first solve. An empty panel is worse than no panel: it occupies the position where an
+answer will be and teaches the visitor to skip that position.
+
+**The explanations move, and none is deleted.** Each `content.json` section becomes a closed
+`<details>` under *Understand the model*, and the long paragraph that used to sit under every
+slider becomes that control's tooltip. The rigour is the point of the lab; a wall of it between
+a visitor and the experiment is read by nobody, which is the same as not having written it.
+
+**What was *not* built, and why it is a note rather than a gap.** Pan and zoom are laid out
+*around* `<fs-viewer>` — a clipping parent scrolls a larger box, and the widget re-renders at
+whatever size it is handed — because the pinned viewer has no view transform. Locking the colour
+range is genuinely impossible on this pin: the widget computes its range privately and exposes
+only a getter, so a locked legend would state a range the canvas does not use. That control is
+therefore present, disabled, and says so, and `viewerCapabilities()` feature-detects a settable
+range so it turns itself on the day upstream provides one. Streamlines *are* drawn, because the
+panel solver publishes `vector_fields.velocity` and a streamline is an integral of exactly that;
+where a solver publishes only scalars — the magnetics page — the tool is disabled with that
+sentence, and the contours of *A<sub>z</sub>* remain the honest device.
+
+**Why this is still not a framework.** `workspace.js` is functions over DOM nodes plus one
+factory that closes over them, in the same spirit as `components.js` and `experiment.js`. No
+component model, no reactive store, no build step, so
+[ADR-009](#adr-009--no-front-end-framework-and-no-bundler) is untouched — and the thing ADR-009
+warns about was checked directly rather than assumed: the workspace owns view state (mode, zoom,
+which layers are on) and the page owns physics state, and they meet at two function calls
+(`setResult`, `setOverlays`) and one callback (`onDraw`). One bug in this change came from
+exactly that seam — an overlay declared with `on: true` stayed off after becoming available,
+because "the visitor turned it off" and "it was disabled" were stored as the same thing — and the
+fix was to distinguish them, not to adopt a state container. ADR-009's threshold is still the
+first time the *same* state has to live in two places, and it has not been crossed.
+
+**Cost.** The two pages share considerably more code than before, so a change to the workspace
+has to be checked against both — which is what the browser suite is for, and it grew by fourteen
+tests. The stage now scrolls, which is a scroll container inside a scrolling page and needs
+`overscroll-behavior: contain` to stay tolerable on a trackpad. And the annotation layer is the
+lab's own code drawing on top of upstream's picture: correct today because the projection is
+derived rather than copied, and something to delete the day `<fs-viewer>` grows annotations of
+its own.
+
+---
+
 ## Deferred
 
 Not built, on purpose. Each would have been a plausible use of the kickstart's time; none
