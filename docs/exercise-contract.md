@@ -251,13 +251,20 @@ a caller learns what a run will report before running it.
 |---|---|---|---|---|
 | **Airfoil design** | Hit a target sectional lift by choosing profile and incidence | *C<sub>p</sub>*, *C<sub>L</sub>*, *C<sub>m</sub>*, centre of pressure, aerodynamic centre; *C<sub>D</sub>* and *L*/*D* only at model level 2 | Thin-airfoil theory, exact Kármán–Trefftz and cylinder solutions, circulation-vs-pressure consistency, panel convergence | **built**: [`exercises/airfoil.md`](exercises/airfoil.md) |
 | **Lightweight bracket** | Remove mass while keeping stress and deflection admissible | displacement, von Mises, reactions, mass, compliance, safety factor | Euler–Bernoulli beam, hole stress-concentration factor *K<sub>t</sub>*, reaction balance, mesh convergence | not specified |
-| **Electromagnet gap** | Produce a required gap force at minimum current | **B**, **H**, flux, force, losses, saturation margin | magnetic-circuit estimate, energy balance | **specified, not built**: [`exercises/solenoid.md`](exercises/solenoid.md). The page has the shell and refuses the metrics until their 2-D definitions are verified |
+| **The magnetic circuit** | Reach a required flux density in the core at the fewest ampere-turns, without saturating and without losing it to leakage | core flux, mean and worst-section flux density, leakage ratio, ampere-turns, stored energy, permeance | energy balance, two-route flux consistency, Ampere's law on a stated contour, refinement study | **solver built and verified, page not yet wired**: [`exercises/solenoid.md`](exercises/solenoid.md). Was *Electromagnet gap*; the challenge changed because a symmetric bar core feels no net force, see [ADR-018](architecture-decisions.md#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force) |
 | **Heat-sink challenge** | Dissipate a given power below a maximum temperature, with less material | *T*, heat flux, *T*<sub>max</sub>, *R*<sub>θ</sub>, mass, fin efficiency | energy balance, 1-D fin theory | not specified |
 | **Room modes** | Place source and listener avoiding nodes and resonances | acoustic pressure, phase, SPL, modal frequencies, uniformity | analytic modes of a rectangular room | not specified; needs complex harmonic fields and a frequency sweep |
 
 The first four are one coherent product. Acoustics is the ambitious fifth, and it is the one
 that needs protocol capabilities the lab does not have yet (complex-valued fields, a swept
 study, a curve result kind).
+
+One row has changed its challenge since this table was written, and the change is worth
+reading as a caution about the rest of it. *Electromagnet gap* asked for a force across a
+working air gap, and the cross-section the magnetics page submits has no working gap — a
+symmetric bar core between opposed windings feels exactly zero net force, so the target could
+not have been met or missed, only mis-reported. A challenge is a claim about what a model can
+be asked, and it is not settled until the model exists to be asked it.
 
 Two of the metric columns above cannot be produced by the model the corresponding page runs
 today — that is not a gap in the table but the substance of the airfoil specification, which

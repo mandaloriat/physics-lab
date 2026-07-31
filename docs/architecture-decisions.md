@@ -645,6 +645,100 @@ its own.
 
 ---
 
+## ADR-018 — The magnetics exercise gets its own solver, and its challenge is not a gap force
+
+**Decision.** `lab.magnetics2d` joins `lab.airfoil_panel2d` in `physics_lab/solvers/`: a
+cell-centred finite-volume magnetostatics solve on a grid with **a line on every material
+boundary**, reporting the metrics [`docs/exercises/solenoid.md`](exercises/solenoid.md) §1
+listed, each with a verification residual. Three definitional choices go with it, and the
+third changes what the exercise *is*:
+
+1. Saturation is read from a **section average**, `b_section_max`, not from a peak.
+2. Leakage is measured against the **whole flux bundle** — the surface bounded by the two
+   points where *B<sub>y</sub>* changes sign — not against a chosen second surface.
+3. The exercise's challenge is set in **core flux density at minimum ampere-turns**, not in a
+   gap force. The contract's [§7](exercise-contract.md#7-the-five-exercises) row is revised.
+
+**Why a second magnetostatics solver at all.** Upstream's `mock.magnetostatics2d` solves the
+right equation and rasterises the material onto a uniform grid, so the iron/air interface is a
+staircase. Measured on the page's own cross-section, a 20.000 mm core comes out **20.339,
+20.168 and 20.084 mm** wide at 60, 120 and 240 cells across — never right, and wrong by a
+different amount each time, so refining the mesh moves the geometry as well as the answer.
+Its core flux drifts 2 % over that range and does not settle. At 480 it returns a flux 26 %
+adrift, because it takes a fixed number of Jacobi sweeps, exhausts its own 40 000-iteration
+ceiling, and reports **no residual that would say so**. That last one is the decisive
+difference: a demonstration may stop early and still draw a useful picture, and a metric may
+not.
+
+Fitting the grid to the interfaces costs almost nothing — every region this page submits is an
+axis-aligned rectangle, so the fit is exact by construction — and it buys a refinement path
+that holds the geometry fixed. The core is 20.000 mm wide at every resolution, and the core
+flux settles to four figures: **−2.5684, −2.5656, −2.5641, −2.5635 mWb/m**. A manufactured
+solution with a thousandfold permeability jump through the middle of it confirms second-order
+convergence (observed orders 1.80 then 1.96), which is what says the harmonic-mean interface
+treatment is right rather than merely plausible.
+
+**The peak flux density does not converge, and §1 expected it to.** The specification assumed
+the unrestricted peak was an artefact of the mock's staircase and would settle once it was
+restricted to the iron. It does not. On the interface-fitted grid the peak inside the core
+reads **0.148, 0.185, 0.230, 0.290 T** over the four refinements, climbing by a steady factor
+of about 1.25 each time — a corner singularity of the exact solution, which no mesh resolves
+because there is nothing there to resolve. The restriction to the iron cannot help, and the
+reason is worth stating because it is the opposite of what the specification guessed:
+tangential **H** is continuous across the surface, so **B** just inside a corner is *μ*<sub>r</sub>
+times **B** just outside it. **The peak is always in the iron.**
+
+So the pointwise peak is withheld, named in the report's `withheld` list, and the saturation
+warning is read from `b_section_max`: the flux density averaged across a section of the core,
+maximised over every section along it. It is an integral of the field rather than a sample of
+one, the singularity carries no weight in it, and it converges — **0.12852, 0.12831, 0.12821,
+0.12818 T** over the same refinements. It is also what a magnetic circuit is actually sized
+with: iron saturates when a whole section runs out of capacity, not when one corner does.
+
+**The leakage surface is placed where the integrand vanishes.** §1 recorded that two reasonable
+choices for the outer surface differ by about 10 % on the default geometry, and asked for one
+to be fixed and drawn. Neither is used. Along the mid-plane, *A<sub>z</sub>* turns over exactly
+where *B<sub>y</sub>* changes sign, so the flux between its maximum and its minimum is the whole
+bundle crossing that plane in one direction — and because the surface ends where the integrand
+is zero, moving it changes the answer at second order instead of first. The number earns its
+place by being stable where the thing it is a share *of* is not: growing the window from 60 mm
+to 240 mm moves the core flux by 25 % and the leakage ratio by 2 %.
+
+**The window the page submits is too small to quote numbers from.** That is a finding, not a
+decision. The 60 mm half-window puts **7.2 %** of the stored energy in its outermost twentieth,
+and the core flux it returns is **25 % below** the value the same magnet reaches in a 240 mm
+window. The truncation is doing the confining. Every run therefore reports the share of its
+energy against the wall and warns above 1 %, a threshold calibrated against this series: at
+0.8 % the flux is within 1.6 % of its open-domain value. Widening the page's own window is
+work for the increment that wires the page, and until then the warning fires on the default
+cross-section and is right to.
+
+**Why the challenge is not a gap force.** The contract's §7 sets this exercise's target as
+*"produce a required gap force at minimum current"*, and this cross-section cannot pose that
+problem: a straight bar core between two opposed windings is symmetric, so the net force on it
+is exactly zero and any number reported for it would be rounding error. A gap force needs a
+C-core and an armature — a different cross-section — and, to be had by differencing the stored
+energy, the study object upstream's
+[#48](https://github.com/mandaloriat/fenix-spoon/issues/48) provides. Both are real work and
+neither is hidden by choosing a different target. The challenge this cross-section *can* pose
+is the one a transformer or an actuator designer actually solves first: reach a required flux
+density in the core at the least ampere-turns, without saturating and without letting the
+leakage take over. Every metric it needs is now computed and verified.
+
+**Cost.** A second discretisation of the same physics to maintain, and a page that can offer
+both. They disagree by about 3 % on the core flux, all of it the staircase, and the page has to
+make that legible rather than leave a visitor to wonder which is broken — which is the same
+obligation the two airfoil modes already carry. The finite-volume solve is slower than the
+preview by roughly the cost of converging properly: 2 s at the default resolution with the
+refinement study on, against a fraction of a second for a fixed 3 000 Jacobi sweeps that have
+not converged. And `estimate_cells` now returns five times the grid when the refinement study
+is on, so a resolution that fits the server's budget without it may be refused with it. That is
+the budget doing its job, and it is stated in the parameter's description rather than
+discovered.
+
+
+---
+
 ## Deferred
 
 Not built, on purpose. Each would have been a plausible use of the kickstart's time; none
@@ -653,7 +747,7 @@ would have made the one finished experiment better.
 | Deferred | Why, and what would bring it back |
 |---|---|
 | **The heat-sink experiment** | `mock.heat2d` exists upstream, takes `regions2d`, and carries its convective boundary condition as parameters (`h`, `t_ambient`) rather than needing anything of the geometry schema — so the machinery is ready and what is missing is the didactic half: a fin generator, and the lesson that makes "how many fins actually help" answerable. It would also ship with only the fast preview, since upstream has no FEniCSx heat adapter to pair with it. The homepage lists it as planned rather than pretending. (The solenoid was in this row until ADR-012.) |
-| **A lab-specific solver** | `physics_lab/solvers/` is the registered, wired-up place for one, and it is empty. Nothing the airfoil needs is missing from Fenix Spoon, so writing an adapter would have demonstrated the adapter contract rather than any physics. |
+| ~~**A lab-specific solver**~~ | *No longer deferred.* It was, on the grounds that nothing the airfoil needed was missing from Fenix Spoon — which stopped being true the moment the pages became exercises. `lab.airfoil_panel2d` landed with [ADR-014](#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first) and `lab.magnetics2d` with [ADR-018](#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force). In both cases the missing piece was physics a metric needed, not an adapter to demonstrate. |
 | **Accounts, quotas per person, an admin dashboard** | Would need an identity provider, which would defeat "open the page and try it". Fenix Spoon supports API keys and per-principal quotas the day this changes. |
 | **Per-IP rate limiting on by default** | Needs a custom Caddy build. Configured and commented in the Caddyfile; see ADR-010. |
 | **Publishing the lab image to GHCR** | The server builds from the checkout, which keeps one source of truth while the project is one person and one machine. A published image matters when a second deployment does. |

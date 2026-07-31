@@ -30,7 +30,7 @@ Everything — pages, experiment content, code and documentation — is in Engli
 | Experiment | Physics | Status |
 |---|---|---|
 | **Airfoil design** | Ideal flow with a Kutta condition, by a panel method: hit a lift target under a pitching-moment constraint | **Available** — the first *exercise* |
-| **Solenoid magnetostatics** — *Magnetics lab* | Vector potential for an out-of-plane current: iron core, opposed windings, flux crowding into the iron | **Available** — a demonstration, and honest about it |
+| **Solenoid magnetostatics** — *Magnetics lab* | Vector potential for an out-of-plane current: iron core, opposed windings, flux crowding into the iron | **Available** — a demonstration, and honest about it. Its exercise solver, `lab.magnetics2d`, is built and verified; the page is next |
 | **Heat sink conduction and convection** | Conduction in a finned body with convective surfaces | Planned |
 
 The two experiments deliberately exercise different halves of the protocol. The airfoil
@@ -41,6 +41,14 @@ there is no outline to drag and the controls are physical dimensions instead; se
 
 The remaining experiment has its preview solver upstream already; what it needs is the
 didactic work. The homepage lists it as planned rather than pretending otherwise.
+
+Two of the lab's solvers are its own, in `physics_lab/solvers/`, and in both cases the reason
+was physics a metric needed rather than a wish to demonstrate the adapter contract: upstream's
+potential-flow adapters impose no Kutta condition, so their lift is exactly zero
+([ADR-014](docs/architecture-decisions.md#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first)),
+and upstream's magnetostatics adapter rasterises the iron/air interface onto a uniform grid, so
+a 20.000 mm core comes out 20.339 mm wide at one resolution and 20.084 mm at another
+([ADR-018](docs/architecture-decisions.md#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force)).
 
 ### Exercises, not demonstrations
 
@@ -57,10 +65,12 @@ engineering metrics, verification, saved result.
   It began by fixing the physics — the old model imposed no Kutta condition, so its lift was
   exactly zero at every incidence
   ([ADR-014](docs/architecture-decisions.md#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first)).
-- The next one, specified and deliberately **not** built:
-  **[docs/exercises/solenoid.md](docs/exercises/solenoid.md)**. The magnetics page has the whole
-  exercise shell and reports no engineering metric, because every metric a magnetic design is
-  judged on needs a definition in a two-dimensional slice that has not been verified here yet.
+- The next one, **[docs/exercises/solenoid.md](docs/exercises/solenoid.md)**, whose solver is
+  built and whose page is not yet wired. It stayed unbuilt for a release because every metric a
+  magnetic design is judged on needs a definition in a two-dimensional slice, and none had been
+  verified. They now are — and one of them came out the opposite way from the specification's
+  prediction, which is written down rather than quietly corrected
+  ([ADR-018](docs/architecture-decisions.md#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force)).
 
 ### A page is a bench
 
