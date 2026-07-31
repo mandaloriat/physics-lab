@@ -407,10 +407,6 @@ code {
   margin-top: 0.5rem;
 }
 
-.badge--demo {
-  color: var(--accent-ink);
-}
-
 .badge {
   display: inline-block;
   font-size: 0.72rem;
@@ -855,6 +851,28 @@ fs-geometry-2d {
   fill: var(--overlay-ac);
 }
 
+/* Line variants of the three accent colours. `polyline` emits a <path>, and the marker classes
+   above set `fill` for their rings and captions — applying one of those to a path floods it. */
+.overlay__planeline {
+  fill: none;
+  stroke: var(--overlay-cp);
+  stroke-width: 2.5;
+}
+
+.overlay__bundleline {
+  fill: none;
+  stroke: var(--overlay-peak);
+  stroke-width: 1.8;
+  stroke-dasharray: 4 3;
+}
+
+.overlay__contourline {
+  fill: none;
+  stroke: var(--overlay-ac);
+  stroke-width: 1.6;
+  stroke-dasharray: 6 4;
+}
+
 .overlay__region {
   fill: none;
   stroke-width: 1.4;
@@ -1134,6 +1152,15 @@ fs-geometry-2d {
   stroke: var(--ink-faint);
   stroke-width: 1;
   stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The core's mid-plane: the surface the reported flux is measured across. Drawn on the
+   configuration diagram as well as over the field, because a metric whose surface the visitor
+   cannot see is a metric they have to take on trust. */
+.schematic .measure {
+  stroke: var(--overlay-cp);
+  stroke-width: 2.5;
   vector-effect: non-scaling-stroke;
 }
 

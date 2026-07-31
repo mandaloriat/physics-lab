@@ -1,10 +1,10 @@
 # Exercise 3 — The magnetic circuit
 
-**Status:** *solver built and verified; page not yet wired.* `lab.magnetics2d` computes and
-checks every metric this document's §1 asked for, and the page at
-`frontend/experiments/solenoid/` is still the demonstration it was — it has the exercise shell
-and does not yet submit to this solver, carry a `challenge`, or render a metrics table.
-§6 is what remains.
+**Status:** *built.* `lab.magnetics2d` computes and checks every metric this document's §1
+asked for, and the page at `frontend/experiments/solenoid/` is an exercise: a challenge with
+three targets, headline tiles, a metrics table, five verification residuals, per-run validity,
+the mid-plane curves, the measurement surfaces as annotation layers, and a run table. §6 lists
+what is left, which is the C-core and the force that needs it.
 **Implements:** [the exercise contract](../exercise-contract.md).
 **Contract row:** *Electromagnet gap*, [§7](../exercise-contract.md#7-the-five-exercises) —
 and see §5 below, which is why that row's challenge has changed.
@@ -53,12 +53,12 @@ Restricting it to the core, and showing that the restricted value converges, is 
 The restriction was made and the value does not converge. On a grid fitted to the interfaces,
 with no staircase anywhere, the peak inside the iron reads:
 
-| Cells across | Peak in the iron | Worst section |
+| Cell size | Peak in the iron | Worst section |
 |---|---|---|
-| 60 | 0.148 T | 0.12852 T |
-| 120 | 0.185 T | 0.12831 T |
-| 240 | 0.230 T | 0.12821 T |
-| 480 | 0.290 T | 0.12818 T |
+| *h* | 0.148 T | 0.12852 T |
+| *h*/2 | 0.185 T | 0.12831 T |
+| *h*/4 | 0.230 T | 0.12821 T |
+| *h*/8 | 0.290 T | 0.12818 T |
 
 The peak climbs by a steady factor of about 1.25 per halving of the cell. That is not a
 discretisation error being resolved away; it is a corner singularity of the *exact* solution,
@@ -96,7 +96,7 @@ answer at *second* order, where a surface placed anywhere else changes it at fir
 
 That is why this definition does not have to be defended and the other two do. The number it
 produces is also stable where the quantity it is a share of is not: widening the window from
-60 mm to 240 mm moves the core flux by 25 % and the leakage ratio by 2 %.
+60 mm to 480 mm moves the core flux by 27 % and the leakage ratio by 2 % (1.72 % to 1.68 %).
 
 Both ends of the bundle are in the report as `validity.bundle_x`, so the page can draw them on
 the diagram — which the old version asked for and was right to.
@@ -111,20 +111,28 @@ Every warning names the threshold crossed and the consequence.
   bag of scalars precisely so a solver can read one more key, and a solver that does not know
   it ignores it.
 - **Window truncation.** The share of the stored energy lying in the outer twentieth of the
-  window, warned above 1 %. Calibrated rather than guessed:
+  window, warned above 1 %. Calibrated rather than guessed, on the default cross-section:
 
-  | Half-window | Energy against the wall | Core flux |
-  |---|---|---|
-  | 60 mm | 7.2 % | −2.565 mWb/m |
-  | 90 mm | 3.2 % | −3.050 mWb/m |
-  | 120 mm | 1.8 % | −3.244 mWb/m |
-  | 180 mm | 0.8 % | −3.391 mWb/m |
-  | 240 mm | 0.5 % | −3.445 mWb/m |
+  | Half-window | Energy against the wall | Core flux | Cells |
+  |---|---|---|---|
+  | 60 mm | 7.55 % | −2.567 mWb/m | 10 379 |
+  | 90 mm | 4.11 % | −3.055 mWb/m | 11 639 |
+  | 120 mm | 2.53 % | −3.250 mWb/m | 12 519 |
+  | 180 mm | 1.22 % | −3.398 mWb/m | 13 899 |
+  | **240 mm** | **0.72 %** | **−3.452 mWb/m** | **14 859** |
+  | 480 mm | 0.19 % | −3.505 mWb/m | 16 875 |
 
-  At 0.8 % the flux is within 1.6 % of its open-domain value, and at 7.2 % it is 25 % adrift.
-  **The window the page currently submits is in the last row of that statement, not the
-  first** — widening it is §6's first item, and until then the warning fires on the default
-  cross-section and is correct to.
+  At 0.7 % the flux is within 1.5 % of its value in a window twice as large; at 7.6 % it is
+  27 % adrift. The page sizes its window at **eight times the magnet's half-extent** — the
+  bolded row for the default cross-section — which clears the threshold in every configuration
+  the sliders can reach.
+
+  Read the last column too, because it is why this was affordable at all. Widening the window
+  eightfold costs **43 % more cells**, not sixty-four times as many, and that is two decisions
+  in `magnetics.py` rather than good luck: the cell count is set *across the regions* rather
+  than across the window, and the cells grow geometrically out in the air. Without the second,
+  the 240 mm window would be 413 445 cells instead of 14 859 — twice the public server's whole
+  budget for one solve.
 - **A wire rather than a coil.** A net current out of the plane has a field that falls off as
   1/*r* instead of closing, and the *A<sub>z</sub>* = 0 boundary is then doing the work the far
   field should.
@@ -162,14 +170,14 @@ records why rather than letting the table quietly change.
 
 | Piece | State |
 |---|---|
-| `lab.magnetics2d`: interface-fitted grid, metrics, four verification residuals, five validity warnings, `report.json` | **built** — `physics_lab/solvers/magnetics.py`, `solenoid.py`, `magnetics2d.py` |
-| Proof it is right: manufactured solution across a permeability jump, second-order convergence, Ampere's law, energy balance, linearity, symmetry | **built** — `tests/test_magnetics_method.py`, `tests/test_magnetics_solver.py` |
-| Geometry, controls, cross-section diagram, workspace, toolbar, solver filter | built, and unchanged since the redesign |
-| **A wider window** — the page's 60 mm half-window is 25 % adrift, and §4 is the evidence | **not built**, and the first thing to change |
-| `content.json` with a `challenge`, and the `METRICS` / `CHECKS` tables the shared renderers read | **not built** — the same three data structures the airfoil supplies |
-| The mid-plane curve plotted through `shared/curve.js`; the bundle edges and the Ampere contour drawn as annotation layers | **not built** — the data is in the report already |
-| `Keep result` enabled, and the run row | **not built** — the button is present and disabled with its reason |
+| `lab.magnetics2d`: interface-fitted graded grid, metrics, five verification residuals, six validity warnings, `report.json` | **built** — `physics_lab/solvers/magnetics.py`, `solenoid.py`, `magnetics2d.py` |
+| Proof it is right: manufactured solution across a permeability jump, second-order convergence on a uniform *and* a graded grid, Ampère's law, energy balance, linearity, symmetry | **built** — `tests/test_magnetics_method.py`, `tests/test_magnetics_solver.py` |
+| A window sized from the magnet, and a grid that makes it affordable | **built** — §4, and `WINDOW_RATIO` in the page's `app.js` |
+| `content.json` with a `challenge`, and the `METRICS` / `KPIS` / `CHECKS` tables the shared renderers read | **built** — the same data structures the airfoil supplies |
+| The mid-plane curves through `shared/curve.js`; the flux surface, the bundle edges and the Ampère contour as annotation layers | **built** — every reported number has its surface drawable |
+| `Keep result`, the run row, compare and export | **built** — `shared/runs.js`, as the airfoil uses it |
 | Gap force, and the C-core cross-section that would make it meaningful | **not built**, §5 |
+| A study group — none of the metrics needs one, and the page says so rather than leaving an empty panel | **not applicable**, §5 |
 
 ## 7. Where the numbers come from
 

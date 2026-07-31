@@ -1,49 +1,118 @@
 {
   "id": "solenoid",
-  "title": "Magnetics lab",
+  "title": "The magnetic circuit",
   "subtitle": "Magnetostatics of a solenoid cross-section",
-  "intro": "A slice through an electromagnet: an iron core down the middle, and either side of it the same winding cut twice by the plane — current flowing into the page on one side and out of it on the other. The sliders set the cross-section in millimetres and the permeability of the core. Press Run and see where the flux chooses to go.",
+  "intro": "A slice through an electromagnet: an iron core down the middle, and either side of it the same winding cut twice by the plane — current into the page on one side and out of it on the other. Size the cross-section to carry a required flux without spending more copper than the budget allows.",
+  "challenge": {
+    "statement": "Size the cross-section to carry 4.5 mWb per metre of depth through the iron, using no more than 3600 ampere-turns in each side of the winding, and keeping less than 1 % of the flux out of the core. Runs that leave the model's domain of validity do not count.",
+    "targets": [
+      {
+        "metric": "flux_core",
+        "comparator": ">=",
+        "value": 0.0045,
+        "unit": "Wb/m",
+        "absolute": true
+      },
+      {
+        "metric": "ampere_turns",
+        "comparator": "<=",
+        "value": 3600,
+        "unit": "A"
+      },
+      {
+        "metric": "leakage_ratio",
+        "comparator": "<",
+        "value": 0.01,
+        "unit": "1"
+      }
+    ],
+    "requires_valid": true,
+    "requires_verified": {
+      "metric": "energy_balance_rel",
+      "below": 0.02
+    }
+  },
   "sections": [
     {
-      "id": "question",
-      "heading": "The question",
-      "lead": "What does the iron core actually do?",
+      "id": "problem",
+      "heading": "The problem",
+      "lead": "Get 4.5 mWb per metre of depth up the core, on an ampere-turn budget, without leaking it.",
       "body": [
-        "The winding makes the field: current is the only source in the whole problem, and iron carrying no current makes nothing on its own. What the core does is offer the flux an easier route. Where the permeability is high, the same field strength drives far more flux — so the flux crowds into the iron and leaves the air comparatively empty.",
-        "That is worth watching rather than being told, because it has a limit. The flux has to come back round somewhere, and outside the core the only route is air. Once the iron is good enough that the air return dominates, making it better stops helping — and the model will show you exactly where that happens."
+        "The default cross-section carries about 3.45 mWb/m at 3000 ampere-turns and leaks 1.7 % of its flux past the iron, so it misses two of the three targets. The budget is what makes this a design problem rather than a dial: **3600 ampere-turns** is close to the most this window can usefully be given, so the extra flux has to come out of the magnetic circuit and not out of the current.",
+        "Three things are worth knowing before you start. **The flux is limited by the air, not by the iron** — at μᵣ = 1000 the core is already a thousand times the easier path, so making it better buys almost nothing while shortening the *return* buys a lot. **Ampere-turns are winding thickness times half-height times current density**, so the same budget can be spent as a thin tall coil or a fat short one, and those are not equivalent. And **leakage is set by the air gap**: at 1 mm a tenth of a per cent of the flux misses the core, at 5 mm 1.7 %, at 10 mm over 6 %.",
+        "There is more than one cross-section that passes. Find one, keep the run, then find a different one that also passes and compare the two — the run table exists to make that comparison, not to store screenshots."
       ]
     },
     {
-      "id": "what-to-change",
-      "heading": "What to change",
+      "id": "model",
+      "heading": "The model",
       "body": [
-        "**Core permeability μᵣ** is the interesting one: 1 means no core at all, just a coil in air, and 10³–10⁴ is the range of real soft magnetic iron and ferrite. The slider moves in decades because that is how the quantity behaves.",
-        "**Core half-width** thickens the iron path. **Air gap** pushes the winding away from it, and **winding thickness** adds copper outward — so the coil is measured from the core rather than from the axis, and no combination of sliders can be dragged into a geometry the solver would refuse.",
-        "**Half-height** lengthens the whole magnet along its axis. A long thin magnet and a short fat one with the same amount of copper do not behave alike.",
-        "**Current density** scales the source. Because the material here is linear, doubling it doubles every field in the picture and changes nothing about the shape of it — which is worth confirming once, and is also the first limit of the model.",
-        "**Resolution** (preview) or **mesh size** (FEniCSx) decide how fine the discretisation is. The iron/air interface is where the two modes differ most."
+        "Static, two-dimensional, linear magnetostatics for a current flowing perpendicular to the plane. With the current out of plane the magnetic vector potential has only that component, and the whole problem collapses to one scalar equation:",
+        "**−∇·( ν ∇A_z ) = J_z**, with **ν = 1/(μ₀ μᵣ)** the reluctivity, and **B = ( ∂A_z/∂y , −∂A_z/∂x )**.",
+        "That is worth reading twice, because two useful facts fall straight out of it. The contour lines of A_z **are** the magnetic field lines. And the flux crossing any curve, per metre of depth, is simply the difference in A_z between its two ends — which is why every flux on this page is a subtraction rather than an integral, and why it can be checked against one.",
+        "**Material.** Linear and isotropic: μᵣ is a constant you set, and the solver applies it whatever the field. Copper is non-magnetic and carries the current; air is μᵣ = 1 and carries none.",
+        "**No initial conditions.** The problem is static, so there is no state at *t* = 0. Where a transient exercise would list one, this page has nothing to list, and inventing something to fill the gap would be a lie about the model.",
+        "**Units.** SI throughout. The sliders are in millimetres and A/mm² because that is how a coil is thought about; everything is converted at the boundary, and every reported number is SI.",
+        "**Per metre of depth.** A two-dimensional slice has no length, so a flux here is a flux *per metre* (Wb/m) and an energy an energy per metre (J/m). Multiply by the real depth to get the three-dimensional quantity — and then read the limits, because a real magnet has ends and this one does not.",
+        "**The sign of the flux** is fixed by the winding sense, which this page fixes too: current out of the page on the right, into it on the left. The reported flux is negative because it crosses the mid-plane downward, and the headline tiles and the mission show its magnitude. The signed value stays in the full table and in the exported row, where a program reads it."
       ]
     },
     {
-      "id": "what-to-watch",
-      "heading": "What to watch",
+      "id": "boundary-conditions",
+      "heading": "Boundary conditions",
       "body": [
-        "**|B|** is the flux density, in tesla — the quantity a Gauss meter reads. Look at the bright band inside the core, and how abruptly it ends at the surface of the iron.",
-        "**A** is the vector potential, and its contour lines **are** the magnetic field lines. Watch them run up the core and close their loops out through the air. The flux between any two adjacent lines is the same everywhere, so where the lines crowd together the field is strong — that is the whole picture in one image.",
-        "**H** is the field strength, derived here as |B| / (μ₀ μᵣ). Switch between it and |B| with the core at μᵣ = 1000: B is large in the iron and H is small there, and in the air it is the other way round. That contrast *is* what permeability means — the core carries flux at almost no cost in H.",
-        "**μᵣ** is not a result but a check on the model: it shows where the solver put the iron. On the FEniCSx mesh the interface follows element edges exactly; on the preview's regular grid it is staircased, which is why the field near the surface is the one place the two modes visibly disagree.",
-        "Hover over the field to read the value at the point under the cursor."
+        "**On the outer edge of the window: A_z = 0**, on all four sides. Since field lines are contours of A_z, a constant value on the boundary means the boundary *is* a field line: the flux is made to close inside the modelled window rather than escaping to infinity.",
+        "That is a modelling choice and not a physical wall, so the window has to be comfortably larger than the magnet. This page sizes it automatically at **eight times the magnet's half-extent**, which holds the energy against the boundary below about half a per cent in every configuration the sliders can reach. It is checked on every run and reported under *How far to trust it*: past 1 % the run is disqualified, because at that point the box is setting the answer as much as the magnet is.",
+        "**At the iron/air interface: nothing is imposed.** The normal component of **B** and the tangential component of **H** are continuous there, and both follow from the equation rather than being applied to it. What the solver does have to get right is the *discretisation* of that interface, which is why the grid puts a cell face on every material boundary instead of rasterising it.",
+        "**On the windings: no condition either.** A winding is a region carrying a current density, not a boundary. The current is the only source in the whole problem — iron carrying no current makes no field on its own, and everything on the screen is the winding's field, redistributed by the iron."
       ]
     },
     {
-      "id": "try-this",
-      "heading": "Try this",
-      "steps": [
-        "Run once with **μᵣ = 1** — no core, just copper in air. Note the peak |B|. Now take μᵣ to **1000** and run again, changing nothing else. The flux has been gathered into the iron.",
-        "Now go from **1000 to 10 000** and run once more. Almost nothing happens. The reason is on screen: the field lines have to return through air, and once the iron is far better than the air path, the air is what limits the flux. Improving the easy part of a series path buys nothing.",
-        "Put μᵣ back to 1000 and widen the **air gap** instead, without touching anything else. Watch how much flux leaks across the gap rather than running the length of the core.",
-        "Double the **current density** and compare the colorbar's numbers, then compare the *shape* of the field lines. The numbers scale; the geometry of the solution does not. That is linearity, and it is an assumption rather than a fact about iron.",
-        "If the server has FEniCSx, solve the same cross-section in both modes and switch to **μᵣ** in each. The staircased interface and the exact one are the same physics discretised two ways — and the difference shows up in |B| right at the iron's surface."
+      "id": "inputs",
+      "heading": "Physical inputs",
+      "body": [
+        "**Core half-width** thickens the iron path. It sets the area the flux has to fit through, so it controls the flux *density* more than the flux.",
+        "**Air gap** pushes the winding away from the core — the space insulation and formers take. It costs leakage: the further the copper is from the iron, the more of its field closes through air before reaching the core.",
+        "**Winding thickness** adds copper outward, and with it ampere-turns. The coil is measured outward from the core rather than from the axis, so no combination of sliders can be dragged into a geometry the solver would refuse.",
+        "**Half-height** lengthens the core and the coil along the axis. It buys ampere-turns *and* shortens the return path relative to the magnet, which is why it is usually the most effective slider on this page.",
+        "**Core permeability μᵣ** moves in decades, because that is how the quantity behaves: 1 means no core at all, and 10³–10⁴ is real soft iron or ferrite. Take it from 1000 to 10 000 and watch how little happens — three tenths of a per cent more flux for ten times the iron, because the flux still has to return through air and improving the easy half of a series path buys nothing.",
+        "**Current density** scales the source. Because the material is linear, doubling it doubles every field exactly and changes nothing about the shape of the solution. That is a property of the model rather than of iron, and it is the first limit below.",
+        "The **modelled window is not among these**, deliberately. It is derived from the magnet at a fixed ratio, because it is a numerical choice: it should not change the answer, and every run says how nearly that is true."
+      ]
+    },
+    {
+      "id": "fields",
+      "heading": "The fields",
+      "body": [
+        "**|B|** is the flux density, in tesla — what a Hall probe or a Gauss meter reads. Look at the bright band inside the core, and how abruptly it ends at the surface of the iron.",
+        "**A_z** is the vector potential, and its contour lines **are** the magnetic field lines. Watch them run up the core and close their loops out through the air. The flux between any two adjacent lines is the same everywhere, so where the lines crowd, the field is strong — the whole picture in one image.",
+        "**H** is the field strength. Switch between it and |B| with the core at μᵣ = 1000: B is large in the iron and H is small there, and in the air it is the other way round. That contrast *is* what permeability means — the core carries flux at almost no cost in H.",
+        "**μᵣ** is not a result but a check on the model: it shows where the solver put the iron. Every material boundary lands on a cell face rather than being staircased onto a raster, which is what makes the core exactly as wide as it was drawn, at every resolution.",
+        "The solver also publishes **B as a vector**, so the workspace can draw glyphs and integrate streamlines rather than only colour a magnitude. Hover anywhere to read the value under the cursor."
+      ]
+    },
+    {
+      "id": "metrics",
+      "heading": "The engineering answer",
+      "body": [
+        "**Core flux Φ′**, per metre of depth, across the core's mid-plane — the horizontal line through the middle of the iron, where the flux in a solenoid is greatest and where a designer would put a search coil. It is the drop in A_z between the two edges of the core, and it is computed a second time by integrating **B** along the same line so the two can be compared.",
+        "**Mean flux density B̄** is that flux divided by the core's width, and **the worst section** is the same quantity evaluated at every height along the core and maximised. For a straight bar the two are nearly equal; for a stepped or tapered core they would not be, and it is the worst section that saturates first.",
+        "**Leakage** is the share of the flux crossing the mid-plane that misses the iron. The surface it is measured against is not a choice: it runs between the two points where the vertical component of **B** changes sign, which is where the flux going one way stops and the return begins. Ending the surface where the integrand vanishes is what makes the number insensitive to exactly where it is put.",
+        "**Ampere-turns** is the current through one side of the winding. It needs no solve at all — it is an integral over the geometry — and it is the budget the challenge is set against.",
+        "**Stored energy** is ½∫**B**·**H** over the window, and **permeance** is the core flux per ampere-turn: the magnetic circuit's own figure of merit. Multiply permeance by turns squared and by the real depth to get an inductance.",
+        "**There is no peak flux density here, and that is deliberate.** The corner of the core is a singularity of the exact solution: refine the mesh and the pointwise maximum keeps climbing — 0.148, 0.185, 0.230, 0.290 T for the same magnet at four resolutions — because there is nothing there to resolve. A number that grows every time you look harder is not a measurement, so this exercise reports section averages, which converge, and says so rather than printing the peak and hoping.",
+        "**There is no gap force either.** This cross-section has no working air gap: a straight bar core between two opposed windings is symmetric, so the net force on it is exactly zero and any number reported would be rounding error. A gap force needs a C-core and an armature — a different cross-section."
+      ]
+    },
+    {
+      "id": "verification",
+      "heading": "How the numbers are checked",
+      "body": [
+        "**Energy balance.** The stored energy computed from the field, ½∫**B**·**H**, against the same energy computed from the sources, ½∫A_z J_z. They are equal for a linear material and they share the solution and nothing else, so the gap between them is the headline residual — it catches both a solve that stopped early and a mesh too coarse to carry the field.",
+        "**The core flux, two ways.** Once as the drop in A_z across the core, once by integrating **B** along the same line. Same surface, two independent routes.",
+        "**Ampère's law.** The circulation of **H** around a contour enclosing one winding, against the current that contour encloses. It runs along cell centres through the air rather than along cell faces, deliberately: on faces the finite-volume equations telescope and the identity would hold to the solver's tolerance and tell you nothing, so it is placed where it measures the reconstructed field instead. Switch its annotation layer on to see exactly where it runs.",
+        "**Refinement.** The same problem solved again at twice the resolution, reporting how far the mean flux density moved. It is the only check that measures the *mesh*, it costs four times the cells, and when it is turned off the page says the check was not run rather than showing a zero.",
+        "**The linear residual.** How far the conjugate-gradient solve actually got, against the tolerance it was asked for. Worth having on the screen, because the alternative is the failure this exercise was built to avoid: a solver that takes a fixed number of sweeps, stops, and returns something that looks exactly like a converged answer."
       ]
     },
     {
@@ -51,13 +120,13 @@
       "heading": "Limits of the model",
       "caution": true,
       "body": [
-        "The material is **linear**: μᵣ is a constant you set, and the solver applies it whatever the field. Real iron **saturates** — above roughly 1.5–2 T its permeability collapses towards that of air, and no amount of extra current buys much more flux. Nothing here will tell you that you have crossed that line. If the core's |B| comes out above about 2 T, the picture is arithmetic rather than physics.",
+        "The material is **linear**: μᵣ is a constant you set, and the solver applies it whatever the field. Real iron **saturates** — above roughly 1.5 T for common steels its permeability collapses towards that of air, and no amount of extra current buys much more flux. Every run checks the busiest section of the core against that threshold and disqualifies itself above it. Note which way the error runs: past saturation this model **overestimates**, because it keeps returning flux in proportion to current and a real core does not.",
         "There is no **hysteresis** and no remanence: turn the current off in this model and the field is exactly zero, which is not what happens to a real iron core.",
-        "This is a **two-dimensional cross-section**, which means an infinitely long magnet. A real solenoid has ends, and at those ends the flux fringes outward in a way no 2D slice can show. Treat the picture as the middle of something long.",
-        "The outer boundary imposes **A_z = 0**, which confines the flux to the modelled window. The real field extends indefinitely, weakening with distance; here it is made to close inside the box. The window is kept comfortably larger than the magnet for that reason, and a magnet approaching the edge would be measurably distorted by it.",
+        "This is a **two-dimensional cross-section**, which means an infinitely long magnet. A real solenoid has ends, and at those ends the flux fringes outward in a way no 2-D slice can show. Treat the picture as the middle of something long, and every flux as a flux per metre of that length.",
+        "The outer boundary imposes **A_z = 0**, which confines the flux to the modelled window. The real field extends indefinitely, weakening with distance; here it is made to close inside the box. The window is sized at eight times the magnet for that reason, and the share of the stored energy lying against the boundary is reported on every run.",
         "Everything is **static**. No eddy currents, no skin effect, no inductive transient — this is the field once the current has settled, not the field while it is changing.",
         "The winding is a **uniform block of current density**, not individual turns. The ampere-turns are right and the fine structure between conductors is absent.",
-        "**H** is derived from the displayed |B| and μᵣ, so it inherits how μᵣ is drawn. On the triangular mesh a node exactly on the iron/air interface is given the higher of the two permeabilities, which puts the interface's H value on the iron side of the step. One node's width, and only at the boundary.",
+        "The **corners of the core are singular**, and that is a property of the exact solution rather than of the mesh. It is why no pointwise peak field is reported, and why every number that *is* reported is an integral — a flux, a section average, an energy — which a singularity carries no weight in.",
         "The result is not a magnetic design and must not be used to size anything."
       ]
     }

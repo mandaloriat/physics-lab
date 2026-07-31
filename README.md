@@ -30,14 +30,17 @@ Everything — pages, experiment content, code and documentation — is in Engli
 | Experiment | Physics | Status |
 |---|---|---|
 | **Airfoil design** | Ideal flow with a Kutta condition, by a panel method: hit a lift target under a pitching-moment constraint | **Available** — the first *exercise* |
-| **Solenoid magnetostatics** — *Magnetics lab* | Vector potential for an out-of-plane current: iron core, opposed windings, flux crowding into the iron | **Available** — a demonstration, and honest about it. Its exercise solver, `lab.magnetics2d`, is built and verified; the page is next |
+| **The magnetic circuit** — *magnetostatics* | Vector potential for an out-of-plane current, on a grid fitted to the iron: carry a required flux on an ampere-turn budget without leaking it | **Available** — the second *exercise* |
 | **Heat sink conduction and convection** | Conduction in a finned body with convective surfaces | Planned |
 
 The two experiments deliberately exercise different halves of the protocol. The airfoil
 sends `domain2d` — one polygon cut out of a rectangle, edited by dragging control points.
-The magnetics lab sends `regions2d`, a filled domain whose *material* varies by region, so
+The magnetic circuit sends `regions2d`, a filled domain whose *material* varies by region, so
 there is no outline to drag and the controls are physical dimensions instead; see
 [ADR-012](docs/architecture-decisions.md#adr-012--the-second-experiment-shares-a-page-shell-and-brings-its-own-geometry-controls).
+That difference reaches all the way into the parameter panels: on the magnetics page the
+physics travels in the geometry, so *every* solver parameter is numerical and the contract's
+"physical inputs" group is the cross-section itself.
 
 The remaining experiment has its preview solver upstream already; what it needs is the
 didactic work. The homepage lists it as planned rather than pretending otherwise.
@@ -65,11 +68,14 @@ engineering metrics, verification, saved result.
   It began by fixing the physics — the old model imposed no Kutta condition, so its lift was
   exactly zero at every incidence
   ([ADR-014](docs/architecture-decisions.md#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first)).
-- The next one, **[docs/exercises/solenoid.md](docs/exercises/solenoid.md)**, whose solver is
-  built and whose page is not yet wired. It stayed unbuilt for a release because every metric a
-  magnetic design is judged on needs a definition in a two-dimensional slice, and none had been
-  verified. They now are — and one of them came out the opposite way from the specification's
-  prediction, which is written down rather than quietly corrected
+- The second, built after a release spent deliberately refusing to build it:
+  **[docs/exercises/solenoid.md](docs/exercises/solenoid.md)**. Every metric a magnetic design
+  is judged on needs a definition in a two-dimensional slice, and none had been verified, so
+  the page reported the field and nothing else. They now are — and two of the specification's
+  own predictions did not survive being measured. There is no peak flux density on that page,
+  because the core's corner is a singularity and the peak climbs with every refinement instead
+  of converging; and there is no gap force, because a symmetric bar core feels exactly zero, so
+  the challenge is set in flux instead
   ([ADR-018](docs/architecture-decisions.md#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force)).
 
 ### A page is a bench

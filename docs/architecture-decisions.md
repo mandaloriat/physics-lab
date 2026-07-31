@@ -704,14 +704,30 @@ is zero, moving it changes the answer at second order instead of first. The numb
 place by being stable where the thing it is a share *of* is not: growing the window from 60 mm
 to 240 mm moves the core flux by 25 % and the leakage ratio by 2 %.
 
-**The window the page submits is too small to quote numbers from.** That is a finding, not a
-decision. The 60 mm half-window puts **7.2 %** of the stored energy in its outermost twentieth,
-and the core flux it returns is **25 % below** the value the same magnet reaches in a 240 mm
-window. The truncation is doing the confining. Every run therefore reports the share of its
-energy against the wall and warns above 1 %, a threshold calibrated against this series: at
-0.8 % the flux is within 1.6 % of its open-domain value. Widening the page's own window is
-work for the increment that wires the page, and until then the warning fires on the default
-cross-section and is right to.
+**The window the page submits was too small to quote numbers from, and widening it turned out
+to be a discretisation decision.** The 60 mm half-window put **7.6 %** of the stored energy in
+its outermost twentieth, and returned a core flux **27 % below** the value the same magnet
+reaches in a 480 mm window: the truncation was doing the confining. Every run now reports the
+share of its energy against the wall and warns above 1 %, a threshold calibrated against that
+series — at 0.7 % the flux is within 1.5 % of its value in a window twice as large — and the
+page sizes its window at **eight times the magnet's half-extent** rather than at a constant,
+because the criterion scales with the magnet.
+
+Two things had to change in the solver before that was affordable, and the second was found by
+the page failing its own verification in a browser test:
+
+- **The cell count is set across the regions, not across the window.** Counting across the
+  window couples the two, so widening one coarsens the other. At eight times the magnet, a
+  resolution that had been ample gave two cells across the core and an energy balance out by
+  **11 %** — a page whose default run failed its own headline check. The parameter is now
+  `cells_across`, and `resolution` means what it means on the airfoil page: the sampling grid
+  for the picture, affecting no reported number.
+- **The cells grow geometrically out in the air.** The far field is smooth and mostly empty,
+  and spending the iron's cell size on it would be spending ninety per cent of the grid where
+  nothing happens. With a growth ratio of 1.2 the 240 mm window costs **14 859 cells** against
+  **413 445** uniform — and 43 % more than the 60 mm window it replaces, not sixty-four times
+  more. Grading is only free if it does not cost the order of accuracy, so the manufactured
+  solution is solved on a graded grid too, and still converges at second order.
 
 **Why the challenge is not a gap force.** The contract's §7 sets this exercise's target as
 *"produce a required gap force at minimum current"*, and this cross-section cannot pose that
@@ -725,16 +741,21 @@ is the one a transformer or an actuator designer actually solves first: reach a 
 density in the core at the least ampere-turns, without saturating and without letting the
 leakage take over. Every metric it needs is now computed and verified.
 
-**Cost.** A second discretisation of the same physics to maintain, and a page that can offer
-both. They disagree by about 3 % on the core flux, all of it the staircase, and the page has to
-make that legible rather than leave a visitor to wonder which is broken — which is the same
-obligation the two airfoil modes already carry. The finite-volume solve is slower than the
-preview by roughly the cost of converging properly: 2 s at the default resolution with the
-refinement study on, against a fraction of a second for a fixed 3 000 Jacobi sweeps that have
-not converged. And `estimate_cells` now returns five times the grid when the refinement study
-is on, so a resolution that fits the server's budget without it may be refused with it. That is
-the budget doing its job, and it is stated in the parameter's description rather than
-discovered.
+**Cost.** A second discretisation of the same physics to maintain. The magnetics page no longer
+offers a choice of solver — an exercise needs metrics, and the two upstream adapters report
+none — so what used to be a comparison between a preview and FEniCSx is now a single solver and
+a note saying the others remain available through the API. That is a real loss of a didactic
+device, taken because a page that offered a solver which cannot answer its own mission would be
+worse.
+
+The finite-volume solve is slower than the preview by roughly the cost of converging properly:
+1.4 s for the default cross-section with the refinement study on, against a fraction of a
+second for a fixed 3 000 Jacobi sweeps that have not converged. `estimate_cells` returns five
+times the grid when the refinement study is on plus the field raster, so a cell count that fits
+the server's budget without the study may be refused with it — the budget doing its job, stated
+in the parameter's description rather than discovered. And the geometry now has a derived
+quantity in it: the window is computed from the sliders rather than typed, which is one more
+thing that changes when a slider moves and one less thing that can be set wrong.
 
 
 ---

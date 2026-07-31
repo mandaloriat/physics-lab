@@ -48,8 +48,9 @@ test('the homepage leads with the problems, and shows a real field for each', as
 
   // Every card carries a stated quantity and a concrete invitation, not a paragraph of prose.
   await expect(page.locator('.card--available .card__facts').first()).toContainText('800 N/m');
+  await expect(page.locator('.card--available .card__facts').nth(1)).toContainText('4.5 mWb/m');
   await expect(page.getByRole('link', { name: /Design an airfoil/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Build an electromagnet/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Design a magnetic circuit/ })).toBeVisible();
 
   // The thumbnails are real solves committed by scripts/make-thumbnails.py, so they must
   // actually load — a broken one is a card that says nothing at all.
@@ -80,37 +81,35 @@ test('the homepage leads with the problems, and shows a real field for each', as
   expect(errors).toEqual([]);
 });
 
-test('the magnetics page offers only magnetostatics solvers', async ({ page }) => {
-  // The bug this fixes: `mock.heat2d` also accepts `regions2d`, so a picker filtering on
-  // geometry alone offered a heat-sink solver in the magnetics menu — and would have submitted
-  // a solenoid to it. The filter is the capability's own declared `physics`, so this stays
-  // correct when a solver is renamed or a new one is installed.
+test('the magnetics page runs the solver that reports metrics, and only that one', async ({
+  page,
+}) => {
+  // Two filters, both load-bearing, and this asserts each separately.
+  //
+  // The *physics* filter is the older one: `mock.heat2d` also accepts `regions2d`, so a picker
+  // filtering on geometry alone offered a heat-sink solver in the magnetics menu — and would
+  // have submitted a solenoid to it. The filter is the capability's own declared `physics`, so
+  // it stays correct when a solver is renamed or a new one is installed.
+  //
+  // The *exercise* filter is newer: an exercise needs metrics, and the two upstream
+  // magnetostatics adapters report none. The page therefore runs `lab.magnetics2d` and says so
+  // rather than offering a choice between a solver that can answer the mission and two that
+  // cannot.
   await page.goto('/experiments/solenoid/');
-  await expect(page.locator('#solver')).toHaveValue(/^mock\./);
+  await expect(page.locator('#solver')).toHaveValue(/^lab\.magnetics/);
 
-  const offered = await page.evaluate(() =>
-    [...document.querySelectorAll('#solver option')].map((option) => ({
-      name: option.value,
-      label: option.textContent,
-    })),
-  );
-  expect(offered.length).toBeGreaterThan(0);
-  for (const option of offered) {
-    expect(option.name).toMatch(/magnetostatics/);
-    expect(option.label).not.toMatch(/heat|Heat sink/i);
-  }
-
-  // And the declaration it filters on is really being served, rather than the filter having
-  // silently degraded to "accept anything".
   const declared = await page.evaluate(async () => {
     const response = await fetch('/api/v1/capabilities');
     return response.ok ? response.json() : null;
   });
   expect(declared).not.toBeNull();
   const magnetics = declared.filter((entry) => entry.physics === 'magnetostatics');
-  expect(magnetics.length).toBe(offered.length);
+  // More than one magnetostatics capability exists, which is what makes choosing between them
+  // a real choice rather than the only option dressed up as one.
+  expect(magnetics.length).toBeGreaterThan(1);
+  expect(magnetics.some((entry) => entry.name.startsWith('lab.magnetics'))).toBe(true);
   // The heat solver is installed and accepts the same geometry kind — which is what makes the
-  // assertion above meaningful rather than vacuous.
+  // physics filter meaningful rather than vacuous.
   expect(
     declared.some(
       (entry) => entry.physics === 'heat-conduction' && entry.geometry_types.includes('regions2d'),
@@ -126,10 +125,11 @@ test('capability discovery survives a server that does not publish it', async ({
   // not.
   await page.route('**/api/v1/capabilities', (route) => route.fulfill({ status: 404, body: '{}' }));
   await page.goto('/experiments/solenoid/');
-  await expect(page.locator('#solver')).toHaveValue(/^mock\./);
+  // Without the endpoint the physics filter accepts anything, so the catalogue is wider than it
+  // should be — and the page still finds its own solver in it, because it selects by name and
+  // not by position.
+  await expect(page.locator('#solver')).toHaveValue(/^lab\.magnetics/);
   await expect(page.locator('#run')).toBeEnabled();
-  const count = await page.locator('#solver option').count();
-  expect(count).toBeGreaterThan(0);
 });
 
 test('a server without FEniCSx is fully usable and says so', async ({ page }) => {
@@ -192,17 +192,20 @@ test('the magnetics page solves a solenoid and derives the field strength', asyn
   // The parameter form came from the selected solver's schema — a different schema from the
   // airfoil's — and lives under Advanced, because none of it changes the magnet.
   await openAdvanced(page);
-  await expect(page.locator('#numerical #param-resolution')).toBeVisible();
+  await expect(page.locator('#numerical #param-cells_across')).toBeVisible();
 
-  // Keep the demo solve small: this asserts the loop, not the physics.
-  await page.locator('#param-resolution').fill('64');
-  await page.locator('#param-iterations').fill('400');
+  // Keep the demo solve small: this asserts the loop, not the physics. The refinement study is
+  // four times the cells and measures the mesh rather than the plumbing, so it is off here.
+  await page.locator('#param-cells_across').fill('40');
+  await page.locator('#param-convergence_check').uncheck();
 
   await page.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   await expect(page.locator('#stats')).toContainText('duration');
-  await expect(page.locator('#artifacts a')).toContainText('solution.vtk');
+  // The engineering answer travels as a declared artifact, because protocol 1.2's envelope has
+  // nowhere to put a metric. It is written on every run, never optionally.
+  await expect(page.locator('#artifacts a')).toContainText('report.json');
 
   const { fields, ironPermeability, peakFlux } = await page.evaluate(() => {
     const viewer = document.getElementById('viewer');
@@ -229,30 +232,154 @@ test('the magnetics page solves a solenoid and derives the field strength', asyn
   expect(errors).toEqual([]);
 });
 
-test('the magnetics page is honest about not being an exercise yet', async ({ page }) => {
+test('the magnetics page is an exercise: a target, and what it costs to miss it', async ({
+  page,
+}) => {
   await page.goto('/experiments/solenoid/');
 
-  // No invented challenge, no invented metrics — and the reason stated rather than left as an
-  // absence, with the specification of what would have to be verified first.
-  await expect(page.locator('#challenge')).toHaveCount(0);
-  await expect(page.locator('#not-an-exercise')).toContainText('not yet an exercise');
-  await expect(page.locator('#not-an-exercise a')).toHaveAttribute('href', /solenoid\.md/);
+  // The mission is stated before anything is run, and every target reads as pending rather
+  // than as met or missed — there is no run to judge yet.
+  await expect(page.locator('.challenge__statement')).toContainText('4.5 mWb');
+  await expect(page.locator('.challenge__target')).toHaveCount(3);
+  await expect(page.locator('.challenge__target.is-pending')).toHaveCount(3);
 
-  // The extension point is visible and disabled with its reason, rather than half-built.
+  // Targets are stated in the metric's *symbol*, never in the key the report stores it under.
+  // This is the assertion that would catch `flux_core` reaching the screen.
+  await expect(page.locator('#challenge')).toContainText('|Φ′| >= 0.0045 Wb/m');
+  await expect(page.locator('#challenge')).not.toContainText('flux_core');
+  await expect(page.locator('#challenge')).not.toContainText('leakage_ratio');
+
+  // Nothing is reported before there is something to report.
+  await expect(page.locator('#results')).toBeHidden();
   await expect(page.locator('#keep')).toBeDisabled();
-  await expect(page.locator('#keep')).toHaveAttribute('title', /metrics/);
 
-  // Streamlines are correctly unavailable: these solvers publish scalars only, and a
-  // streamline is an integral of a vector field.
-  await expect(page.locator('[data-tool=streamlines]')).toBeDisabled();
-  await expect(page.locator('[data-tool=vectors]')).toBeDisabled();
+  // The default cross-section deliberately misses two of the three targets, so there is work
+  // to do. Run it and check that the page says which two.
+  await openAdvanced(page);
+  await page.locator('#param-cells_across').fill('40');
+  await page.locator('#param-convergence_check').uncheck();
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
+
+  await expect(page.locator('.challenge__target.is-missed')).toHaveCount(2);
+  await expect(page.locator('.challenge__target.is-met')).toHaveCount(1);
+  await expect(page.locator('#challenge')).not.toContainText('Target met');
+  await expect(page.locator('#keep')).toBeEnabled();
+
+  // Every check ran and reported a residual, and the validity statement is explicit rather
+  // than an empty box. The refinement check was turned off above, so it reads as not run —
+  // which is not the same as passing, and must not be shown as a zero.
+  await expect(page.locator('#verification tr')).toHaveCount(5);
+  await expect(page.locator('#verification tr.is-absent')).toHaveCount(1);
+  await expect(page.locator('#verification')).toContainText('not run');
+  await expect(page.locator('#validity')).toContainText('Inside the stated domain of validity');
+
+  // The window is now sized from the magnet, so the truncation warning the old fixed window
+  // fired on every run is gone.
+  await expect(page.locator('#validity')).not.toContainText('window');
+
+  // Vector tools are live, because this solver publishes B as a vector — where the mock
+  // published scalars only and both tools were correctly disabled with that reason.
+  await expect(page.locator('[data-tool=vectors]')).toBeEnabled();
+  await expect(page.locator('[data-tool=streamlines]')).toBeEnabled();
+});
+
+test('the surfaces every reported number is measured on can be drawn', async ({ page }) => {
+  // A metric whose surface the visitor cannot see is a metric they have to take on trust, so
+  // each one is an annotation layer: the mid-plane the core flux crosses, the ends of the
+  // bundle the leakage is measured against, and the contour Ampère's law is checked on.
+  await page.goto('/experiments/solenoid/');
+
+  // Before a run they are offered and disabled, each with its own reason.
+  for (const layer of ['plane', 'bundle', 'contour']) {
+    await expect(page.locator(`[data-layer=${layer}]`)).toBeDisabled();
+  }
+
+  await openAdvanced(page);
+  await page.locator('#param-cells_across').fill('40');
+  await page.locator('#param-convergence_check').uncheck();
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
+
+  for (const layer of ['plane', 'bundle', 'contour']) {
+    await expect(page.locator(`[data-layer=${layer}]`)).toBeEnabled();
+  }
+
+  // The flux surface is on by default; the other two are opt-in.
+  await expect(page.locator('#overlay .overlay__planeline')).toHaveCount(1);
+  await page.locator('[data-layer=bundle]').click();
+  await expect(page.locator('#overlay .overlay__bundleline')).toHaveCount(2);
+  await page.locator('[data-layer=contour]').click();
+  await expect(page.locator('#overlay .overlay__contourline')).toHaveCount(1);
+
+  // And the same surfaces are marked on the mid-plane plot, so the curve and the field agree.
+  await expect(page.locator('#flux-curve svg')).toBeVisible();
+  await expect(page.locator('#potential-curve svg')).toBeVisible();
+  await expect(page.locator('#plane-note')).toContainText('leakage');
+});
+
+test('a kept magnetics run records enough to be recomputed, and reloads its geometry', async ({
+  page,
+}) => {
+  // The row is the only place the page converts *out* of its own units and the loader is the
+  // only place it converts back, so a round trip through the store is what proves both. A
+  // millimetre slider stored as metres and read back as millimetres is exactly the bug this
+  // catches.
+  await page.goto('/experiments/solenoid/');
+  await page.evaluate(() => window.localStorage.removeItem('spoon-physics:runs:solenoid'));
+  await openAdvanced(page);
+  await page.locator('#param-cells_across').fill('40');
+  await page.locator('#param-convergence_check').uncheck();
+
+  // A cross-section that is not the default, so a reload that silently restored the defaults
+  // would be visible.
+  await page.locator('#shape-coreHalfWidth').fill('6');
+  await page.locator('#shape-gap').fill('2');
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
+
+  await page.getByRole('button', { name: 'Keep result' }).click();
+  await expect(page.locator('#runs-table tbody tr')).toHaveCount(1);
+
+  const [row] = await page.evaluate(() =>
+    JSON.parse(window.localStorage.getItem('spoon-physics:runs:solenoid')),
+  );
+  // Every input, including the ones nobody touched: a row missing a default is not
+  // reproducible, because the default can change. SI throughout, converted at the boundary.
+  expect(row.geometry.core_half_width_m).toBeCloseTo(0.006, 9);
+  expect(row.geometry.gap_m).toBeCloseTo(0.002, 9);
+  expect(row.geometry.window_half_m).toBeCloseTo(0.24, 9);
+  expect(row.geometry.window_ratio).toBe(8);
+  for (const key of ['winding_m', 'half_height_m', 'core_width_m', 'interface_fitted']) {
+    expect(row.geometry[key]).not.toBeUndefined();
+  }
+  for (const key of ['mu_r', 'current_density', 'b_sat']) {
+    expect(row.physical[key]).not.toBeUndefined();
+  }
+  for (const key of ['cells_across', 'far_field_growth', 'convergence_check', 'tolerance']) {
+    expect(row.numerics[key]).not.toBeUndefined();
+  }
+  expect(row.solver.name).toMatch(/^lab\.magnetics/);
+  expect(row.verification.energy_balance_rel).toBeGreaterThanOrEqual(0);
+  expect(row.validity.warnings).toEqual([]);
+  // The withheld list travels with the row, so a reader of the export knows what is absent.
+  expect(row.model.withheld).toContain('gap_force');
+
+  // Change the geometry, then load the row back: the sliders must return to what was saved.
+  await page.locator('#shape-coreHalfWidth').fill('13');
+  await expect(page.locator('#shape-note')).toContainText('26 mm across');
+  await page.locator('#runs-table tbody tr').first().getByRole('button', { name: 'Load' }).click();
+  await expect(page.locator('#status')).toContainText('Loaded the inputs');
+  await expect(page.locator('#shape-coreHalfWidth')).toHaveValue('6');
+  await expect(page.locator('#shape-gap')).toHaveValue('2');
+  await expect(page.locator('#param-cells_across')).toHaveValue('40');
 });
 
 test('the magnetics workspace keeps the cross-section and can be explored', async ({ page }) => {
   await page.goto('/experiments/solenoid/');
   await openAdvanced(page);
-  await page.locator('#param-resolution').fill('64');
-  await page.locator('#param-iterations').fill('400');
+  await page.locator('#param-cells_across').fill('40');
+  await page.locator('#param-convergence_check').uncheck();
   await page.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
@@ -278,8 +405,8 @@ test('the magnetics workspace keeps the cross-section and can be explored', asyn
 test('H is B over mu, and only A is drawn with field lines', async ({ page }) => {
   await page.goto('/experiments/solenoid/');
   await openAdvanced(page);
-  await page.locator('#param-resolution').fill('64');
-  await page.locator('#param-iterations').fill('400');
+  await page.locator('#param-cells_across').fill('40');
+  await page.locator('#param-convergence_check').uncheck();
 
   await page.getByRole('button', { name: 'Run', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });

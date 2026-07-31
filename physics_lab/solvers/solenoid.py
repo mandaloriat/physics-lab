@@ -542,6 +542,10 @@ class Report:
     model: dict = field(default_factory=dict)
     geometry: dict = field(default_factory=dict)
     conditions: dict = field(default_factory=dict)
+    #: Every numerical parameter *as resolved*, defaults included. The page records this rather
+    #: than what it sent, because a run row has to be reproducible and the two are not the same
+    #: thing: a page need not offer every knob, and a default it left alone can change under it.
+    numerics: dict = field(default_factory=dict)
     dimensionless: dict = field(default_factory=dict)
     metrics: dict = field(default_factory=dict)
     curves: dict = field(default_factory=dict)

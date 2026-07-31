@@ -7,8 +7,8 @@ improvable, and a verification number that says how much the result can be trust
 That is a change of kind, not of degree. The lab's first two pages asked *"what changes in the
 field?"* (airfoil) and *"what does the core do?"* (solenoid) — guided demonstrations, in which
 there is nothing a visitor can get wrong, so there is nothing to compare and nothing to improve.
-This document defines the shape an exercise page has instead. The airfoil is built to it; the
-magnetics page is not yet, and §7 lists what remains.
+This document defines the shape an exercise page has instead. Two pages are built to it — the
+airfoil and the magnetic circuit — and §7 lists what the remaining three would need.
 
 Nothing here changes the architecture. It changes what a page *is for*, which then decides
 what `content.json` carries, what the parameter panels are allowed to mix, and what a solver
@@ -251,7 +251,7 @@ a caller learns what a run will report before running it.
 |---|---|---|---|---|
 | **Airfoil design** | Hit a target sectional lift by choosing profile and incidence | *C<sub>p</sub>*, *C<sub>L</sub>*, *C<sub>m</sub>*, centre of pressure, aerodynamic centre; *C<sub>D</sub>* and *L*/*D* only at model level 2 | Thin-airfoil theory, exact Kármán–Trefftz and cylinder solutions, circulation-vs-pressure consistency, panel convergence | **built**: [`exercises/airfoil.md`](exercises/airfoil.md) |
 | **Lightweight bracket** | Remove mass while keeping stress and deflection admissible | displacement, von Mises, reactions, mass, compliance, safety factor | Euler–Bernoulli beam, hole stress-concentration factor *K<sub>t</sub>*, reaction balance, mesh convergence | not specified |
-| **The magnetic circuit** | Reach a required flux density in the core at the fewest ampere-turns, without saturating and without losing it to leakage | core flux, mean and worst-section flux density, leakage ratio, ampere-turns, stored energy, permeance | energy balance, two-route flux consistency, Ampere's law on a stated contour, refinement study | **solver built and verified, page not yet wired**: [`exercises/solenoid.md`](exercises/solenoid.md). Was *Electromagnet gap*; the challenge changed because a symmetric bar core feels no net force, see [ADR-018](architecture-decisions.md#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force) |
+| **The magnetic circuit** | Reach a required flux density in the core at the fewest ampere-turns, without saturating and without losing it to leakage | core flux, mean and worst-section flux density, leakage ratio, ampere-turns, stored energy, permeance | energy balance, two-route flux consistency, Ampere's law on a stated contour, refinement study | **built**: [`exercises/solenoid.md`](exercises/solenoid.md). Was *Electromagnet gap*; the challenge changed because a symmetric bar core feels no net force, see [ADR-018](architecture-decisions.md#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force) |
 | **Heat-sink challenge** | Dissipate a given power below a maximum temperature, with less material | *T*, heat flux, *T*<sub>max</sub>, *R*<sub>θ</sub>, mass, fin efficiency | energy balance, 1-D fin theory | not specified |
 | **Room modes** | Place source and listener avoiding nodes and resonances | acoustic pressure, phase, SPL, modal frequencies, uniformity | analytic modes of a rectangular room | not specified; needs complex harmonic fields and a frequency sweep |
 

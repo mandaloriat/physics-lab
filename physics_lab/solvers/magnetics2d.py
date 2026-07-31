@@ -174,7 +174,7 @@ class Magnetics2D(Solver):
         CapabilityExample(
             title="the exercise's default cross-section",
             description="What the page submits: enough resolution to measure, not only to see.",
-            params={"resolution": 160, "convergence_check": True},
+            params={"cells_across": 80, "convergence_check": True},
         ),
         CapabilityExample(
             title="fast look",
@@ -182,7 +182,7 @@ class Magnetics2D(Solver):
                 "Coarse, and with the refinement study off. Every metric is still reported and "
                 "the convergence residual is not, which is the honest trade."
             ),
-            params={"resolution": 80, "convergence_check": False},
+            params={"cells_across": 40, "convergence_check": False},
         ),
         CapabilityExample(
             title="resolved, for a number worth quoting",
@@ -192,7 +192,7 @@ class Magnetics2D(Solver):
                 "the public server's budget. The interface is exact at every resolution, so "
                 "refining moves the answer rather than moving the geometry."
             ),
-            params={"resolution": 320, "tolerance": 1e-11, "convergence_check": False},
+            params={"cells_across": 200, "tolerance": 1e-11, "convergence_check": False},
         ),
     ]
 
@@ -217,13 +217,34 @@ class Magnetics2D(Solver):
             ),
         )
         # --- numerical: how well it is approximated, and nothing else
+        cells_across: int = Field(
+            default=80,
+            ge=12,
+            le=320,
+            description=(
+                "Cells across the regions — the magnet, not the window. A lower bound rather "
+                "than a target: every material boundary gets a grid line, so intervals are only "
+                "ever divided finer. Counting across the window instead would mean that "
+                "widening the window to control the truncation coarsened the magnet."
+            ),
+        )
+        far_field_growth: float = Field(
+            default=1.2,
+            ge=1.0,
+            le=1.5,
+            description=(
+                "Cell-to-cell growth ratio out in the air beyond the regions. This is what "
+                "makes a window many times the magnet affordable. 1.0 gives a uniform grid, "
+                "and a window worth having with it."
+            ),
+        )
         resolution: int = Field(
-            default=160,
-            ge=24,
+            default=256,
+            ge=32,
             le=512,
             description=(
-                "Cells along the longer edge of the window. A lower bound, not a target: every "
-                "material boundary gets a grid line, so intervals are only ever divided finer."
+                "Sampling grid for the field picture, along the longer edge of the window. "
+                "Affects the picture and no reported number."
             ),
         )
         tolerance: float = Field(
@@ -258,11 +279,15 @@ class Magnetics2D(Solver):
     def estimate_cells(cls, geometry: Regions2D, params: "Magnetics2D.Params") -> int:
         """The real count, not an estimate: the grid is cheap to build and expensive to solve.
 
-        The refinement study is included when it was asked for, because it is four more cells
-        for every one and the server's budget is about what the job will actually cost.
+        Two things are counted, because the job pays for both. The refinement study is four
+        more cells for every one, and it is included when it was asked for. The field raster is
+        a separate array of its own size, and it is what the *memory* goes on — the airfoil
+        adapter counts only that, and here the solve is the larger half.
         """
-        cells = _grid_for(geometry, params.resolution).cells
-        return cells * 5 if params.convergence_check else cells
+        cells = _grid_for(geometry, params.cells_across, params.far_field_growth).cells
+        solve = cells * 5 if params.convergence_check else cells
+        ny, nx = _raster_shape(geometry.bounds, params.resolution)
+        return solve + ny * nx
 
     def solve(
         self, geometry: Regions2D, params: "Magnetics2D.Params", ctx: SolverContext
@@ -271,14 +296,14 @@ class Magnetics2D(Solver):
         names = [region.name for region in geometry.regions]
         materials_list = [dict(region.material) for region in geometry.regions]
 
-        primary = _run(geometry, params, params.resolution, ctx, stage=1)
+        primary = _run(geometry, params, params.cells_across, ctx, stage=1)
         metrics, integrals = primary.answer
 
         refined_metrics = None
         if params.convergence_check:
             ctx.progress(ProgressEvent(iteration=2, total=3, message="refining, for the study"))
             refined_metrics = _run(
-                geometry, params, 2 * params.resolution, ctx, stage=2
+                geometry, params, 2 * params.cells_across, ctx, stage=2
             ).answer[0]
 
         checks = exercise.verify(
@@ -299,7 +324,7 @@ class Magnetics2D(Solver):
             model={
                 "equation": "-div(nu grad A_z) = J_z, A_z = 0 on the outer boundary",
                 "material": "linear",
-                "discretisation": "cell-centred finite volume on an interface-fitted grid",
+                "discretisation": "cell-centred finite volume on an interface-fitted graded grid",
                 "core_region": primary.magnet.core_name,
                 "saturation_flux_density": saturation,
                 "withheld": ["b_peak_iron", "gap_force", "losses", "b_h_curve"],
@@ -319,6 +344,9 @@ class Magnetics2D(Solver):
                 "interface_fitted": primary.materials.exact,
                 "cells": int(primary.grid.cells),
             },
+            # Dumped from the validated model, so it carries the resolved value of every
+            # parameter — including the ones the caller never mentioned.
+            numerics=params.model_dump(),
             conditions={
                 "ampere_turns": metrics.ampere_turns,
                 "net_current": metrics.net_current,
@@ -379,19 +407,19 @@ def _outlines(geometry: Regions2D) -> list[np.ndarray]:
     return [np.asarray(region.shape.points, dtype=float) for region in geometry.regions]
 
 
-def _grid_for(geometry: Regions2D, resolution: int):
-    return build_grid(geometry.bounds, _outlines(geometry), resolution)
+def _grid_for(geometry: Regions2D, cells_across: int, growth: float):
+    return build_grid(geometry.bounds, _outlines(geometry), cells_across, growth)
 
 
 def _run(
     geometry: Regions2D,
     params: "Magnetics2D.Params",
-    resolution: int,
+    cells_across: int,
     ctx: SolverContext,
     stage: int,
 ) -> _Run:
     """Grid, materials, solve, field, metrics — at one resolution."""
-    grid = _grid_for(geometry, resolution)
+    grid = _grid_for(geometry, cells_across, params.far_field_growth)
     materials = rasterise(
         grid,
         _outlines(geometry),

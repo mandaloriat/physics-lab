@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Magnetics lab — Spoon Physics</title>
+<title>The magnetic circuit — Spoon Physics</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="The cross-section of a solenoid: an iron core, current-carrying windings, and the magnetic flux crowding into the iron as its permeability rises.">
+<meta name="description" content="A magnetics design exercise: carry a required flux through an iron core on an ampere-turn budget, with computed fields, engineering metrics and a verification residual on every run.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/shared/lab.css">
@@ -27,30 +27,20 @@
 
 <div id="header"></div>
 
+<!-- The page is one path, in this order: mission, configure, run, explore, check, keep,
+     understand. Every section below is one of those steps — the arrangement
+     docs/architecture-decisions.md ADR-017 sets out. -->
 <main class="bench">
 
   <!-- ------------------------------------------------------------------ 1. Mission -->
-  <header class="mission">
+  <header class="mission" id="mission">
     <div class="mission__head">
-      <p class="mission__eyebrow">Demonstration · magnetostatics of a cross-section</p>
-      <h1>Magnetics lab</h1>
+      <p class="mission__eyebrow">Exercise 3 · linear magnetostatics of a cross-section</p>
+      <h1>The magnetic circuit</h1>
     </div>
-    <!-- Deliberately not a challenge banner. This page is still a demonstration, and the
-         contract's §1 says a section that does not apply is absent rather than invented: a
-         target here would need metrics whose 2-D definition has not been checked yet. What
-         those metrics are, and what has to be settled before they can be claimed, is in
-         `docs/exercises/solenoid.md`. -->
-    <div class="mission__challenge panel panel--mission">
-      <h2 class="panel__title">What this page is</h2>
-      <p class="lede prose" id="intro"></p>
-      <p class="field__hint" id="not-an-exercise">
-        A demonstration, not yet an exercise: it has no quantitative target, because the
-        metrics one would be set in — core flux, mean and peak flux density, leakage,
-        ampere-turns, stored energy — have definitions in a two-dimensional slice that this
-        lab has not yet verified. They are specified in
-        <a href="https://github.com/mandaloriat/physics-lab/blob/main/docs/exercises/solenoid.md">docs/exercises/solenoid.md</a>
-        and will not be printed before they are checked.
-      </p>
+    <div class="mission__challenge panel panel--mission" aria-labelledby="challenge-heading">
+      <h2 id="challenge-heading" class="panel__title">The mission</h2>
+      <div id="challenge"></div>
     </div>
   </header>
 
@@ -60,17 +50,24 @@
   </p>
   <p id="maintenance" class="notice notice--warn" hidden></p>
 
+  <!-- ------------------------------------------- 2. Configure · 3. Run · 4. Explore -->
   <div class="bench__layout">
 
+    <!-- The workspace is the instrument: it takes most of the width, it owns its own tools,
+         and every tool it cannot offer says why rather than disappearing. -->
     <section class="workspace" id="workspace" aria-labelledby="workspace-heading">
       <h2 id="workspace-heading" class="visually-hidden">Workspace</h2>
 
       <div class="workspace__toolbar" role="toolbar" aria-label="Visualisation tools"></div>
 
+      <!-- The frame is fixed and the stage scrolls inside it, so the colour scale stays put
+           while the field is panned. -->
       <div class="workspace__frame">
         <div class="workspace__stage" id="stage" aria-label="Computed field. Drag to pan, plus and minus to zoom.">
           <div class="workspace__zoom">
             <fs-viewer id="viewer" field="B" colormap="viridis" units="T" colorbar="off"></fs-viewer>
+            <!-- Annotations in domain coordinates, drawn by the page over the field. Aligned
+                 exactly because the viewer's colorbar is off, so its plot area is this box. -->
             <svg class="workspace__overlay" id="overlay" preserveAspectRatio="none" aria-hidden="true"></svg>
           </div>
         </div>
@@ -88,26 +85,31 @@
       </div>
     </section>
 
+    <!-- 2. Configure. The physical inputs are the geometry, so Design and Conditions *are*
+         the contract's §5 panel; Advanced holds the numerics, which change only the error. -->
     <form class="controls" id="controls" aria-labelledby="controls-heading" onsubmit="return false">
       <h2 id="controls-heading" class="panel__title">Configure</h2>
 
       <section class="group" aria-labelledby="design-heading">
         <h3 id="design-heading">Design</h3>
-        <!-- The domain is square and this diagram keeps that aspect ratio, so proportions
-             on it are the real ones. The group flips y, because the protocol's y grows
-             upward and SVG's grows down; the geometry is symmetric top-to-bottom, but a
-             diagram that silently disagreed with the field's orientation would be a trap
-             the first time an experiment here is not. Units are millimetres. -->
-        <svg id="schematic" class="schematic" viewBox="-60 -60 120 120"
+        <!-- The diagram frames the magnet, not the modelled window: the window is eight times
+             the magnet's half-extent, so drawing it to scale would leave the cross-section a
+             speck in the middle. The viewBox is set from the sliders in app.js, and the note
+             below states the window in millimetres. The group flips y, because the protocol's
+             y grows upward and SVG's grows down; the geometry is symmetric top-to-bottom, but
+             a diagram that silently disagreed with the field's orientation would be a trap the
+             first time an experiment here is not. Units are millimetres. -->
+        <svg id="schematic" class="schematic" viewBox="-42 -42 84 84"
              role="img" aria-labelledby="schematic-title">
           <title id="schematic-title">Solenoid cross-section: iron core between two windings</title>
           <g transform="scale(1, -1)">
-            <rect class="domain" x="-60" y="-60" width="120" height="120"></rect>
-            <line class="axis" x1="0" y1="-60" x2="0" y2="60"></line>
-            <line class="axis" x1="-60" y1="0" x2="60" y2="0"></line>
+            <line class="axis" id="axis-v"></line>
+            <line class="axis" id="axis-h"></line>
             <rect id="core" class="region region--core"></rect>
             <rect id="winding-left" class="region region--winding"></rect>
             <rect id="winding-right" class="region region--winding"></rect>
+            <!-- The surface the core flux is measured across: the core's mid-plane. -->
+            <line class="measure" id="mid-plane"></line>
           </g>
         </svg>
         <ul class="legend">
@@ -125,23 +127,38 @@
       <section class="group" aria-labelledby="conditions-heading">
         <h3 id="conditions-heading">Conditions</h3>
         <div id="conditions"></div>
+        <button type="button" class="disclose" id="derived-toggle" aria-expanded="false" aria-controls="derived-wrap">
+          What follows from these
+        </button>
+        <div id="derived-wrap" hidden>
+          <dl class="stats stats--derived" id="derived"></dl>
+        </div>
       </section>
 
+      <!-- Closed on arrival. Nothing in here is needed to answer the mission, and everything
+           in here changes the error rather than the answer. -->
       <details class="group group--advanced" id="advanced">
-        <summary><span>Advanced</span><span class="group__note">solver and numerics</span></summary>
+        <summary><span>Advanced</span><span class="group__note">numerics</span></summary>
         <div class="group__body">
-          <div class="field">
-            <label class="field__label" for="solver"><span>Computation mode</span></label>
-            <select id="solver" aria-label="Solver"></select>
-            <p class="field__hint" id="solver-hint"></p>
-          </div>
-          <h4>Numerical settings</h4>
+          <p class="field__hint">
+            These change the error, not the answer. How much they change it is what the
+            verification panel measures.
+          </p>
           <div id="numerical"></div>
+          <p class="field__hint">
+            There is no study group here, because no metric this exercise reports needs more
+            than one solve. The gap force would — and it is not reported, for a reason that has
+            nothing to do with studies: this cross-section is symmetric, so its net force is
+            exactly zero.
+          </p>
+          <p class="field__hint" id="solver-hint"></p>
+          <select id="solver" aria-label="Solver" hidden></select>
         </div>
       </details>
     </form>
   </div>
 
+  <!-- 3. Run. One bar, always reachable, carrying every action that changes state. -->
   <div class="actionbar" id="actionbar">
     <div class="actionbar__status">
       <span class="status-dot" id="dot" data-state="idle"></span>
@@ -154,37 +171,70 @@
     <div class="actionbar__actions">
       <button id="run" class="primary" type="button" disabled>Run</button>
       <button id="cancel" type="button" hidden>Cancel</button>
-      <!-- The extension point for `Keep result`. Disabled with its reason rather than absent,
-           so the shape of the finished exercise is visible and the button is not invented
-           before there is a comparable row to keep. -->
-      <button id="keep" type="button" disabled
-              title="Keeping a run needs the metrics a comparison is made of. See docs/exercises/solenoid.md.">
-        Keep result
-      </button>
+      <button id="keep" type="button" disabled>Keep result</button>
+      <button id="compare-jump" type="button" hidden>Compare</button>
     </div>
   </div>
 
+  <!-- ------------------------------------------------------ 5. Check. Hidden until run. -->
   <div class="results" id="results" hidden>
-    <section class="panel" aria-labelledby="reading-heading">
-      <h2 id="reading-heading" class="panel__title">What came out</h2>
-      <!-- Extension point: this is where the metrics table goes once the definitions in
-           docs/exercises/solenoid.md are verified. Until then the page reports what the
-           solve cost and nothing it cannot stand behind. -->
-      <dl class="stats" id="stats"></dl>
-      <p class="artifacts" id="artifacts"></p>
+
+    <section class="panel panel--answer" aria-labelledby="answer-heading">
+      <h2 id="answer-heading" class="panel__title">The answer</h2>
+      <div class="kpis" id="kpis"></div>
+      <details class="subpanel">
+        <summary>Every reported quantity</summary>
+        <div id="metrics"></div>
+      </details>
       <p class="field__hint">
-        No engineering metrics yet, and no verification residual: this page reports the field
-        and the cost of computing it. What it would take to report more is written down rather
-        than guessed at.
+        No peak flux density: the core's corners are singularities of the exact solution, so a
+        pointwise maximum climbs with every refinement instead of converging. Everything above
+        is an integral — a flux, a section average, an energy — which a singularity carries no
+        weight in. No gap force either: a symmetric bar core feels exactly zero.
       </p>
     </section>
+
+    <section class="panel" aria-labelledby="trust-heading">
+      <h2 id="trust-heading" class="panel__title">How far to trust it</h2>
+      <div id="verification"></div>
+      <div id="validity"></div>
+      <details class="subpanel">
+        <summary>What the solve cost</summary>
+        <dl class="stats" id="stats"></dl>
+        <p class="artifacts" id="artifacts"></p>
+      </details>
+    </section>
+
+    <section class="panel panel--wide" aria-labelledby="plane-heading">
+      <h2 id="plane-heading" class="panel__title">Along the core's mid-plane</h2>
+      <div class="sweep-layout">
+        <div id="flux-curve" class="plot"></div>
+        <div id="potential-curve" class="plot"></div>
+      </div>
+      <p class="field__hint" id="plane-note"></p>
+    </section>
+
   </div>
 
+  <!-- ------------------------------------------------------------ 6. Keep and compare -->
+  <section class="panel panel--runs" id="runs-panel" aria-labelledby="runs-heading">
+    <h2 id="runs-heading" class="panel__title">Kept runs</h2>
+    <p class="field__hint" id="runs-note"></p>
+    <div id="runs-table" class="table-scroll"></div>
+    <div class="button-row">
+      <button id="export-csv" type="button" disabled>Export CSV</button>
+      <button id="export-json" type="button" disabled>Export JSON</button>
+      <button id="clear-runs" type="button" disabled>Delete all</button>
+    </div>
+    <div id="compare" class="table-scroll"></div>
+  </section>
+
+  <!-- ------------------------------------------------------- 7. Understand the model -->
   <section class="lesson" aria-labelledby="lesson-heading">
     <h2 id="lesson-heading" class="panel__title">Understand the model</h2>
     <p class="field__hint">
-      Everything the demonstration rests on. Nothing here has been shortened — it has been
-      moved out of the way of the experiment.
+      Everything the exercise rests on, in the order it matters. Nothing here has been
+      shortened — it has been moved out of the way of the experiment.
     </p>
     <div class="lesson__blocks" id="lesson"></div>
   </section>

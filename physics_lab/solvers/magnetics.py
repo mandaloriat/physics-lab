@@ -112,55 +112,113 @@ class Grid:
         return np.meshgrid(self.x, self.y)
 
 
-def axis_lines(lo: float, hi: float, breaks, target: float) -> np.ndarray:
+def graded_widths(length: float, first: float, growth: float) -> np.ndarray:
+    """Cell widths spanning ``length`` exactly, starting near ``first`` and growing by ``growth``.
+
+    A geometric progression, then rescaled so the sum is exactly ``length`` — which is the only
+    way to have both a whole number of cells and an interval that ends where it was told to.
+    The rescaling shrinks the widths slightly, so the first cell is at worst ``first`` and the
+    realised ratio is at worst ``growth``: both bounds are one-sided in the safe direction.
+    """
+    if not np.isfinite(length) or length <= 0:
+        return np.zeros(0)
+    if growth <= 1.0 + 1e-12 or length <= first:
+        count = max(1, int(np.ceil(length / first - 1e-9)))
+        return np.full(count, length / count)
+
+    # Smallest n whose geometric sum reaches `length`.
+    count = max(1, int(np.ceil(np.log1p(length * (growth - 1.0) / first) / np.log(growth) - 1e-9)))
+    widths = first * growth ** np.arange(count)
+    return widths * (length / widths.sum())
+
+
+def axis_lines(
+    lo: float,
+    hi: float,
+    breaks,
+    target: float,
+    subject: tuple[float, float] | None = None,
+    growth: float = 1.0,
+) -> np.ndarray:
     """Cell edges from ``lo`` to ``hi`` through every break, none coarser than ``target``.
 
-    Each interval between consecutive breaks is divided into a whole number of equal cells,
-    so the breaks survive exactly and the cell size is at worst ``target`` — never the other
-    way round. Making the *cell size* exact instead would put the last cell of each interval
+    Each interval between consecutive breaks is divided into a whole number of cells, so the
+    breaks survive exactly and the cell size is at worst ``target`` — never the other way
+    round. Making the *cell size* exact instead would put the last cell of each interval
     wherever the arithmetic left it, and the material boundary with it.
 
-    The count is rounded up to an *odd* number, which costs at most one cell per interval and
-    buys something the exercise needs: the midpoint of every interval is then a cell centre,
-    so a region's own mid-plane is a row of the grid rather than half a cell away from one.
-    That is where the flux is measured (``docs/exercises/solenoid.md`` §1), and measuring it
-    on a plane the grid does not have would put an avoidable half-cell offset into every
-    number derived from it.
+    Inside ``subject`` — the span the regions occupy — the count is rounded up to an *odd*
+    number. That costs at most one cell per interval and buys something the exercise needs: the
+    midpoint of every interval is then a cell centre, so a region's own mid-plane is a row of
+    the grid rather than half a cell away from one. That is where the flux is measured
+    (``docs/exercises/solenoid.md`` §1), and measuring it on a plane the grid does not have
+    would put an avoidable half-cell offset into every number derived from it.
+
+    **Outside** ``subject`` the cells grow geometrically, away from it. That is what makes a
+    window eight times the size of the magnet affordable: the far field is smooth and mostly
+    empty, and spending the same cell size on it as on the iron/air interface would be spending
+    ninety per cent of the grid where nothing happens. With ``growth = 1.2`` the 210 mm of air
+    beyond the default magnet costs 23 cells instead of 280. Pass ``growth = 1.0``, or no
+    ``subject``, for a uniform grid.
     """
     span = hi - lo
     if span <= 0:
         raise ValueError("axis bounds must be increasing")
     inner = _LINE_TOLERANCE * span
     keep = sorted({float(b) for b in breaks if lo + inner < b < hi - inner})
+    low, high = subject if subject is not None else (lo, hi)
 
     edges: list[np.ndarray] = []
     stations = [lo, *keep, hi]
     for left, right in zip(stations[:-1], stations[1:], strict=False):
-        count = max(1, int(np.ceil((right - left) / target - 1e-9)))
-        count += count % 2 == 0
-        edges.append(np.linspace(left, right, count + 1)[:-1])
+        if right <= low + inner:  # out in the air, fine end on the right
+            widths = graded_widths(right - left, target, growth)[::-1]
+        elif left >= high - inner:  # out in the air, fine end on the left
+            widths = graded_widths(right - left, target, growth)
+        else:  # across the magnet: uniform, and an odd count so the midpoint is a cell centre
+            count = max(1, int(np.ceil((right - left) / target - 1e-9)))
+            count += count % 2 == 0
+            widths = np.full(count, (right - left) / count)
+        edges.append(left + np.concatenate([[0.0], np.cumsum(widths)])[:-1])
     return np.append(np.concatenate(edges), hi)
 
 
-def build_grid(bounds, outlines, resolution: int) -> Grid:
+def build_grid(bounds, outlines, resolution: int, growth: float = 1.0) -> Grid:
     """A grid whose lines include every vertex coordinate of every region.
 
-    ``resolution`` counts cells along the *longer* edge of the domain, which is how
-    ``mock.magnetostatics2d`` and ``mock.laplace2d`` express the same idea — so a visitor
-    comparing this solver with the preview is comparing two discretisations of the same
-    fineness rather than two conventions.
+    ``resolution`` counts cells across the **regions**, not across the window: it is the longer
+    edge of their common bounding box that is divided that many ways. That is the definition
+    that means what a caller wants it to mean — the magnet is what has to be resolved, and the
+    window around it is a truncation whose size should not change how finely the iron is
+    modelled. Counting across the window instead (which is what ``mock.magnetostatics2d`` does,
+    and what this solver did first) couples the two, so widening the window to control the
+    truncation silently coarsens the magnet. It was measured doing exactly that: at a window
+    eight times the magnet, a resolution that had been ample gave two cells across the core and
+    an energy balance out by 11 %.
 
     Taking every vertex coordinate rather than only rectangle edges means a non-rectangular
     region still gets grid lines at its extremes; it does not make such a region exact, and
     :func:`rasterise` reports that separately so the page can say so.
     """
     xmin, ymin, xmax, ymax = (float(v) for v in bounds)
-    target = max(xmax - xmin, ymax - ymin) / max(int(resolution), 1)
     xs = [float(p[0]) for outline in outlines for p in outline]
     ys = [float(p[1]) for outline in outlines for p in outline]
+    if not xs or not ys:
+        # No regions: nothing to resolve but the window itself, and nothing to grade away from.
+        target = max(xmax - xmin, ymax - ymin) / max(int(resolution), 1)
+        return Grid(
+            x_edges=axis_lines(xmin, xmax, [], target),
+            y_edges=axis_lines(ymin, ymax, [], target),
+        )
+
+    subject_x = (min(xs), max(xs))
+    subject_y = (min(ys), max(ys))
+    target = max(subject_x[1] - subject_x[0], subject_y[1] - subject_y[0]) / max(
+        int(resolution), 1
+    )
     return Grid(
-        x_edges=axis_lines(xmin, xmax, xs, target),
-        y_edges=axis_lines(ymin, ymax, ys, target),
+        x_edges=axis_lines(xmin, xmax, xs, target, subject_x, growth),
+        y_edges=axis_lines(ymin, ymax, ys, target, subject_y, growth),
     )
 
 

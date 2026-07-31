@@ -71,7 +71,7 @@ def run(tmp_path: Path, geometry: Regions2D | None = None, **params):
     """Solve, and hand back both the envelope and the parsed report."""
     solver = Magnetics2D()
     ctx = SolverContext(lambda event: None, artifact_dir=tmp_path)
-    settings = {"resolution": 80, "convergence_check": False, **params}
+    settings = {"cells_across": 40, "convergence_check": False, **params}
     result = solver.solve(geometry or cross_section(), solver.Params(**settings), ctx)
     report = json.loads((tmp_path / REPORT_ARTIFACT.name).read_text(encoding="utf-8"))
     return result, report
@@ -96,11 +96,19 @@ def test_it_declares_the_physics_the_page_filters_on():
 def test_the_parameter_schema_publishes_bounds_and_descriptions():
     """The page generates its form from this and invents nothing, so it has to be complete."""
     schema = Magnetics2D.info().params_schema["properties"]
-    for name in ("resolution", "tolerance", "max_iterations", "convergence_check", "output"):
+    for name in (
+        "cells_across",
+        "far_field_growth",
+        "resolution",
+        "tolerance",
+        "max_iterations",
+        "convergence_check",
+        "output",
+    ):
         assert name in schema, name
 
-    assert schema["resolution"]["minimum"] == 24
-    assert schema["resolution"]["maximum"] == 512
+    assert schema["cells_across"]["minimum"] == 12
+    assert schema["cells_across"]["maximum"] == 320
     assert all(
         "description" in spec or "anyOf" in spec or "allOf" in spec for spec in schema.values()
     )
@@ -124,7 +132,7 @@ def test_a_declared_field_reduction_names_a_field_the_solver_emits(tmp_path):
 def test_the_declared_artifact_is_the_one_written(tmp_path):
     solver = Magnetics2D()
     ctx = SolverContext(lambda event: None, artifact_dir=tmp_path)
-    solver.solve(cross_section(), solver.Params(resolution=40, convergence_check=False), ctx)
+    solver.solve(cross_section(), solver.Params(cells_across=24, convergence_check=False), ctx)
 
     assert [entry["name"] for entry in ctx.artifacts] == [REPORT_ARTIFACT.name]
     assert ctx.artifacts[0]["content_type"] == "application/json"
@@ -146,7 +154,7 @@ def test_the_result_validates_against_the_protocol(tmp_path):
 
 
 def test_the_mesh_output_validates_too(tmp_path):
-    result, _ = run(tmp_path, output="mesh2d", resolution=48)
+    result, _ = run(tmp_path, output="mesh2d", cells_across=24)
     ResultEnvelope(job_id="j-test", kind=result.kind, data=result.data, stats=result.stats)
     assert result.kind == "mesh2d"
     assert len(result.data["triangles"]) > 0
@@ -185,14 +193,22 @@ def test_the_cost_estimate_counts_the_refinement_study(tmp_path):
     """Turning the study on costs four more cells for every one, and the budget should see it."""
     solver = Magnetics2D()
     geometry = cross_section()
-    plain = solver.Params(resolution=80, convergence_check=False)
-    studied = solver.Params(resolution=80, convergence_check=True)
+    plain = solver.Params(cells_across=40, convergence_check=False)
+    studied = solver.Params(cells_across=40, convergence_check=True)
+    raster = solver.estimate_cells(geometry, plain) - _grid_cells(solver, geometry, plain)
 
-    assert solver.estimate_cells(geometry, plain) == pytest.approx(
-        solver.estimate_cells(geometry, studied) / 5
+    assert solver.estimate_cells(geometry, studied) - raster == pytest.approx(
+        5 * (solver.estimate_cells(geometry, plain) - raster)
     )
-    result, _ = run(tmp_path, resolution=80)
-    assert solver.estimate_cells(geometry, plain) == result.stats["dofs"]
+    result, _ = run(tmp_path, cells_across=40)
+    assert _grid_cells(solver, geometry, plain) == result.stats["dofs"]
+
+
+def _grid_cells(solver, geometry, params):
+    """The solve's own cell count, which `stats.dofs` reports and the estimate contains."""
+    from physics_lab.solvers.magnetics2d import _grid_for
+
+    return _grid_for(geometry, params.cells_across, params.far_field_growth).cells
 
 
 def test_progress_is_reported_and_can_be_cancelled(tmp_path):
@@ -212,7 +228,7 @@ def test_progress_is_reported_and_can_be_cancelled(tmp_path):
     solver = Magnetics2D()
     ctx = SolverContext(watch, cancel_event=cancel, artifact_dir=tmp_path)
     with pytest.raises(JobCancelled):
-        solver.solve(cross_section(), solver.Params(resolution=200, tolerance=1e-14), ctx)
+        solver.solve(cross_section(), solver.Params(cells_across=160, tolerance=1e-14), ctx)
     assert any(event.message for event in events)
 
 
@@ -220,7 +236,7 @@ def test_progress_is_reported_and_can_be_cancelled(tmp_path):
 
 
 def test_the_report_carries_the_answer_and_how_far_to_trust_it(tmp_path):
-    _, report = run(tmp_path, resolution=120, convergence_check=True)
+    _, report = run(tmp_path, cells_across=60, convergence_check=True)
     metrics, checks = report["metrics"], report["verification"]
 
     assert metrics["ampere_turns"] == pytest.approx(3000.0)
@@ -291,7 +307,7 @@ def test_a_run_inside_the_stated_limits_still_names_the_one_it_crossed(tmp_path)
 
 
 def test_a_roomy_window_clears_the_truncation_warning(tmp_path):
-    _, report = run(tmp_path, geometry=cross_section(window=240 * MM), resolution=240)
+    _, report = run(tmp_path, geometry=cross_section(window=240 * MM))
     assert not any("window" in w for w in report["validity"]["warnings"])
 
 
@@ -345,7 +361,7 @@ def test_a_region_that_is_not_a_rectangle_is_reported_as_staircased(tmp_path):
 
 def test_an_unfinished_solve_is_a_warning_and_not_a_silent_result(tmp_path):
     """The failure mode of a fixed-iteration solver: it stops, and it looks like it converged."""
-    _, report = run(tmp_path, resolution=160, tolerance=1e-14, max_iterations=50)
+    _, report = run(tmp_path, cells_across=80, tolerance=1e-14, max_iterations=50)
     checks = report["verification"]
 
     assert checks["linear_residual"] > checks["linear_residual_tolerance"]
