@@ -221,6 +221,39 @@ def test_every_experiment_has_didactic_content_with_the_sections_the_page_render
     assert limits.get("caution") is True
 
 
+def test_the_shared_challenge_banner_speaks_no_exercise_s_vocabulary():
+    """``exercise.js`` renders every exercise, so it may name none of them.
+
+    The met-target banner used to end "try to meet it another way — a different profile at a
+    different incidence", which is sound advice on the aerofoil and nonsense on the magnetic
+    circuit, where there is no profile and no incidence. The second route is now
+    ``challenge.next_step`` in each ``content.json``; this keeps the wording from creeping
+    back into the shared renderer, where it reads correctly on the page it was written for.
+    """
+    source = (FRONTEND / "shared" / "exercise.js").read_text()
+    # Comments may name an exercise — explaining *why* a word does not belong in the renderer
+    # takes saying the word. What is asserted is the code, which is what a visitor reads.
+    source = re.sub(r"/\*.*?\*/", "", source, flags=re.DOTALL)
+    code = "\n".join(line for line in source.splitlines() if not line.strip().startswith("//"))
+    for word in ["incidence", "aerofoil", "airfoil", "chord", "ampere-turn", "permeability"]:
+        assert word not in code.lower(), f"the shared banner names {word}, which is one exercise's"
+
+
+@pytest.mark.parametrize("name", EXPERIMENTS)
+def test_every_challenge_names_its_own_second_route(client, name):
+    """A met target invites a second solve, in the terms of the exercise that was solved.
+
+    The field is optional in the renderer — an exercise without it gets a shorter sentence
+    rather than a wrong one — but every exercise the lab ships states it, so the invitation
+    is concrete: there is more than one design that passes, and comparing two is the lesson.
+    """
+    challenge = client.get(f"/experiments/{name}/content.json").json()["challenge"]
+
+    assert challenge["statement"] and challenge["targets"]
+    hint = challenge["next_step"]
+    assert hint and not hint.endswith("."), "the hint is a clause inside a sentence, not a sentence"
+
+
 def test_the_vendored_widgets_record_their_source_commit():
     """Vendored bytes without a provenance marker are unreproducible bytes."""
     commit_file = FRONTEND / "vendor" / "fenix-spoon" / "COMMIT"

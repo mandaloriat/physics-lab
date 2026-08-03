@@ -50,6 +50,12 @@ export function groupParameters(ui) {
  * symbol and unit a person reads, and a key with no entry falls back to the key, so a new
  * metric is visibly unlabelled rather than silently mislabelled.
  *
+ * **Nothing here knows which exercise it is rendering.** The "now try it another way" nudge
+ * shown on a met target names the second route in the exercise's own terms, so it comes from
+ * `challenge.next_step` in `content.json`; hardcoding one exercise's wording here is how the
+ * magnetic circuit came to suggest a different aerofoil incidence. Without the field the
+ * sentence still reads, one clause shorter.
+ *
  * @param {HTMLElement} container
  * @param {object} challenge from `content.json`
  * @param {{metrics: object, verification: object, validity: object}|null} report
@@ -117,7 +123,9 @@ export function renderChallenge(container, challenge, report, labels = {}) {
         'p',
         { class: 'challenge__done' },
         el('strong', { text: 'Target met. ' }),
-        'Keep the run, then try to meet it another way — a different profile at a different incidence — and compare the two.',
+        challenge.next_step
+          ? `Keep the run, then try to meet it another way — ${challenge.next_step} — and compare the two.`
+          : 'Keep the run, then try to meet it another way and compare the two.',
       ),
     );
   }
@@ -220,7 +228,7 @@ function round(value) {
  * instead of showing a number from one solve.
  *
  * @param {Array<{key: string, label: string, symbol?: string, unit?: string, digits?: number,
- *   hint?: string, requires?: string}>} spec
+ *   hint?: string, requires?: string, absent?: string}>} spec
  */
 /**
  * The headline answer: a handful of numbers, large, before any table.
@@ -277,8 +285,12 @@ export function renderMetrics(container, spec, report) {
   const rows = spec.map((metric) => {
     const value = report.metrics?.[metric.key];
     const missing = metric.requires && !report[metric.requires];
+    // `requires` names a key in the report; `absent` names the same prerequisite the way a
+    // visitor reads it. The wording belongs to the exercise — "an incidence sweep" is what a
+    // missing `sweep` means on the aerofoil and not on anything else — so the fallback prints
+    // the bare key rather than one exercise's sentence.
     const text = missing
-      ? `needs ${metric.requires === 'sweep' ? 'an incidence sweep' : metric.requires}`
+      ? (metric.absent ?? `needs ${metric.requires}`)
       : value === null || value === undefined
         ? 'not applicable'
         : typeof value === 'number'

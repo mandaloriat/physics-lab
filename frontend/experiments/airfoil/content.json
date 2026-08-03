@@ -26,7 +26,8 @@
     "requires_verified": {
       "metric": "cl_consistency_rel",
       "below": 0.02
-    }
+    },
+    "next_step": "a different profile at a different incidence"
   },
   "sections": [
     {
