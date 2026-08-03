@@ -12,6 +12,7 @@
  */
 
 import { el } from '/shared/components.js';
+import { t } from '/shared/i18n.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const PAD = { left: 46, right: 10, top: 10, bottom: 30 };
@@ -60,7 +61,7 @@ export function drawCurve(container, spec) {
   const points = traces.flatMap((trace) => trace.points).filter((p) => Number.isFinite(p[1]));
   container.replaceChildren();
   if (!points.length) {
-    container.append(el('p', { class: 'field__hint', text: 'Nothing to plot yet.' }));
+    container.append(el('p', { class: 'field__hint', text: t('curve.empty') }));
     return;
   }
 
@@ -83,7 +84,7 @@ export function drawCurve(container, spec) {
     viewBox: `0 0 ${width} ${height}`,
     class: 'curve',
     role: 'img',
-    'aria-label': `${yLabel} against ${xLabel}`,
+    'aria-label': t('curve.aria', { y: yLabel, x: xLabel }),
   });
 
   for (const value of ticks(ys)) {

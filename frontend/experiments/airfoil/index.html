@@ -2,12 +2,38 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Airfoil design — Spoon Physics</title>
+<title data-i18n="airfoil.title">Airfoil design — Spoon Physics</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="An airfoil design exercise: hit a lift target under a pitching-moment constraint, with computed fields, engineering metrics and a verification residual on every run.">
+<meta name="description" data-i18n-attr="content: airfoil.description" content="An airfoil design exercise: hit a lift target under a pitching-moment constraint, with computed fields, engineering metrics and a verification residual on every run.">
 <meta name="color-scheme" content="light dark">
+<link rel="alternate" hreflang="en" href="/experiments/airfoil/?lang=en">
+<link rel="alternate" hreflang="it" href="/experiments/airfoil/?lang=it">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/shared/lab.css">
+<!-- The language, before the first paint. Same rule and same safety timeout as the homepage;
+     see the note there and ADR-020. -->
+<script>
+(function () {
+  try {
+    var asked = new URLSearchParams(location.search).get('lang');
+    var stored = window.localStorage && localStorage.getItem('spoon-physics:lang');
+    var wanted = [asked, stored].concat(navigator.languages || [navigator.language || '']);
+    for (var i = 0; i < wanted.length; i += 1) {
+      var code = String(wanted[i] || '').slice(0, 2).toLowerCase();
+      if (code === 'en' || code === 'it') {
+        document.documentElement.lang = code;
+        if (code !== 'en') document.documentElement.setAttribute('data-lang-pending', '');
+        break;
+      }
+    }
+  } catch (error) {
+    // A blocked store, or no URL API: English, visible, now.
+  }
+  setTimeout(function () {
+    document.documentElement.removeAttribute('data-lang-pending');
+  }, 2000);
+})();
+</script>
 <!-- The Fenix Spoon browser packages, vendored from the pinned commit by
      scripts/fetch-widgets.sh (or by the Docker build's node stage). Bare specifiers are
      resolved here rather than by a bundler: three ES modules with one shared dependency
@@ -34,16 +60,16 @@
   <!-- ------------------------------------------------------------------ 1. Mission -->
   <header class="mission" id="mission">
     <div class="mission__head">
-      <p class="mission__eyebrow">Exercise 1 · ideal flow with a Kutta condition</p>
-      <h1>Airfoil design</h1>
+      <p class="mission__eyebrow" data-i18n="airfoil.eyebrow">Exercise 1 · ideal flow with a Kutta condition</p>
+      <h1 data-i18n="airfoil.heading">Airfoil design</h1>
     </div>
     <div class="mission__challenge panel panel--mission" aria-labelledby="challenge-heading">
-      <h2 id="challenge-heading" class="panel__title">The mission</h2>
+      <h2 id="challenge-heading" class="panel__title" data-i18n="bench.mission">The mission</h2>
       <div id="challenge"></div>
     </div>
   </header>
 
-  <p id="widgets-missing" class="notice notice--warn" hidden>
+  <p id="widgets-missing" class="notice notice--warn" hidden data-i18n-html="bench.widgetsMissing">
     The browser widgets have not been built. Run
     <code>./scripts/fetch-widgets.sh</code> and reload the page.
   </p>
@@ -55,14 +81,16 @@
     <!-- The workspace is the instrument: it takes most of the width, it owns its own tools,
          and every tool it cannot offer says why rather than disappearing. -->
     <section class="workspace" id="workspace" aria-labelledby="workspace-heading">
-      <h2 id="workspace-heading" class="visually-hidden">Workspace</h2>
+      <h2 id="workspace-heading" class="visually-hidden" data-i18n="bench.workspace">Workspace</h2>
 
-      <div class="workspace__toolbar" role="toolbar" aria-label="Visualisation tools"></div>
+      <div class="workspace__toolbar" role="toolbar" aria-label="Visualisation tools"
+           data-i18n-attr="aria-label: bench.visualisationTools"></div>
 
       <!-- The frame is fixed and the stage scrolls inside it, so the colour scale stays put
            while the field is panned. -->
       <div class="workspace__frame">
-        <div class="workspace__stage" id="stage" aria-label="Computed field. Drag to pan, plus and minus to zoom.">
+        <div class="workspace__stage" id="stage" aria-label="Computed field. Drag to pan, plus and minus to zoom."
+             data-i18n-attr="aria-label: bench.stageAria">
           <div class="workspace__zoom">
             <fs-viewer id="viewer" field="Cp" colormap="coolwarm" contours="12" symmetric colorbar="off"></fs-viewer>
             <!-- Annotations in domain coordinates, drawn by the page over the field. Aligned
@@ -74,7 +102,8 @@
                  panel method has no outer boundary, so this is a framing choice and not a
                  boundary condition — see docs/exercises/airfoil.md §2. -->
             <fs-geometry-2d id="editor" bounds="-0.8,-0.6,1.8,0.6" mode="spline" samples="16" hidden
-                            aria-label="Airfoil profile: draggable control points"></fs-geometry-2d>
+                            aria-label="Airfoil profile: draggable control points"
+                            data-i18n-attr="aria-label: airfoil.editorAria"></fs-geometry-2d>
           </div>
         </div>
         <div class="workspace__scale" id="scale" aria-hidden="true"></div>
@@ -84,8 +113,8 @@
 
       <div class="workspace__field">
         <label class="workspace__fieldpick" for="field">
-          <span>Field</span>
-          <select id="field" aria-label="Field shown"></select>
+          <span data-i18n="bench.field">Field</span>
+          <select id="field" aria-label="Field shown" data-i18n-attr="aria-label: bench.fieldShown"></select>
         </label>
         <p class="field__hint" id="field-hint"></p>
       </div>
@@ -93,27 +122,28 @@
 
     <!-- 2. Configure. Three groups, and only the first two are on the main path. -->
     <form class="controls" id="controls" aria-labelledby="controls-heading" onsubmit="return false">
-      <h2 id="controls-heading" class="panel__title">Configure</h2>
+      <h2 id="controls-heading" class="panel__title" data-i18n="bench.configure">Configure</h2>
 
       <section class="group" aria-labelledby="design-heading">
-        <h3 id="design-heading">Design</h3>
+        <h3 id="design-heading" data-i18n="bench.design">Design</h3>
         <div class="field">
-          <label class="field__label" for="profile"><span>Profile</span></label>
-          <select id="profile" aria-label="Profile"></select>
+          <label class="field__label" for="profile"><span data-i18n="airfoil.profile">Profile</span></label>
+          <select id="profile" aria-label="Profile" data-i18n-attr="aria-label: airfoil.profile"></select>
         </div>
         <div id="shape-controls"></div>
         <p class="field__hint" id="shape-note"></p>
         <div class="button-row">
-          <button id="edit-shape" type="button">Edit shape</button>
-          <button id="reset" type="button">Reset profile</button>
+          <button id="edit-shape" type="button" data-i18n="airfoil.editShape">Edit shape</button>
+          <button id="reset" type="button" data-i18n="airfoil.resetProfile">Reset profile</button>
         </div>
       </section>
 
       <section class="group" aria-labelledby="conditions-heading">
-        <h3 id="conditions-heading">Conditions</h3>
+        <h3 id="conditions-heading" data-i18n="bench.conditions">Conditions</h3>
         <div id="physical"></div>
         <div id="atmosphere"></div>
-        <button type="button" class="disclose" id="derived-toggle" aria-expanded="false" aria-controls="derived-wrap">
+        <button type="button" class="disclose" id="derived-toggle" aria-expanded="false" aria-controls="derived-wrap"
+                data-i18n="bench.whatFollows">
           What follows from these
         </button>
         <div id="derived-wrap" hidden>
@@ -124,21 +154,21 @@
       <!-- Closed on arrival. Nothing in here is needed to answer the mission, and everything
            in here changes the error rather than the answer. -->
       <details class="group group--advanced" id="advanced">
-        <summary><span>Advanced</span><span class="group__note">numerics and study</span></summary>
+        <summary><span data-i18n="bench.advanced">Advanced</span><span class="group__note" data-i18n="airfoil.advancedNote">numerics and study</span></summary>
         <div class="group__body">
-          <p class="field__hint">
+          <p class="field__hint" data-i18n="bench.advancedError">
             These change the error, not the answer. How much they change it is what the
             verification panel measures.
           </p>
           <div id="numerical"></div>
-          <h4>Study</h4>
-          <p class="field__hint">
+          <h4 data-i18n="airfoil.studyHeading">Study</h4>
+          <p class="field__hint" data-i18n="airfoil.studyLead">
             A single incidence, or a sweep. A sweep is the only way to get an aerodynamic
             centre, and it costs one solve rather than one per angle.
           </p>
           <div id="study"></div>
           <p class="field__hint" id="solver-hint"></p>
-          <select id="solver" aria-label="Solver" hidden></select>
+          <select id="solver" aria-label="Solver" hidden data-i18n-attr="aria-label: bench.solverLabel"></select>
         </div>
       </details>
     </form>
@@ -151,14 +181,14 @@
       <!-- Run starts disabled and this says why. The page cannot know whether it can solve
            until the solver catalogue and /health have answered, and a button offered before
            then can only mislead. -->
-      <span id="status" role="status">Checking what this server can do…</span>
+      <span id="status" role="status" data-i18n="bench.checkingServer">Checking what this server can do…</span>
       <progress id="progress" value="0" max="1" hidden></progress>
     </div>
     <div class="actionbar__actions">
-      <button id="run" class="primary" type="button" disabled>Run</button>
-      <button id="cancel" type="button" hidden>Cancel</button>
-      <button id="keep" type="button" disabled>Keep result</button>
-      <button id="compare-jump" type="button" hidden>Compare</button>
+      <button id="run" class="primary" type="button" disabled data-i18n="bench.run">Run</button>
+      <button id="cancel" type="button" hidden data-i18n="bench.cancel">Cancel</button>
+      <button id="keep" type="button" disabled data-i18n="bench.keep">Keep result</button>
+      <button id="compare-jump" type="button" hidden data-i18n="bench.compare">Compare</button>
     </div>
   </div>
 
@@ -166,13 +196,13 @@
   <div class="results" id="results" hidden>
 
     <section class="panel panel--answer" aria-labelledby="answer-heading">
-      <h2 id="answer-heading" class="panel__title">The answer</h2>
+      <h2 id="answer-heading" class="panel__title" data-i18n="bench.answer">The answer</h2>
       <div class="kpis" id="kpis"></div>
       <details class="subpanel">
-        <summary>Every reported quantity</summary>
+        <summary data-i18n="bench.everyQuantity">Every reported quantity</summary>
         <div id="metrics"></div>
       </details>
-      <p class="field__hint">
+      <p class="field__hint" data-i18n="airfoil.noDrag">
         No drag and no lift-to-drag ratio: this model is inviscid, so both are zero and a ratio
         of zeroes is not a metric. The chordwise force that does come out of the pressure
         integration is in the verification panel, where it belongs — it is an error bar.
@@ -180,29 +210,29 @@
     </section>
 
     <section class="panel" aria-labelledby="trust-heading">
-      <h2 id="trust-heading" class="panel__title">How far to trust it</h2>
+      <h2 id="trust-heading" class="panel__title" data-i18n="bench.trust">How far to trust it</h2>
       <div id="verification"></div>
       <div id="validity"></div>
       <details class="subpanel">
-        <summary>What the solve cost</summary>
+        <summary data-i18n="bench.cost">What the solve cost</summary>
         <dl class="stats" id="stats"></dl>
         <p class="artifacts" id="artifacts"></p>
       </details>
     </section>
 
     <section class="panel panel--wide" aria-labelledby="cp-heading">
-      <h2 id="cp-heading" class="panel__title">Surface pressure</h2>
+      <h2 id="cp-heading" class="panel__title" data-i18n="airfoil.surfacePressure">Surface pressure</h2>
       <div id="cp-curve" class="plot"></div>
       <p class="field__hint" id="geometry-readback"></p>
     </section>
 
     <section class="panel panel--wide" id="sweep-panel" aria-labelledby="sweep-heading" hidden>
-      <h2 id="sweep-heading" class="panel__title">Across the sweep</h2>
+      <h2 id="sweep-heading" class="panel__title" data-i18n="airfoil.acrossSweep">Across the sweep</h2>
       <div class="sweep-layout">
         <div id="sweep-curve" class="plot"></div>
         <dl class="stats" id="sweep-metrics"></dl>
       </div>
-      <p class="field__hint">
+      <p class="field__hint" data-i18n="airfoil.sweepNote">
         The aerodynamic centre is the regression slope of the pitching moment against lift,
         subtracted from the quarter chord. Thin-airfoil theory says 0.25; thickness moves it
         slightly aft. The fit's R² is shown because a straight line through a curve is not a
@@ -214,21 +244,21 @@
 
   <!-- ------------------------------------------------------------ 6. Keep and compare -->
   <section class="panel panel--runs" id="runs-panel" aria-labelledby="runs-heading">
-    <h2 id="runs-heading" class="panel__title">Kept runs</h2>
+    <h2 id="runs-heading" class="panel__title" data-i18n="bench.keptRuns">Kept runs</h2>
     <p class="field__hint" id="runs-note"></p>
     <div id="runs-table" class="table-scroll"></div>
     <div class="button-row">
-      <button id="export-csv" type="button" disabled>Export CSV</button>
-      <button id="export-json" type="button" disabled>Export JSON</button>
-      <button id="clear-runs" type="button" disabled>Delete all</button>
+      <button id="export-csv" type="button" disabled data-i18n="bench.exportCsv">Export CSV</button>
+      <button id="export-json" type="button" disabled data-i18n="bench.exportJson">Export JSON</button>
+      <button id="clear-runs" type="button" disabled data-i18n="bench.deleteAll">Delete all</button>
     </div>
     <div id="compare" class="table-scroll"></div>
   </section>
 
   <!-- ------------------------------------------------------- 7. Understand the model -->
   <section class="lesson" aria-labelledby="lesson-heading">
-    <h2 id="lesson-heading" class="panel__title">Understand the model</h2>
-    <p class="field__hint">
+    <h2 id="lesson-heading" class="panel__title" data-i18n="bench.lesson">Understand the model</h2>
+    <p class="field__hint" data-i18n="bench.lessonLead">
       Everything the exercise rests on, in the order it matters. Nothing here has been
       shortened — it has been moved out of the way of the experiment.
     </p>
@@ -236,9 +266,9 @@
   </section>
 
   <p class="disclaimer">
-    <strong>Note.</strong>
-    The simulations are demonstrative and educational. They are not a substitute for
-    professional engineering verification.
+    <strong data-i18n="home.disclaimerLabel">Note.</strong>
+    <span data-i18n="home.disclaimer">The simulations are demonstrative and educational. They are not a substitute for
+    professional engineering verification.</span>
   </p>
 
 </main>

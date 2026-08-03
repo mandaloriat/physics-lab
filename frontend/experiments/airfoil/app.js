@@ -42,6 +42,7 @@ import {
   showStats,
   syncFieldOptions,
 } from '/shared/experiment.js';
+import { contentUrl, t } from '/shared/i18n.js';
 import { createWorkspace, marker, polyline, svgNode } from '/shared/workspace.js';
 import * as runs from '/shared/runs.js';
 
@@ -114,19 +115,23 @@ const dom = Object.fromEntries(
 /* ------------------------------------------------------------------------- the catalogue */
 
 /** Real profiles, with all three four-digit parameters. The reference columns are thin-airfoil
- *  theory's, and the solver recomputes them from whatever outline it is actually given. */
+ *  theory's, and the solver recomputes them from whatever outline it is actually given.
+ *
+ *  The designation is the profile's name and is the same in every language — it is what the
+ *  saved run records and what a reader would look up. Only the note beside it is prose, so only
+ *  the note is translated, keyed by the designation. */
 const CATALOGUE = [
-  { label: 'NACA 0009', m: 0, p: 0.4, t: 0.09, note: 'symmetric, thin' },
-  { label: 'NACA 0012', m: 0, p: 0.4, t: 0.12, note: 'symmetric — the reference section' },
-  { label: 'NACA 1408', m: 0.01, p: 0.4, t: 0.08, note: 'barely cambered, thin' },
-  { label: 'NACA 1412', m: 0.01, p: 0.4, t: 0.12, note: 'barely cambered' },
-  { label: 'NACA 2312', m: 0.02, p: 0.3, t: 0.12, note: 'camber well forward' },
-  { label: 'NACA 2412', m: 0.02, p: 0.4, t: 0.12, note: 'the classic light-aircraft section' },
-  { label: 'NACA 2415', m: 0.02, p: 0.4, t: 0.15, note: 'the same mean line, thicker' },
-  { label: 'NACA 2512', m: 0.02, p: 0.5, t: 0.12, note: 'camber well aft' },
-  { label: 'NACA 4412', m: 0.04, p: 0.4, t: 0.12, note: 'strongly cambered' },
-  { label: 'NACA 4415', m: 0.04, p: 0.4, t: 0.15, note: 'strongly cambered, thick' },
-];
+  { label: 'NACA 0009', m: 0, p: 0.4, t: 0.09 },
+  { label: 'NACA 0012', m: 0, p: 0.4, t: 0.12 },
+  { label: 'NACA 1408', m: 0.01, p: 0.4, t: 0.08 },
+  { label: 'NACA 1412', m: 0.01, p: 0.4, t: 0.12 },
+  { label: 'NACA 2312', m: 0.02, p: 0.3, t: 0.12 },
+  { label: 'NACA 2412', m: 0.02, p: 0.4, t: 0.12 },
+  { label: 'NACA 2415', m: 0.02, p: 0.4, t: 0.15 },
+  { label: 'NACA 2512', m: 0.02, p: 0.5, t: 0.12 },
+  { label: 'NACA 4412', m: 0.04, p: 0.4, t: 0.12 },
+  { label: 'NACA 4415', m: 0.04, p: 0.4, t: 0.15 },
+].map((profile) => ({ ...profile, note: t(`airfoil.notes.${profile.label}`) }));
 
 const DEFAULT_PROFILE = 'NACA 2412';
 
@@ -212,14 +217,25 @@ function applyShape() {
 function describeGeometry(report) {
   dom.shapeNote.textContent =
     geometry.source === 'custom'
-      ? 'Edited by hand, so the profile menu no longer describes this shape.'
-      : `${geometry.label} — camber ${(100 * shape.m).toFixed(1)} %, at ${(100 * shape.p).toFixed(0)} % of chord, thickness ${(100 * shape.t).toFixed(1)} %.`;
+      ? t('airfoil.edited')
+      : t('airfoil.described', {
+          label: geometry.label,
+          camber: (100 * shape.m).toFixed(1),
+          position: (100 * shape.p).toFixed(0),
+          thickness: (100 * shape.t).toFixed(1),
+        });
 
   dom.geometryReadback.textContent = report
     ? // What the solver read back out of the outline it was actually given. Shown because the
       // spline through the control points is the geometry of record, and any difference from
       // the nominal profile should be visible rather than assumed away (§4.4).
-      `The solver read: chord ${report.geometry.chord_m.toFixed(3)} m, thickness ${(100 * report.geometry.thickness_over_c).toFixed(1)} %, camber ${(100 * report.geometry.camber_over_c).toFixed(2)} %, ${report.geometry.panels} panels from ${report.geometry.vertices} outline vertices.`
+      t('airfoil.readback', {
+        chord: report.geometry.chord_m.toFixed(3),
+        thickness: (100 * report.geometry.thickness_over_c).toFixed(1),
+        camber: (100 * report.geometry.camber_over_c).toFixed(2),
+        panels: report.geometry.panels,
+        vertices: report.geometry.vertices,
+      })
     : '';
 }
 
@@ -228,35 +244,35 @@ function describeGeometry(report) {
 const SHAPE_CONTROLS = [
   {
     key: 'm',
-    label: 'Camber',
+    label: t('airfoil.shape.camber'),
     min: 0,
     max: 0.06,
     step: 0.002,
     unit: '',
     hint: '',
-    title: 'Maximum camber, as a fraction of chord. At 0 the profile is symmetric.',
+    title: t('airfoil.shape.camberTitle'),
     format: (v) => `${(100 * v).toFixed(1)} %`,
   },
   {
     key: 'p',
-    label: 'Camber position',
+    label: t('airfoil.shape.position'),
     min: 0.2,
     max: 0.6,
     step: 0.05,
     unit: '',
     hint: '',
-    title: 'Where the maximum camber sits along the chord — the third four-digit parameter.',
-    format: (v) => `${(100 * v).toFixed(0)} % chord`,
+    title: t('airfoil.shape.positionTitle'),
+    format: (v) => t('airfoil.shape.chordUnit', { value: (100 * v).toFixed(0) }),
   },
   {
     key: 't',
-    label: 'Thickness',
+    label: t('airfoil.shape.thickness'),
     min: 0.06,
     max: 0.2,
     step: 0.005,
     unit: '',
     hint: '',
-    title: 'Maximum thickness, as a fraction of chord.',
+    title: t('airfoil.shape.thicknessTitle'),
     format: (v) => `${(100 * v).toFixed(1)} %`,
   },
 ];
@@ -275,67 +291,79 @@ const PARAM_UI = [
   {
     name: 'alpha_deg',
     group: 'physical',
-    label: 'Angle of attack',
+    label: t('airfoil.params.alpha'),
     hint: '',
-    title:
-      'Direction of the free stream relative to the chord line. The stream tilts; the profile does not.',
+    title: t('airfoil.params.alphaTitle'),
     step: 0.1,
   },
   {
     name: 'u_inf',
     group: 'physical',
-    label: 'Free-stream speed',
+    label: t('airfoil.params.speed'),
     hint: '',
-    title: 'Undisturbed speed far upstream, in m/s.',
+    title: t('airfoil.params.speedTitle'),
     step: 1,
   },
   {
     name: 'kutta',
     group: 'physical',
-    label: 'Kutta condition',
+    label: t('airfoil.params.kutta'),
     hint: '',
-    title:
-      'A model choice. Turn it off and the circulation, and therefore the lift, is zero at every incidence — which is what this page computed before it had one.',
-    optionLabels: { enforced: 'enforced (lifting model)', none: 'none (no circulation)' },
+    title: t('airfoil.params.kuttaTitle'),
+    // The keys are the schema's own enum values and travel to the server unchanged; only what
+    // the menu shows is translated.
+    optionLabels: {
+      enforced: t('airfoil.params.kuttaEnforced'),
+      none: t('airfoil.params.kuttaNone'),
+    },
   },
   {
     name: 'panels',
     group: 'numerical',
-    label: 'Panels',
-    hint: 'Its only legitimate effect is on the verification residuals.',
+    label: t('airfoil.params.panels'),
+    hint: t('airfoil.params.panelsHint'),
   },
   {
     name: 'trailing_edge',
     group: 'numerical',
-    label: 'Trailing edge',
-    hint: 'An open base makes the Kutta condition depend on how it is closed.',
-    optionLabels: { closed: 'closed', as_drawn: 'as drawn' },
+    label: t('airfoil.params.trailingEdge'),
+    hint: t('airfoil.params.trailingEdgeHint'),
+    optionLabels: {
+      closed: t('airfoil.params.trailingEdgeClosed'),
+      as_drawn: t('airfoil.params.trailingEdgeAsDrawn'),
+    },
   },
   {
     name: 'resolution',
     group: 'numerical',
-    label: 'Field resolution',
-    hint: 'Affects the picture and no reported number.',
+    label: t('airfoil.params.resolution'),
+    hint: t('airfoil.params.resolutionHint'),
   },
   {
     name: 'convergence_check',
     group: 'numerical',
-    label: 'Check convergence',
-    hint: 'Also solve at twice the panels, and report how far the lift moved.',
+    label: t('airfoil.params.convergence'),
+    hint: t('airfoil.params.convergenceHint'),
   },
   {
     name: 'sweep_from_deg',
     group: 'study',
-    label: 'Sweep from',
-    hint: 'Leave empty for a single incidence.',
+    label: t('airfoil.params.sweepFrom'),
+    hint: t('airfoil.params.sweepFromHint'),
     step: 1,
   },
-  { name: 'sweep_to_deg', group: 'study', label: 'Sweep to', hint: 'End of the sweep.', step: 1 },
+  {
+    name: 'sweep_to_deg',
+    group: 'study',
+    label: t('airfoil.params.sweepTo'),
+    hint: t('airfoil.params.sweepToHint'),
+    step: 1,
+  },
   {
     name: 'sweep_step_deg',
     group: 'study',
-    label: 'Sweep step',
-    hint: 'Every extra angle costs one back-substitution, not one solve.',
+    label: t('airfoil.params.sweepStep'),
+    hint: t('airfoil.params.sweepStepHint'),
     step: 0.5,
   },
 ];
@@ -350,53 +378,65 @@ const PARAM_UI = [
 const METRICS = [
   {
     key: 'c_l',
-    label: 'Lift coefficient',
+    label: t('airfoil.metrics.cl'),
     symbol: 'C_L',
     unit: '1',
     digits: 4,
-    hint: 'From the circulation, via Kutta–Joukowski.',
+    hint: t('airfoil.metrics.clHint'),
   },
   {
     key: 'l_prime',
-    label: 'Lift per metre of span',
+    label: t('airfoil.metrics.lift'),
     symbol: 'L′',
     unit: 'N/m',
     digits: 1,
-    hint: 'The dimensional answer the target is set in.',
+    hint: t('airfoil.metrics.liftHint'),
   },
   {
     key: 'c_m_c4',
-    label: 'Pitching moment',
+    label: t('airfoil.metrics.moment'),
     symbol: 'C_m,c/4',
     unit: '1',
     digits: 4,
-    hint: 'About the quarter chord, nose-up positive.',
+    hint: t('airfoil.metrics.momentHint'),
   },
   {
     key: 'x_cp_over_c',
-    label: 'Centre of pressure',
+    label: t('airfoil.metrics.centre'),
     symbol: 'x_cp/c',
     unit: '1',
     digits: 4,
-    hint: 'Not applicable when the normal force is too small to place it.',
+    hint: t('airfoil.metrics.centreHint'),
   },
   {
     key: 'cp_min',
-    label: 'Suction peak',
+    label: t('airfoil.metrics.peak'),
     symbol: 'C_p,min',
     unit: '1',
     digits: 3,
-    hint: 'How hard this shape pulls. A real boundary layer may not survive a deep one.',
+    hint: t('airfoil.metrics.peakHint'),
   },
-  { key: 'cp_min_station', label: 'Peak position', symbol: 'x/c', unit: '1', digits: 3 },
-  { key: 'circulation', label: 'Circulation', symbol: 'Γ', unit: 'm²/s', digits: 4 },
+  {
+    key: 'cp_min_station',
+    label: t('airfoil.metrics.peakStation'),
+    symbol: 'x/c',
+    unit: '1',
+    digits: 3,
+  },
+  {
+    key: 'circulation',
+    label: t('airfoil.metrics.circulation'),
+    symbol: 'Γ',
+    unit: 'm²/s',
+    digits: 4,
+  },
   {
     key: 'alpha_deg',
-    label: 'Incidence, as read',
+    label: t('airfoil.metrics.incidence'),
     symbol: 'α',
     unit: '°',
     digits: 3,
-    hint: 'Derived from the outline’s own chord line, which is why it can differ slightly from the value requested.',
+    hint: t('airfoil.metrics.incidenceHint'),
   },
 ];
 
@@ -405,66 +445,68 @@ const METRIC_LABELS = Object.fromEntries(METRICS.map((metric) => [metric.key, me
 
 /** The few numbers that answer the mission, shown before any table. */
 const KPIS = [
-  { key: 'c_l', label: 'Lift coefficient', symbol: 'C_L', unit: '1', digits: 3 },
-  { key: 'l_prime', label: 'Lift per metre', symbol: 'L′', unit: 'N/m', digits: 0 },
-  { key: 'c_m_c4', label: 'Pitching moment', symbol: 'C_m,c/4', unit: '1', digits: 4 },
+  { key: 'c_l', label: t('airfoil.metrics.cl'), symbol: 'C_L', unit: '1', digits: 3 },
+  { key: 'l_prime', label: t('airfoil.metrics.liftShort'), symbol: 'L′', unit: 'N/m', digits: 0 },
+  { key: 'c_m_c4', label: t('airfoil.metrics.moment'), symbol: 'C_m,c/4', unit: '1', digits: 4 },
   {
     key: 'x_cp_over_c',
-    label: 'Centre of pressure',
+    label: t('airfoil.metrics.centre'),
     symbol: 'x_cp/c',
     unit: '1',
     digits: 3,
-    absent: 'not defined here',
+    absent: t('airfoil.metrics.centreAbsent'),
   },
-  { key: 'cp_min', label: 'Suction peak', symbol: 'C_p,min', unit: '1', digits: 2 },
+  { key: 'cp_min', label: t('airfoil.metrics.peak'), symbol: 'C_p,min', unit: '1', digits: 2 },
   {
     key: 'x_ac_over_c',
-    label: 'Aerodynamic centre',
+    label: t('airfoil.metrics.aerodynamicCentre'),
     symbol: 'x_ac/c',
     unit: '1',
     digits: 3,
     from: (report) => report.sweep?.x_ac_over_c,
-    absent: 'needs a sweep',
-    hint: 'A property of several incidences, so one solve cannot produce it.',
+    absent: t('airfoil.metrics.aerodynamicCentreAbsent'),
+    hint: t('airfoil.metrics.aerodynamicCentreHint'),
   },
 ];
 
 const CHECKS = [
   {
     key: 'cl_consistency_rel',
-    label: 'Lift two ways',
+    label: t('airfoil.checks.liftTwoWays'),
     tolerance: 'cl_consistency_tolerance',
-    describe: 'Circulation against integrated pressure.',
+    describe: t('airfoil.checks.liftTwoWaysDescribe'),
   },
   {
     key: 'cd_pressure_spurious',
-    label: "d'Alembert residual",
+    label: t('airfoil.checks.dalembert'),
     tolerance: 'cd_pressure_tolerance',
-    describe: 'The chordwise force, which must vanish. An error bar, not a drag.',
+    describe: t('airfoil.checks.dalembertDescribe'),
   },
   {
     key: 'cl_convergence_rel',
-    label: 'Panel convergence',
+    label: t('airfoil.checks.convergence'),
     tolerance: 'cl_convergence_tolerance',
-    describe: 'Change in the lift coefficient when the panel count is doubled.',
+    describe: t('airfoil.checks.convergenceDescribe'),
   },
 ];
 
 const FIELD_VIEW = {
   Cp: {
-    option: 'Pressure coefficient, C_p',
+    option: t('airfoil.fields.cp'),
+    // The colorbar caption is the field's own symbol and stays put: the widget right-aligns it
+    // against a tick sized for strings like "m/s", and a translated word would crowd it.
     caption: 'Cp',
     colormap: 'coolwarm',
     contours: 12,
     symmetric: true,
-    hint: 'Blue is suction, red compression, and C_p = 1 marks the stagnation point. With the Kutta condition imposed the suction over the upper surface no longer cancels — that is the lift. The thin white curves are contours of C_p, not streamlines: switch Streamlines on to see the flow itself, integrated from the velocity field.',
+    hint: t('airfoil.fields.cpHint'),
   },
   speed: {
-    option: 'Speed',
+    option: t('airfoil.fields.speed'),
     caption: 'm/s',
     colormap: 'viridis',
     contours: 10,
-    hint: 'Velocity magnitude. Bright is fast.',
+    hint: t('airfoil.fields.speedHint'),
   },
 };
 
@@ -520,7 +562,7 @@ async function run() {
   if (running) return;
   const chosen = solver();
   if (!chosen) {
-    setStatusOn(dom, 'This server has no solver that can impose a Kutta condition.', 'error');
+    setStatusOn(dom, t('airfoil.noSolver'), 'error');
     return;
   }
 
@@ -549,7 +591,7 @@ async function run() {
     showStats(dom.stats, result);
     showArtifacts(dom.artifacts, result.artifacts);
     present();
-    setStatusOn(dom, 'Done.', 'done');
+    setStatusOn(dom, t('experiment.done'), 'done');
   } finally {
     running = false;
     currentJob = null;
@@ -589,11 +631,11 @@ function present() {
 
   drawCurve(dom.cpCurve, {
     traces: [
-      { name: 'upper surface', points: report.curves.cp_upper },
-      { name: 'lower surface', points: report.curves.cp_lower },
+      { name: t('airfoil.plots.upper'), points: report.curves.cp_upper },
+      { name: t('airfoil.plots.lower'), points: report.curves.cp_lower },
     ],
-    xLabel: 'x / c',
-    yLabel: 'C_p',
+    xLabel: t('airfoil.plots.stationAxis'),
+    yLabel: t('airfoil.plots.cpAxis'),
     invertY: true,
     marks: [{ y: 0 }],
   });
@@ -603,19 +645,25 @@ function present() {
     const sweep = report.sweep;
     drawCurve(dom.sweepCurve, {
       traces: [
-        { name: 'lift coefficient', points: sweep.alpha_deg.map((a, i) => [a, sweep.c_l[i]]) },
-        { name: 'pitching moment', points: sweep.alpha_deg.map((a, i) => [a, sweep.c_m_c4[i]]) },
+        {
+          name: t('airfoil.plots.liftTrace'),
+          points: sweep.alpha_deg.map((a, i) => [a, sweep.c_l[i]]),
+        },
+        {
+          name: t('airfoil.plots.momentTrace'),
+          points: sweep.alpha_deg.map((a, i) => [a, sweep.c_m_c4[i]]),
+        },
       ],
-      xLabel: 'angle of attack, degrees',
-      yLabel: 'coefficient',
+      xLabel: t('airfoil.plots.alphaAxis'),
+      yLabel: t('airfoil.plots.coefficientAxis'),
       marks: [{ y: 0 }],
     });
     dom.sweepMetrics.replaceChildren(
-      entry('Lift-curve slope', `${sweep.lift_slope.toFixed(3)} /rad`),
-      entry('as a multiple of 2π', (sweep.lift_slope / (2 * Math.PI)).toFixed(3)),
-      entry('Zero-lift incidence', `${sweep.alpha_l0_deg.toFixed(2)} °`),
-      entry('Aerodynamic centre', `${sweep.x_ac_over_c.toFixed(3)} c`),
-      entry('Fit R²', sweep.x_ac_fit_r2.toFixed(5)),
+      entry(t('airfoil.plots.liftSlope'), `${sweep.lift_slope.toFixed(3)} /rad`),
+      entry(t('airfoil.plots.slopeMultiple'), (sweep.lift_slope / (2 * Math.PI)).toFixed(3)),
+      entry(t('airfoil.plots.zeroLift'), `${sweep.alpha_l0_deg.toFixed(2)} °`),
+      entry(t('airfoil.plots.aerodynamicCentre'), `${sweep.x_ac_over_c.toFixed(3)} c`),
+      entry(t('airfoil.plots.fit'), sweep.x_ac_fit_r2.toFixed(5)),
     );
   }
 }
@@ -635,14 +683,14 @@ function renderDerived() {
     soundSpeed: a,
   });
   dom.derived.replaceChildren(
-    entry('Density', `${rho.toFixed(4)} kg/m³`),
-    entry('Viscosity', `${mu.toExponential(3)} Pa·s`),
-    entry('Speed of sound', `${a.toFixed(1)} m/s`),
-    state ? entry('Temperature', `${state.temperature.toFixed(2)} K`) : null,
-    state ? entry('Pressure', `${(state.pressure / 1000).toFixed(2)} kPa`) : null,
-    entry('Dynamic pressure', `${derived.dynamicPressure.toFixed(0)} Pa`),
-    entry('Reynolds number', derived.reynolds.toExponential(2)),
-    entry('Mach number', derived.mach.toFixed(3)),
+    entry(t('airfoil.air.density'), `${rho.toFixed(4)} kg/m³`),
+    entry(t('airfoil.air.viscosity'), `${mu.toExponential(3)} Pa·s`),
+    entry(t('airfoil.air.soundSpeed'), `${a.toFixed(1)} m/s`),
+    state ? entry(t('airfoil.air.temperature'), `${state.temperature.toFixed(2)} K`) : null,
+    state ? entry(t('airfoil.air.pressure'), `${(state.pressure / 1000).toFixed(2)} kPa`) : null,
+    entry(t('airfoil.air.dynamicPressure'), `${derived.dynamicPressure.toFixed(0)} Pa`),
+    entry(t('airfoil.air.reynolds'), derived.reynolds.toExponential(2)),
+    entry(t('airfoil.air.mach'), derived.mach.toFixed(3)),
   );
 }
 
@@ -721,54 +769,57 @@ function peakSurface() {
  * so the absence is a statement about the physics instead of a gap in the interface.
  */
 function declareOverlays() {
-  const noRun = 'Run the solve first.';
+  const noRun = t('workspace.noRun');
   workspace.setOverlays([
-    { id: 'profile', label: 'Profile', colour: 'var(--overlay-profile)', on: true },
+    {
+      id: 'profile',
+      label: t('airfoil.overlays.profile'),
+      colour: 'var(--overlay-profile)',
+      on: true,
+    },
     {
       id: 'chord',
-      label: 'Chord & c/4',
+      label: t('airfoil.overlays.chord'),
       colour: 'var(--overlay-chord)',
       on: true,
-      title: 'The chord line, and the quarter chord the moment is taken about',
+      title: t('airfoil.overlays.chordTitle'),
     },
     {
       id: 'stream',
-      label: 'Free stream',
+      label: t('airfoil.overlays.stream'),
       colour: 'var(--overlay-stream)',
       on: true,
-      title: 'Direction and speed of the undisturbed flow',
+      title: t('airfoil.overlays.streamTitle'),
     },
     {
       id: 'cp',
-      label: 'Centre of pressure',
+      label: t('airfoil.overlays.centre'),
       colour: 'var(--overlay-cp)',
       on: true,
       enabled: Boolean(report) && typeof report.metrics?.x_cp_over_c === 'number',
-      why: report
-        ? 'The normal force is too small to place a centre of pressure: it genuinely runs off to infinity here.'
-        : noRun,
+      why: report ? t('airfoil.overlays.centreWhy') : noRun,
     },
     {
       id: 'resultant',
-      label: 'Resultant',
+      label: t('airfoil.overlays.resultant'),
       colour: 'var(--overlay-cp)',
       enabled: Boolean(report) && typeof report.metrics?.x_cp_over_c === 'number',
-      why: report ? 'Drawn at the centre of pressure, which this run does not have.' : noRun,
-      title: 'The aerodynamic force, acting at the centre of pressure',
+      why: report ? t('airfoil.overlays.resultantWhy') : noRun,
+      title: t('airfoil.overlays.resultantTitle'),
     },
     {
       id: 'peak',
-      label: 'Suction peak',
+      label: t('airfoil.overlays.peak'),
       colour: 'var(--overlay-peak)',
       enabled: Boolean(report?.curves),
       why: noRun,
     },
     {
       id: 'ac',
-      label: 'Aerodynamic centre',
+      label: t('airfoil.overlays.ac'),
       colour: 'var(--overlay-ac)',
       enabled: Boolean(report?.sweep),
-      why: 'The aerodynamic centre is a property of several incidences. Run a sweep under Advanced.',
+      why: t('airfoil.overlays.acWhy'),
     },
   ]);
 }
@@ -893,14 +944,16 @@ function profileBox() {
 
 /** What the table shows at a glance. Everything else stays in the row, for Compare and export. */
 const COLUMNS = [
-  { path: 'geometry.label', label: 'Profile' },
-  { path: 'physical.alpha_deg', label: 'α °' },
+  { path: 'geometry.label', label: t('airfoil.columns.profile') },
+  { path: 'physical.alpha_deg', label: t('airfoil.columns.alpha') },
+  // The symbol columns are the same in every language, and are left as symbols on purpose:
+  // a header that reads `C_L` is read by an Italian engineer exactly as it is by an English one.
   { path: 'metrics.c_l', label: 'C_L' },
   { path: 'metrics.l_prime', label: "L' N/m" },
   { path: 'metrics.c_m_c4', label: 'C_m,c/4' },
   { path: 'metrics.cp_min', label: 'C_p,min' },
-  { path: 'numerics.panels', label: 'panels' },
-  { path: 'verification.cl_consistency_rel', label: 'consistency' },
+  { path: 'numerics.panels', label: t('airfoil.columns.panels') },
+  { path: 'verification.cl_consistency_rel', label: t('airfoil.columns.consistency') },
 ];
 
 /** One row: every input, the answer, the residuals, the warnings, the provenance. */
@@ -913,7 +966,7 @@ function row() {
     model: report.model,
     geometry: {
       source: geometry.source,
-      label: geometry.source === 'custom' ? 'Custom' : geometry.label,
+      label: geometry.source === 'custom' ? t('airfoil.custom') : geometry.label,
       m: geometry.source === 'custom' ? null : shape.m,
       p: geometry.source === 'custom' ? null : shape.p,
       t: geometry.source === 'custom' ? null : shape.t,
@@ -997,8 +1050,8 @@ function refreshRuns(rows = runs.load(EXERCISE), evicted = 0) {
     { labels: METRIC_LABELS },
   );
 
-  const parts = [`${rows.length} of ${runs.CAPACITY} kept, in this browser only.`];
-  if (evicted) parts.push(`${evicted} oldest dropped to make room.`);
+  const parts = [t('experiment.kept', { count: rows.length, capacity: runs.CAPACITY })];
+  if (evicted) parts.push(t('experiment.evicted', { count: evicted }));
   dom.runsNote.textContent = parts.join(' ');
   for (const button of [dom.exportCsv, dom.exportJson, dom.clearRuns])
     button.disabled = !rows.length;
@@ -1040,10 +1093,7 @@ function loadRun(entry) {
   });
   renderDerived();
   workspace.draw();
-  setStatusOn(
-    dom,
-    `Loaded the inputs of the ${entry.geometry.label} run. Press Run to recompute it.`,
-  );
+  setStatusOn(dom, t('experiment.loaded', { label: entry.geometry.label }));
 }
 
 /* ---------------------------------------------------------------------------- the controls */
@@ -1084,10 +1134,10 @@ function buildForms(previous = currentParams()) {
 }
 
 function renderAtmosphere() {
-  const mode = el('select', { id: 'atmosphere-mode', 'aria-label': 'Atmosphere' });
+  const mode = el('select', { id: 'atmosphere-mode', 'aria-label': t('airfoil.air.atmosphere') });
   mode.replaceChildren(
-    new Option('ISA altitude', 'isa', false, physical.atmosphere === 'isa'),
-    new Option('Enter the air properties', 'manual', false, physical.atmosphere === 'manual'),
+    new Option(t('airfoil.air.isa'), 'isa', false, physical.atmosphere === 'isa'),
+    new Option(t('airfoil.air.manual'), 'manual', false, physical.atmosphere === 'manual'),
   );
   mode.addEventListener('change', () => {
     physical.atmosphere = mode.value;
@@ -1103,9 +1153,8 @@ function renderAtmosphere() {
         'label',
         { class: 'field__label', for: 'atmosphere-mode' },
         el('span', {
-          text: 'Atmosphere',
-          title:
-            'Altitude sets temperature, pressure, density, viscosity and the speed of sound together, because they are one decision and not five.',
+          text: t('airfoil.air.atmosphere'),
+          title: t('airfoil.air.atmosphereTitle'),
         }),
       ),
       mode,
@@ -1114,22 +1163,49 @@ function renderAtmosphere() {
 
   if (physical.atmosphere === 'isa') {
     children.push(
-      numberField('altitude', 'Altitude', physical.altitude, 0, 15000, 250, 'm', (value) => {
-        physical.altitude = value;
-        renderDerived();
-      }),
+      numberField(
+        'altitude',
+        t('airfoil.air.altitude'),
+        physical.altitude,
+        0,
+        15000,
+        250,
+        'm',
+        (value) => {
+          physical.altitude = value;
+          renderDerived();
+        },
+      ),
     );
   } else {
     children.push(
-      numberField('rho', 'Density', physical.rho, 0.05, 2, 0.005, 'kg/m³', (value) => {
-        physical.rho = value;
-        renderDerived();
-      }),
-      numberField('mu', 'Viscosity', physical.mu, 1e-6, 5e-5, 1e-7, 'Pa·s', (value) => {
-        physical.mu = value;
-        renderDerived();
-      }),
-      numberField('sound', 'Speed of sound', physical.a, 100, 400, 1, 'm/s', (value) => {
+      numberField(
+        'rho',
+        t('airfoil.air.density'),
+        physical.rho,
+        0.05,
+        2,
+        0.005,
+        'kg/m³',
+        (value) => {
+          physical.rho = value;
+          renderDerived();
+        },
+      ),
+      numberField(
+        'mu',
+        t('airfoil.air.viscosity'),
+        physical.mu,
+        1e-6,
+        5e-5,
+        1e-7,
+        'Pa·s',
+        (value) => {
+          physical.mu = value;
+          renderDerived();
+        },
+      ),
+      numberField('sound', t('airfoil.air.soundSpeed'), physical.a, 100, 400, 1, 'm/s', (value) => {
         physical.a = value;
         renderDerived();
       }),
@@ -1137,7 +1213,7 @@ function renderAtmosphere() {
   }
 
   children.push(
-    numberField('chord', 'Chord', physical.chord, 0.05, 5, 0.05, 'm', (value) => {
+    numberField('chord', t('airfoil.air.chord'), physical.chord, 0.05, 5, 0.05, 'm', (value) => {
       physical.chord = value;
       renderDerived();
       workspace?.draw();
@@ -1178,14 +1254,14 @@ workspace = createWorkspace({
   root: dom.workspace,
   viewer: dom.viewer,
   editor: dom.editor,
-  fitLabel: 'Fit profile',
+  fitLabel: t('airfoil.fitProfile'),
   exportName: 'airfoil-field',
   subject: profileBox,
   onDraw: drawOverlay,
   onModeChange: (mode) => {
     dom.editShape.classList.toggle('is-active', mode === 'edit');
     dom.editShape.setAttribute('aria-pressed', String(mode === 'edit'));
-    dom.editShape.textContent = mode === 'edit' ? 'Done editing' : 'Edit shape';
+    dom.editShape.textContent = mode === 'edit' ? t('airfoil.doneEditing') : t('airfoil.editShape');
   },
 });
 
@@ -1202,7 +1278,7 @@ dom.profile.replaceChildren(
         profile.label === DEFAULT_PROFILE,
       ),
   ),
-  new Option('Custom (dragged)', 'custom'),
+  new Option(t('airfoil.customDragged'), 'custom'),
 );
 dom.profile.addEventListener('change', () => {
   const profile = CATALOGUE.find((entry) => entry.label === dom.profile.value);
@@ -1217,7 +1293,7 @@ dom.profile.addEventListener('change', () => {
 dom.editor.addEventListener('change', () => {
   if (applyingShape) return;
   geometry.source = 'custom';
-  geometry.label = 'Custom';
+  geometry.label = t('airfoil.custom');
   dom.profile.value = 'custom';
   describeGeometry(report);
   workspace.draw();
@@ -1272,7 +1348,7 @@ dom.clearRuns.addEventListener('click', () => {
 
 try {
   const [loaded, info, solvers] = await Promise.all([
-    fetch('/experiments/airfoil/content.json').then((response) => response.json()),
+    fetch(contentUrl(EXERCISE)).then((response) => response.json()),
     health().catch(() => null),
     solversFor(GEOMETRY_TYPE, { physics: PHYSICS }),
   ]);
@@ -1295,22 +1371,18 @@ try {
   const canSolve = applyMaintenance(
     dom,
     info,
-    'The lab is not accepting new simulations right now. You can still read the problem, reshape the profile and look at any runs you have kept.',
+    t('bench.maintenance', { alternative: t('airfoil.maintenanceAlternative') }),
   );
 
   if (!chosen) {
-    setStatusOn(
-      dom,
-      'This server has no solver that imposes a Kutta condition, so this exercise cannot be run here.',
-      'error',
-    );
+    setStatusOn(dom, t('airfoil.noSolverHere'), 'error');
   } else if (!canSolve) {
-    setStatusOn(dom, 'Simulations are paused for maintenance.');
+    setStatusOn(dom, t('experiment.maintenanceStatus'));
   } else {
     dom.run.disabled = false;
-    setStatusOn(dom, 'Press Run to solve the section as it stands.');
+    setStatusOn(dom, t('airfoil.ready'));
   }
 } catch (error) {
-  setStatusOn(dom, `Cannot reach the server — ${describeError(error)}`, 'error');
+  setStatusOn(dom, t('experiment.unreachable', { detail: describeError(error) }), 'error');
   dom.run.disabled = true;
 }

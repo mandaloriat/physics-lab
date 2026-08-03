@@ -54,6 +54,12 @@ jobs:
       - name: Front-end formatting
         run: npm run lint
 
+      - name: The two languages agree
+        # A key the Italian catalogue never got shows English inside Italian prose, and a page
+        # asking for a key neither catalogue has prints the key. Both are invisible to a test
+        # that only loads a page in one language, so they are checked directly.
+        run: npm run check:i18n
+
       - name: No committed secrets
         uses: gitleaks/gitleaks-action@v2
         env:

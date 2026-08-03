@@ -20,7 +20,12 @@ Nothing from it is copied into this repository. What this repository contains is
 teaching experience on top — the experiments, the explanations, the visual identity, the
 public deployment and the service limits.
 
-Everything — pages, experiment content, code and documentation — is in English. See
+**The site reads in English or Italian**, with a switch at the top right of every page; the
+choice is remembered and is shareable as `?lang=it`. Anything the *server* writes stays in the
+language it wrote it in — the validity warnings inside a result, and the solver titles the API
+publishes — and so do the code, the tests and the documentation. See
+[ADR-020](docs/architecture-decisions.md#adr-020--the-site-is-bilingual-the-repository-is-not),
+which supersedes part of
 [ADR-011](docs/architecture-decisions.md#adr-011--english-throughout-site-included).
 
 ---
@@ -167,12 +172,14 @@ physics_lab/          the app: main.py, settings.py
 frontend/             static site — no build step for the lab's own code
   index.html            homepage
   assets/thumbnails/    one real solve per experiment, made by scripts/make-thumbnails.py
-  experiments/airfoil/  the wind-tunnel exercise (index.html, app.js, content.json)
-  experiments/solenoid/ the magnetics experiment, same three files
-  experiments/truss/    the bridge exercise, same three files, plus its own lattice editor
+  experiments/airfoil/  the wind-tunnel exercise (index.html, app.js, content.json,
+                        content.it.json)
+  experiments/solenoid/ the magnetics experiment, same four files
+  experiments/truss/    the bridge exercise, same four files, plus its own lattice editor
   shared/               lab.css, api.js, components.js, experiment.js (the page shell),
                         workspace.js (the field and its tools), exercise.js, curve.js,
-                        runs.js, atmosphere.js (the exercise contract)
+                        runs.js, atmosphere.js (the exercise contract), i18n.js
+    strings/            en.js and it.js — every word the pages say
   vendor/               Fenix Spoon widgets, built from the pin (generated, gitignored)
 tests/                pytest: the API seam, the served site
 e2e/                  Playwright: the browser loop, run against a deployment
@@ -484,6 +491,7 @@ pytest                     # the API seam and the served site
 ruff check .               # lint
 mypy                       # type check
 ./scripts/check-pins.sh    # every Fenix Spoon reference agrees
+npm run check:i18n         # the two languages agree, and the pages ask for keys that exist
 ./scripts/make-thumbnails.py   # regenerate the homepage cards from real solves
 
 npm install && npx playwright install chromium
@@ -511,9 +519,9 @@ A bare `:port` site address turns automatic HTTPS off, so nothing else has to ch
 
 ### Adding an experiment
 
-1. A directory under `frontend/experiments/`, with `index.html`, `app.js` and
-   `content.json`. The two existing experiments are the references, and they differ on
-   purpose: the airfoil edits its geometry with a widget, the solenoid builds it from
+1. A directory under `frontend/experiments/`, with `index.html`, `app.js`, `content.json`
+   and `content.it.json`. The two existing experiments are the references, and they differ
+   on purpose: the airfoil edits its geometry with a widget, the solenoid builds it from
    physical sliders.
 2. `app.js` supplies the physics and takes the rest from `shared/experiment.js` — the
    parameter form (generated from the solver's own `params_schema`, never hardcoded), the
@@ -521,10 +529,15 @@ A bare `:port` site address turns automatic HTTPS off, so nothing else has to ch
    experiment writes for itself is the geometry, a `FIELD_VIEW` table saying how to read
    each field, and any quantity worth deriving in the browser from what the solver returned
    (`Cp` for the airfoil, `H` for the solenoid).
-3. A card on the homepage, and the experiment's name in `EXPERIMENTS` in
+3. Its wording in both `frontend/shared/strings/en.js` and `it.js`, under a block named
+   after the experiment. Nothing in `app.js` or `index.html` holds a sentence of its own:
+   the script calls `t('yours.something')` and the markup carries `data-i18n`. `npm run
+   check:i18n` fails on a key one language has and the other does not.
+4. A card on the homepage, and the experiment's name in `EXPERIMENTS` in
    `tests/test_frontend.py`, which then checks its assets, its import map and the shape of
-   its `content.json` — including that it documents the limits of its own model.
-4. If Fenix Spoon has no solver for it, an adapter in `physics_lab/solvers/`. That package
+   its `content.json` in every language — including that it documents the limits of its own
+   model.
+5. If Fenix Spoon has no solver for it, an adapter in `physics_lab/solvers/`. That package
    is already imported before the app is built, and again by `physics_lab.worker` — the
    module the worker containers run — so `@register` is the whole integration. Sharing an
    image with the API is not what makes an adapter available in a worker; importing the

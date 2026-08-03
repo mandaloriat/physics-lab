@@ -1,0 +1,119 @@
+{
+  "id": "truss",
+  "title": "Il ponte",
+  "subtitle": "Statica di una travatura reticolare",
+  "intro": "Una gola di 24 metri con un canale navigabile sotto la sua metà, e una travatura di aste d'acciaio per attraversarla. Disponi tu i nodi e le aste, metti i vincoli dove il terreno può reggerli, carica l'impalcato, e scopri quale asta cede per prima.",
+  "challenge": {
+    "statement": "Porta 4 kN per metro lungo i 24 m di impalcato senza che alcuna asta superi la propria capacità, con non più di 2400 kg di acciaio, e con una freccia sotto un ottocentesimo della luce. Le prove che escono dal campo di validità del modello non contano — una travatura con un'asta instabilizzata ha già ceduto, qualunque cosa dicano gli altri suoi numeri.",
+    "targets": [
+      {
+        "metric": "utilisation_max",
+        "comparator": "<",
+        "value": 1,
+        "unit": "1"
+      },
+      {
+        "metric": "mass",
+        "comparator": "<",
+        "value": 2400,
+        "unit": "kg"
+      },
+      {
+        "metric": "span_ratio",
+        "comparator": "<",
+        "value": 0.00125,
+        "unit": "1"
+      }
+    ],
+    "requires_valid": true,
+    "requires_verified": {
+      "metric": "joint_equilibrium_rel",
+      "below": 1e-6
+    },
+    "next_step": "una travatura diversa con una sezione diversa"
+  },
+  "sections": [
+    {
+      "id": "problem",
+      "heading": "Il problema",
+      "lead": "Porta 4 kN per metro di traffico su 24 metri, con 2400 kg di acciaio, senza perdere un'asta.",
+      "body": [
+        "La travatura con cui la pagina si apre — una Warren di otto campi, alta tre metri, con aste da 2200 mm² — porta il carico e **manca la missione**: la sua diagonale più impegnata sta a circa 1,9 volte quel che può portare, e la prova è per giunta squalificata, perché quella diagonale ha superato il proprio carico critico e un modello lineare non può vederla cedere. Usa 1700 kg dei 2400 consentiti, ed è il margine che hai per rimediare.",
+        "Tre cose decidono questo esercizio, e solo la prima è ovvia. **È la compressione a cedere, non la trazione.** Un'asta snella si instabilizza a una frazione della forza che la porterebbe a snervamento — per un'asta da 5 m di 2200 mm² il carico euleriano è circa 47 kN contro un carico di schiacciamento di 550 kN — quindi lo sfruttamento contro cui combatti è quasi sempre quello di un'asta compressa, e quasi sempre della più lunga. **Il carico euleriano va col quadrato dell'area e con l'inverso del quadrato della lunghezza**, quindi dimezzare la lunghezza di un'asta compressa vale quanto raddoppiarne la sezione, e non costa acciaio. E **l'altezza compra forza nei correnti**: una travatura più alta porta la stessa flessione con meno forza nei correnti, al prezzo di diagonali più lunghe e più numerose.",
+        "C'è più di una travatura che passa. Trovane una, salva la prova, poi trovane un'altra — un numero di campi diverso, un'altezza diversa, una sezione diversa — che passi anch'essa, e confronta le due. La tabella delle prove esiste per rendere possibile quel confronto, non per conservare schermate."
+      ]
+    },
+    {
+      "id": "model",
+      "heading": "Il modello",
+      "body": [
+        "Statica bidimensionale, lineare-elastica, a piccoli spostamenti, di una travatura **a nodi cerniera**. Ogni nodo è una cerniera priva di attrito, quindi un'asta porta forza lungo sé stessa e nient'altro — nessuna flessione, nessun taglio, nessun momento in tutta la struttura.",
+        "Assembla il contributo di ogni asta in una matrice di rigidezza globale e risolvi **K u = f** una volta sola per gli spostamenti dei nodi; la forza in un'asta è poi la sua rigidezza per l'allungamento del proprio asse, **N = (EA/L)·(u_j − u_i)·ê**. Non c'è nulla di iterativo e nulla da far convergere: con i nodi incernierati, un elemento per asta *è* la struttura, non un'approssimazione di essa. È per questo che questa pagina non ha dimensione di mesh, né tolleranza, né studio di convergenza, e per cui la verifica qui sotto riguarda l'equilibrio invece del raffinamento.",
+        "**La capacità, e perché non è la tensione di snervamento.** Un'asta tesa può portare la tensione di snervamento per la sua area. Un'asta compressa può portare il *minore* fra quella e il carico critico euleriano, **P_cr = π²EI/L²**, e per la sezione circolare piena che questo modello assume — **I = A²/4π** — vale **P_cr = πEA²/4L²**. Entrambi sono divisi per il coefficiente di sicurezza prima di calcolare uno sfruttamento. Misurare la compressione contro lo snervamento riporterebbe il quattro per cento su un'asta che se n'è già andata.",
+        "**Nessuna condizione iniziale.** Il problema è statico, quindi non c'è alcuno stato a *t* = 0. Dove un esercizio in transitorio ne elencherebbe una, questa pagina non ha nulla da elencare, e inventare qualcosa per riempire il vuoto sarebbe una menzogna sul modello.",
+        "**Unità.** SI dappertutto. I cursori sono in kilonewton e kilonewton al metro perché è così che si parla di un carico; tutto è convertito al confine, e ogni numero riportato è in SI."
+      ]
+    },
+    {
+      "id": "boundary-conditions",
+      "heading": "Dove è tenuto, e dove è caricato",
+      "body": [
+        "È la metà dell'esercizio in cui al toolkit viene posta una domanda nuova, quindi vale la pena leggerla nei termini che usa il protocollo. Il **sito** è la geometria: i limiti, le due sponde, il canale navigabile che deve restare libero. Il sito *nomina* anche dei luoghi — una scatola attorno a un nodo, una fascia lungo la carreggiata — e quei nomi sono tutto ciò a cui una condizione di carico può riferirsi.",
+        "**La condizione di carico dice che cosa succede in ciascun luogo nominato.** Un vincolo diventa `fixed_x` e `fixed_y` su una scatola che nomina un nodo; un carico che posi diventa una forza totale su una scatola che nomina un nodo; il traffico diventa un carico per unità di lunghezza lungo la fascia dell'impalcato, portato da ogni asta che ha **entrambi** gli estremi su di essa. I vincoli sono esatti — un nodo incernierato non si muove affatto — e un carico per unità di lunghezza è ripartito per metà su ciascun estremo dell'asta lungo cui agisce, il che è esatto per l'equilibrio dei nodi ed esatto per la forza assiale, perché un'asta a nodi cerniera non ha flessione in cui il resto possa finire.",
+        "**Una condizione che non cade su nulla è rifiutata, non ignorata.** Una scatola di vincolo che non cattura alcun nodo, o un carico sull'impalcato senza un'asta lungo cui agire, torna indietro come un rifiuto che nomina il contorno, invece che come una soluzione che risponde silenziosamente a un problema più leggero. Quell'asimmetria è voluta ed è del toolkit a monte: una proprietà di materiale non letta lascia un valore predefinito, mentre una condizione al contorno non letta lascia un vincolo fuori dalla struttura — che converge, e risponde a una domanda diversa, senza alcun sintomo da nessuna parte nel risultato.",
+        "**Una cerniera e un carrello, non due cerniere.** La coppia con cui la pagina parte è quella isostatica: un nodo tenuto in entrambe le direzioni, uno tenuto solo verso l'alto. Due cerniere sarebbero un ponte perfettamente valido e un problema diverso — non può allungarsi, quindi una giornata calda mette forza nei correnti senza alcun carico sull'impalcato, e questo modello non ha una temperatura per mostrartelo."
+      ]
+    },
+    {
+      "id": "inputs",
+      "heading": "Che cosa scegli",
+      "body": [
+        "**La travatura** è il progetto: dove stanno i nodi, quali di essi sono uniti, dove siedono i vincoli. È disegnata invece che digitata, ed è l'unico dato in ingresso di questa pagina senza un numero attaccato.",
+        "**La sezione** è l'unica variabile di progetto continua — un'area per tutte le aste. È una restrizione voluta: un'area libera per ogni asta trasforma questo in un'ottimizzazione a cento variabili senza modo di vedere perché una risposta sia migliore, mentre un'area sola e una topologia libera sono la versione in cui una diagonale che aggiungi per una ragione aiuta in modo visibile.",
+        "**Il materiale** — modulo, densità, snervamento — è acciaio per impostazione predefinita e vale la pena cambiarlo solo per vedere che cosa fa ciascuno. Il modulo muove la freccia e il carico critico e, in una travatura isostatica, nemmeno una forza d'asta. La densità muove la massa e nient'altro. La tensione di snervamento muove la capacità a trazione e di solito proprio nulla, perché è la compressione a cedere.",
+        "**Il carico** è il traffico lungo l'impalcato, tutto ciò che posi su un nodo, e un carico laterale sulla travatura sopra l'impalcato. Tutti e tre sono le condizioni della missione invece che parametri del solutore, ed è per questo che stanno in un gruppo a parte: cambiarne uno significa porre allo stesso ponte una domanda diversa."
+      ]
+    },
+    {
+      "id": "fields",
+      "heading": "Che cosa guardare",
+      "body": [
+        "L'immagine è la travatura stessa, ogni asta disegnata come un nastro e colorata da ciò che porta. **Lo sfruttamento** è il campo su cui si decide la missione: tutto ciò che raggiunge 1 è esaurito. **La forza assiale** ha segno, quindi trazione e compressione si leggono come colori opposti — segui il segno lungo i correnti e puoi guardare la travatura lavorare, quello inferiore tirato e quello superiore compresso, le diagonali che si alternano mentre portano il taglio verso le spalle.",
+        "**Le aste sono disegnate a una larghezza di rappresentazione, non al loro diametro reale.** Un'asta piena da 2200 mm² è larga 53 mm; disegnata in scala su una luce di 24 m sta sotto il pixel. Il valore è costante lungo la larghezza e lungo la lunghezza di un'asta, perché è quello che dice il modello: una forza sola, per tutta la sua estensione.",
+        "Il livello **Deformata** disegna dove è andato davvero ogni nodo, amplificato — un ponte che si abbassa di 12 mm su 24 m è, in scala, una retta — e l'amplificazione è stampata insieme. Il livello **Asta più sollecitata** segna l'asta da cui dipende la missione."
+      ]
+    },
+    {
+      "id": "metrics",
+      "heading": "I numeri che rispondono",
+      "body": [
+        "**Lo sfruttamento η** è la risposta: la forza dell'asta più impegnata su quel che quell'asta può portare. È un massimo sulla travatura invece che una media, perché una struttura cede dove è peggiore e da nessun'altra parte.",
+        "**La freccia sulla luce δ/L** è la risposta di esercizio, nella forma in cui la enuncia ogni normativa — ed è ciò che rende confrontabili una travatura da 24 m e una da 40 m.",
+        "**La massa** è il budget. **Il portato per chilogrammo** è la cifra di merito che lo accompagna: il carico imposto diviso l'acciaio impiegato, e il numero che migliora quando una travatura diventa più intelligente invece che più pesante. Il peso proprio non è deliberatamente al numeratore — un ponte non è pagato per portare sé stesso.",
+        "**Il margine di instabilità** è il carico critico euleriano sulla forza effettivamente portata, per l'asta compressa più sollecitata. È assente, invece che grande, quando nulla è compresso: è un'affermazione sulla travatura, non un numero mancante."
+      ]
+    },
+    {
+      "id": "verification",
+      "heading": "Come è verificato",
+      "body": [
+        "Quattro residui a ogni esecuzione, e sono indipendenti l'uno dall'altro invece che quattro viste dello stesso calcolo.",
+        "**Il metodo dei nodi** ricava di nuovo l'equilibrio a ogni nodo libero dalle sole forze d'asta e dalla geometria — nessuna matrice di rigidezza e nessuno spostamento — quindi è un'affermazione genuinamente separata che la risposta sta in piedi. **L'equilibrio alla traslazione** e **quello alla rotazione** chiudono l'intera struttura contro il mondo esterno, e quello alla rotazione coglie ciò che quello alla traslazione non può: una reazione della giusta intensità nel posto sbagliato.",
+        "**Energia per due vie** raggiunge lo stesso scalare per due strade che non condividono alcun conto — una somma sulle aste di N²L/2EA, e una somma sui nodi di ½ f·u. Sono uguali per una struttura lineare, e la loro differenza è un controllo sull'assemblaggio invece che una riformulazione della soluzione.",
+        "Tutti e quattro sono qui alla precisione di macchina, e devono esserlo: questo metodo non approssima un continuo, quindi un residuo di 10⁻³ non sarebbe una mesh grossolana, sarebbe un errore di programmazione."
+      ]
+    },
+    {
+      "id": "limits",
+      "heading": "Che cosa questo modello non può dirti",
+      "caution": true,
+      "body": [
+        "**Nodi a cerniera.** I nodi reali sono imbullonati o saldati con fazzoletti, e portano momento: una travatura reale è più rigida di questa, e i suoi correnti portano una flessione che questo modello non ha modo di riportare. Per una travatura completamente triangolata le forze assiali sono corrette entro qualche punto percentuale, ed è per questo che il modello vale la pena di essere usato; per una che non è triangolata, i nodi sono l'unica cosa che la tiene su e questo modello la rifiuta invece di dare un risultato.",
+        "**Piccoli spostamenti.** L'equilibrio è scritto sulla travatura indeformata, quindi la risposta appartiene a un ponte che non si è mosso. Oltre circa un centesimo della luce, la geometria che porta il carico non è più quella su cui il carico è stato calcolato, e la pagina lo dice sulla prova.",
+        "**Instabilità euleriana di un'asta piena perfetta.** Le aste reali sono imperfette e caricate eccentricamente, e cedono sotto il carico euleriano invece che a esso; una normativa affronta la cosa con una curva di instabilità, non con una formula. Anche la forma della sezione è qui fissata all'estremo conservativo — un tubo di pari area si instabilizza a un carico molto più alto — ed è fissata invece che offerta proprio perché un'asta compressa non possa essere resa sicura affermando una sezione migliore.",
+        "**Una sola condizione di carico, applicata lentamente.** Niente dinamica, niente fatica, niente carico mobile, niente vento variabile nel tempo, niente temperatura. Un camion che attraversa si modella riponendo la domanda col carico da un'altra parte — cosa che lo strumento Carico rende rapida, e che è genuinamente utile fare.",
+        "**Due dimensioni, una travatura.** Un ponte reale è fatto di due travature con un impalcato in mezzo, controventate l'una all'altra; il comportamento fuori dal piano non è in questo modello, e il carico laterale di questa pagina è portato nel piano invece che dal controventamento che davvero lo prenderebbe."
+      ]
+    }
+  ]
+}

@@ -51,6 +51,7 @@ import {
   showStats,
   syncFieldOptions,
 } from '/shared/experiment.js';
+import { contentUrl, num, t } from '/shared/i18n.js';
 import * as runs from '/shared/runs.js';
 import { createWorkspace, marker, polyline, svgNode } from '/shared/workspace.js';
 
@@ -197,49 +198,46 @@ const shape = { ...SHAPE_DEFAULTS };
 const DESIGN_CONTROLS = [
   {
     key: 'coreHalfWidth',
-    label: 'Core half-width',
+    label: t('solenoid.design.coreHalfWidth'),
     min: 2,
     max: 14,
     step: 0.5,
     unit: ' mm',
-    title:
-      'Half the thickness of the iron bar down the middle. It sets the area the flux has to fit through, so it moves the flux density more than the flux.',
+    title: t('solenoid.design.coreHalfWidthTitle'),
   },
   {
     key: 'gap',
-    label: 'Air gap',
+    label: t('solenoid.design.gap'),
     min: 1,
     max: 10,
     step: 0.5,
     unit: ' mm',
-    title:
-      'Clearance between the core and the winding — the space insulation and formers take. It is what leakage is bought with: a tight gap keeps the copper’s field in the iron.',
+    title: t('solenoid.design.gapTitle'),
   },
   {
     key: 'winding',
-    label: 'Winding thickness',
+    label: t('solenoid.design.winding'),
     min: 3,
     max: 20,
     step: 0.5,
     unit: ' mm',
-    title: 'How far the copper extends outward. Thicker winding, more ampere-turns.',
+    title: t('solenoid.design.windingTitle'),
   },
   {
     key: 'halfHeight',
-    label: 'Half-height',
+    label: t('solenoid.design.halfHeight'),
     min: 10,
     max: 45,
     step: 1,
     unit: ' mm',
-    title:
-      'Half the length of the core and the coil, along the axis. It buys ampere-turns and shortens the return path relative to the magnet, which is usually the most effective thing on this page.',
+    title: t('solenoid.design.halfHeightTitle'),
   },
 ];
 
 const CONDITION_CONTROLS = [
   {
     key: 'muExponent',
-    label: 'Core permeability μᵣ',
+    label: t('solenoid.design.permeability'),
     min: 0,
     max: 4,
     step: 0.05,
@@ -248,19 +246,17 @@ const CONDITION_CONTROLS = [
     // 10 000 (a good soft ferrite). A linear slider would spend nine tenths of its travel
     // between 1000 and 10 000, where almost nothing changes, so the slider carries the
     // exponent and the readout shows the value.
-    format: (value) => permeabilityFrom(value).toLocaleString('en-US'),
-    title:
-      'How much more easily the core carries flux than air. 1 means no core; iron is 10³–10⁴. Past about 1000 it stops helping, because the flux still has to return through air.',
+    format: (value) => num(permeabilityFrom(value)),
+    title: t('solenoid.design.permeabilityTitle'),
   },
   {
     key: 'currentDensity',
-    label: 'Current density',
+    label: t('solenoid.design.currentDensity'),
     min: 0.5,
     max: 10,
     step: 0.5,
     unit: ' A/mm²',
-    title:
-      'Current per unit area of copper. Around 5 A/mm² is a conventionally cooled winding. The model is linear, so this scales every field exactly.',
+    title: t('solenoid.design.currentDensityTitle'),
   },
 ];
 
@@ -367,12 +363,15 @@ function applyShape() {
   // whole slider range without spending a solve on each combination.
   dom.schematic.dataset.geometry = JSON.stringify(buildGeometry());
 
-  const permeability = permeabilityFrom(shape.muExponent).toLocaleString('en-US');
-  const turns = Math.round(ampereTurns()).toLocaleString('en-US');
-  dom.shapeNote.textContent =
-    `Core ${2 * a} mm across in a ${2 * bore} mm bore, ${w} mm of winding, ` +
-    `${2 * h} mm long. μᵣ = ${permeability}, and ${turns} ampere-turns per side. ` +
-    `Solved in a ${2 * windowHalf()} mm window, which is too large to draw here.`;
+  dom.shapeNote.textContent = t('solenoid.described', {
+    core: 2 * a,
+    bore: 2 * bore,
+    winding: w,
+    length: 2 * h,
+    permeability: num(permeabilityFrom(shape.muExponent)),
+    turns: num(Math.round(ampereTurns())),
+    window: 2 * windowHalf(),
+  });
   renderDerived();
   workspace?.draw();
 }
@@ -395,11 +394,14 @@ function setLine(node, x1, y1, x2, y2) {
 function renderDerived() {
   const { coreHalfWidth: a, winding: w, halfHeight: h } = shape;
   dom.derived.replaceChildren(
-    entry('Ampere-turns per side', `${Math.round(ampereTurns()).toLocaleString('en-US')} A`),
-    entry('Core width', `${((2 * a) / 1000).toFixed(4)} m`),
-    entry('Copper section', `${((w * 2 * h) / 1e6).toExponential(3)} m²`),
-    entry('Modelled window', `${2 * windowHalf()} mm square, ${WINDOW_RATIO}× the magnet`),
-    entry('Core permeability', permeabilityFrom(shape.muExponent).toLocaleString('en-US')),
+    entry(t('solenoid.derived.ampereTurns'), `${num(Math.round(ampereTurns()))} A`),
+    entry(t('solenoid.derived.coreWidth'), `${((2 * a) / 1000).toFixed(4)} m`),
+    entry(t('solenoid.derived.copper'), `${((w * 2 * h) / 1e6).toExponential(3)} m²`),
+    entry(
+      t('solenoid.derived.window'),
+      t('solenoid.derived.windowValue', { size: 2 * windowHalf(), ratio: WINDOW_RATIO }),
+    ),
+    entry(t('solenoid.derived.permeability'), num(permeabilityFrom(shape.muExponent))),
   );
 }
 
@@ -426,20 +428,20 @@ const PARAM_UI = [
   {
     name: 'cells_across',
     group: 'numerical',
-    label: 'Cells across the magnet',
-    hint: 'Across the regions, not the window — so widening the window does not coarsen the iron.',
+    label: t('solenoid.params.cells'),
+    hint: t('solenoid.params.cellsHint'),
   },
   {
     name: 'convergence_check',
     group: 'numerical',
-    label: 'Check convergence',
-    hint: 'Also solve at twice the resolution, and report how far the flux density moved.',
+    label: t('solenoid.params.convergence'),
+    hint: t('solenoid.params.convergenceHint'),
   },
   {
     name: 'far_field_growth',
     group: 'numerical',
-    label: 'Far-field growth',
-    hint: 'How fast cells grow out in the air. 1.0 is a uniform grid, and a costly one.',
+    label: t('solenoid.params.growth'),
+    hint: t('solenoid.params.growthHint'),
     step: 0.05,
   },
   // `tolerance` is deliberately not offered. It is a logarithmic quantity spanning six decades
@@ -449,22 +451,26 @@ const PARAM_UI = [
   {
     name: 'max_iterations',
     group: 'numerical',
-    label: 'Iteration ceiling',
-    hint: 'A four-decade permeability contrast needs the room. Raise it if a solve stops short.',
+    label: t('solenoid.params.iterations'),
+    hint: t('solenoid.params.iterationsHint'),
     step: 1000,
   },
   {
     name: 'resolution',
     group: 'numerical',
-    label: 'Field resolution',
-    hint: 'Affects the picture and no reported number.',
+    label: t('solenoid.params.resolution'),
+    hint: t('solenoid.params.resolutionHint'),
   },
   {
     name: 'output',
     group: 'numerical',
-    label: 'Result kind',
-    hint: 'The mesh shows the interface-fitted cells; the grid is a resampling of them.',
-    optionLabels: { grid2d: 'regular grid', mesh2d: 'the solver’s own cells' },
+    label: t('solenoid.params.output'),
+    hint: t('solenoid.params.outputHint'),
+    // The keys are the schema's enum values and go to the server unchanged.
+    optionLabels: {
+      grid2d: t('solenoid.params.outputGrid'),
+      mesh2d: t('solenoid.params.outputMesh'),
+    },
   },
 ];
 
@@ -478,75 +484,75 @@ const PARAM_UI = [
 const METRICS = [
   {
     key: 'flux_core',
-    label: 'Core flux',
+    label: t('solenoid.metrics.flux'),
     symbol: 'Φ′',
     unit: 'Wb/m',
     digits: 6,
-    hint: 'Per metre of depth, across the core’s mid-plane. Negative because it crosses downward — the sign is the winding sense, and the mission is set on the magnitude.',
+    hint: t('solenoid.metrics.fluxHint'),
   },
   {
     key: 'b_mean_core',
-    label: 'Mean flux density',
+    label: t('solenoid.metrics.meanDensity'),
     symbol: 'B̄',
     unit: 'T',
     digits: 4,
-    hint: 'The core flux divided by the core’s width, at the mid-plane.',
+    hint: t('solenoid.metrics.meanDensityHint'),
   },
   {
     key: 'b_section_max',
-    label: 'Busiest section',
+    label: t('solenoid.metrics.busiest'),
     symbol: 'B_sec',
     unit: 'T',
     digits: 4,
-    hint: 'The same quantity at every height along the core, maximised. This is what saturates, and it is a section average rather than a peak on purpose.',
+    hint: t('solenoid.metrics.busiestHint'),
   },
   {
     key: 'leakage_ratio',
-    label: 'Leakage',
+    label: t('solenoid.metrics.leakage'),
     symbol: 'σ',
     unit: '1',
     digits: 4,
-    hint: 'The share of the flux crossing the mid-plane that misses the iron, measured against the whole bundle.',
+    hint: t('solenoid.metrics.leakageHint'),
   },
   {
     key: 'ampere_turns',
-    label: 'Ampere-turns',
+    label: t('solenoid.metrics.ampereTurns'),
     symbol: 'NI′',
     unit: 'A',
     digits: 0,
-    hint: 'Through one side of the winding. Exact — a property of the geometry, needing no solve.',
+    hint: t('solenoid.metrics.ampereTurnsHint'),
   },
   {
     key: 'energy',
-    label: 'Stored energy',
+    label: t('solenoid.metrics.energy'),
     symbol: 'W′',
     unit: 'J/m',
     digits: 4,
-    hint: 'Inside the modelled window, per metre of depth. Bounded by the window rather than by space.',
+    hint: t('solenoid.metrics.energyHint'),
   },
   {
     key: 'inductance_index',
-    label: 'Permeance',
+    label: t('solenoid.metrics.permeance'),
     symbol: 'Φ′/NI′',
     unit: 'H/m',
     digits: 9,
-    hint: 'The magnetic circuit’s own figure of merit. Multiply by turns squared and by the real depth for an inductance.',
+    hint: t('solenoid.metrics.permeanceHint'),
   },
   {
     key: 'flux_total',
-    label: 'Whole flux bundle',
+    label: t('solenoid.metrics.bundle'),
     symbol: 'Φ′tot',
     unit: 'Wb/m',
     digits: 6,
-    hint: 'Everything crossing the mid-plane in one direction, core and air together. The leakage is measured against this.',
+    hint: t('solenoid.metrics.bundleHint'),
   },
   {
     key: 'net_current',
-    label: 'Net current',
+    label: t('solenoid.metrics.netCurrent'),
     symbol: 'ΣI',
     unit: 'A',
     digits: 3,
-    hint: 'Zero for a coil. Anything else is a wire, whose far field the modelled window cannot hold.',
+    hint: t('solenoid.metrics.netCurrentHint'),
   },
 ];
 
@@ -557,73 +563,79 @@ const METRIC_LABELS = Object.fromEntries(METRICS.map((metric) => [metric.key, me
 const KPIS = [
   {
     key: 'flux_core',
-    label: 'Core flux',
+    label: t('solenoid.metrics.flux'),
     symbol: '|Φ′|',
     unit: 'Wb/m',
     digits: 5,
     from: (report) =>
       typeof report.metrics?.flux_core === 'number' ? Math.abs(report.metrics.flux_core) : null,
-    absent: 'no core in this geometry',
-    hint: 'The magnitude, which is what the mission is set on. The signed value is in the table.',
+    absent: t('solenoid.metrics.noCore'),
+    hint: t('solenoid.metrics.fluxAbsHint'),
   },
-  { key: 'ampere_turns', label: 'Ampere-turns', symbol: 'NI′', unit: 'A', digits: 0 },
+  {
+    key: 'ampere_turns',
+    label: t('solenoid.metrics.ampereTurns'),
+    symbol: 'NI′',
+    unit: 'A',
+    digits: 0,
+  },
   {
     key: 'leakage_ratio',
-    label: 'Leakage',
+    label: t('solenoid.metrics.leakage'),
     symbol: 'σ',
     unit: '1',
     digits: 4,
-    absent: 'no core in this geometry',
+    absent: t('solenoid.metrics.noCore'),
   },
   {
     key: 'b_section_max',
-    label: 'Busiest section',
+    label: t('solenoid.metrics.busiest'),
     symbol: 'B_sec',
     unit: 'T',
     digits: 3,
-    absent: 'no core in this geometry',
+    absent: t('solenoid.metrics.noCore'),
   },
   {
     key: 'inductance_index',
-    label: 'Permeance',
+    label: t('solenoid.metrics.permeance'),
     symbol: 'Φ′/NI′',
     unit: 'H/m',
     digits: 8,
-    absent: 'no core in this geometry',
+    absent: t('solenoid.metrics.noCore'),
   },
-  { key: 'energy', label: 'Stored energy', symbol: 'W′', unit: 'J/m', digits: 3 },
+  { key: 'energy', label: t('solenoid.metrics.energy'), symbol: 'W′', unit: 'J/m', digits: 3 },
 ];
 
 const CHECKS = [
   {
     key: 'energy_balance_rel',
-    label: 'Energy two ways',
+    label: t('solenoid.checks.energy'),
     tolerance: 'energy_balance_tolerance',
-    describe: 'Energy from the field against energy from the sources. Equal for a linear medium.',
+    describe: t('solenoid.checks.energyDescribe'),
   },
   {
     key: 'flux_consistency_rel',
-    label: 'Core flux two ways',
+    label: t('solenoid.checks.flux'),
     tolerance: 'flux_consistency_tolerance',
-    describe: 'The drop in A_z across the core against the integral of B along the same line.',
+    describe: t('solenoid.checks.fluxDescribe'),
   },
   {
     key: 'ampere_law_rel',
-    label: 'Ampère’s law',
+    label: t('solenoid.checks.ampere'),
     tolerance: 'ampere_law_tolerance',
-    describe: 'H·dl round a contour in the air against the current it encloses.',
+    describe: t('solenoid.checks.ampereDescribe'),
   },
   {
     key: 'flux_convergence_rel',
-    label: 'Mesh convergence',
+    label: t('solenoid.checks.mesh'),
     tolerance: 'flux_convergence_tolerance',
-    describe: 'Change in the mean flux density when the resolution is doubled.',
+    describe: t('solenoid.checks.meshDescribe'),
   },
   {
     key: 'linear_residual',
-    label: 'Linear solve',
+    label: t('solenoid.checks.linear'),
     tolerance: 'linear_residual_tolerance',
-    describe: 'How far the conjugate-gradient solve got, against what it was asked for.',
+    describe: t('solenoid.checks.linearDescribe'),
   },
 ];
 
@@ -637,49 +649,42 @@ const CHECKS = [
  * and so runs along its level sets. Contours of |B| are perfectly meaningful curves but they
  * are *not* field lines, and drawing them in the same white line style would invite exactly
  * that misreading. So A gets contours and nothing else does, and the hints say why.
+ *
+ * The captions are units and one Greek letter, so they are the same in both languages — and
+ * they have to stay short whatever the language, because the widget right-aligns them against
+ * the topmost tick of the colour bar.
  */
 const FIELD_VIEW = {
   B: {
-    option: 'Flux density, |B|',
+    option: t('solenoid.fields.b'),
     caption: 'T',
     colormap: 'viridis',
     contours: 0,
-    hint:
-      'Flux density, in tesla — what a Hall probe or a Gauss meter measures. Bright is where ' +
-      'the flux is concentrated. Switch to A to see the field lines it runs along, or turn on ' +
-      'Streamlines: this solver publishes B as a vector, so they are integrated rather than drawn.',
+    hint: t('solenoid.fields.bHint'),
   },
   A: {
-    option: 'Vector potential, A_z (field lines)',
+    option: t('solenoid.fields.a'),
     caption: 'Wb/m',
     colormap: 'viridis',
     contours: 14,
-    hint:
-      'Vector potential A_z, the quantity actually solved for. Its contour lines are the ' +
-      'magnetic field lines: closely spaced lines mean strong B, and the flux between any two ' +
-      'of them is the same everywhere along their length. Every flux this page reports is a ' +
-      'difference of this field between two points.',
+    hint: t('solenoid.fields.aHint'),
   },
   H: {
-    option: 'Field strength, H',
+    option: t('solenoid.fields.h'),
     caption: 'kA/m',
     colormap: 'plasma',
     contours: 0,
-    hint:
-      'Field strength, H = |B| / (μ₀ μᵣ), derived here rather than solved. Compare it with |B| ' +
-      'inside the core: B is large there and H is small, which is what a high permeability means.',
+    hint: t('solenoid.fields.hHint'),
   },
   mu_r: {
-    option: 'Material map, μᵣ',
+    option: t('solenoid.fields.mu'),
     caption: 'μᵣ',
     // Greyscale, and no contours: this is not a computed field but a picture of which material
     // the solver put where. Every interface lands on a cell face, so the core is exactly as
     // wide here as it is on the diagram — which is the whole point of the fitted grid.
     colormap: 'greyscale',
     contours: 0,
-    hint:
-      'Not a result but a check: where the solver placed the iron. Every material boundary is a ' +
-      'cell face rather than a staircase, which is what makes the core exactly as wide as drawn.',
+    hint: t('solenoid.fields.muHint'),
   },
 };
 
@@ -714,7 +719,7 @@ async function run() {
   if (running) return;
   const chosen = solver();
   if (!chosen) {
-    setStatusOn(dom, 'This server has no solver that reports magnetic metrics.', 'error');
+    setStatusOn(dom, t('solenoid.noSolver'), 'error');
     return;
   }
 
@@ -749,7 +754,7 @@ async function run() {
     showStats(dom.stats, result);
     showArtifacts(dom.artifacts, result.artifacts);
     present();
-    setStatusOn(dom, 'Done.', 'done');
+    setStatusOn(dom, t('experiment.done'), 'done');
   } finally {
     running = false;
     currentJob = null;
@@ -831,20 +836,20 @@ function present() {
   const bundle = report.validity?.bundle_x ?? null;
   const marks = [
     { y: 0 },
-    ...(halfCore ? [{ x: -halfCore, label: 'core' }, { x: halfCore }] : []),
+    ...(halfCore ? [{ x: -halfCore, label: t('solenoid.plots.core') }, { x: halfCore }] : []),
     ...(bundle ? bundle.map((x) => ({ x: 1000 * x })) : []),
   ];
 
   drawCurve(dom.fluxCurve, {
     traces: [{ name: 'B_y', points: toMm(report.curves.b_y) }],
-    xLabel: 'x, mm',
-    yLabel: 'B_y, T',
+    xLabel: t('solenoid.plots.xAxis'),
+    yLabel: t('solenoid.plots.fluxAxis'),
     marks,
   });
   drawCurve(dom.potentialCurve, {
     traces: [{ name: 'A_z', points: toMm(report.curves.a_z) }],
-    xLabel: 'x, mm',
-    yLabel: 'A_z, Wb/m',
+    xLabel: t('solenoid.plots.xAxis'),
+    yLabel: t('solenoid.plots.potentialAxis'),
     marks,
   });
 
@@ -854,53 +859,50 @@ function present() {
   // so the arithmetic would have printed a confident "0.00 %" for a quantity that has no value.
   const leakage = report.metrics.leakage_ratio;
   const share = Number.isFinite(leakage)
-    ? `Leakage is one minus their ratio — ${(100 * leakage).toFixed(2)} % on this run.`
-    : 'No flux crosses this plane in either direction on this run, so there is no bundle for ' +
-      'the core flux to be a share of, and no leakage is reported.';
+    ? t('solenoid.plots.leakageShare', { value: (100 * leakage).toFixed(2) })
+    : t('solenoid.plots.noBundle');
 
   dom.planeNote.textContent = bundle
-    ? 'The inner pair of marks is the core, the outer pair is where B_y changes sign. The drop ' +
-      'in A_z across the inner pair is the core flux; across the outer pair, the whole bundle. ' +
-      `${share} The outer marks sit where B_y crosses zero, which is what makes that ` +
-      'surface — and therefore the leakage — insensitive to exactly where it is placed. ' +
-      `Shown out to ±${limit.toFixed(0)} mm; the solve runs to ±${windowHalf()} mm, where A_z ` +
-      'reaches the zero the boundary condition imposes.'
-    : 'Nothing in this geometry is magnetic, so there is no core flux to mark and no leakage ' +
-      'to measure. The curves are still the field along the same line.';
+    ? t('solenoid.plots.note', {
+        share,
+        limit: limit.toFixed(0),
+        window: windowHalf(),
+      })
+    : t('solenoid.plots.noCoreNote');
 }
 
 /* --------------------------------------------------------------- the annotation layer */
 
 /** Region outlines over the field, and the surfaces every reported number is measured on. */
 function declareOverlays() {
-  const noRun = 'Run the solve first.';
+  const noRun = t('workspace.noRun');
   workspace.setOverlays([
-    { id: 'regions', label: 'Core & windings', colour: 'var(--core)', on: true },
-    { id: 'axis', label: 'Axis', colour: 'var(--overlay-chord)', on: false },
+    { id: 'regions', label: t('solenoid.overlays.regions'), colour: 'var(--core)', on: true },
+    { id: 'axis', label: t('solenoid.overlays.axis'), colour: 'var(--overlay-chord)', on: false },
     {
       id: 'plane',
-      label: 'Flux surface',
+      label: t('solenoid.overlays.plane'),
       colour: 'var(--overlay-cp)',
       on: true,
       enabled: Boolean(report?.geometry?.core_width),
-      why: report ? 'This geometry has no core, so there is no surface to measure across.' : noRun,
-      title: 'The core’s mid-plane: the surface the core flux is measured across',
+      why: report ? t('solenoid.overlays.planeWhy') : noRun,
+      title: t('solenoid.overlays.planeTitle'),
     },
     {
       id: 'bundle',
-      label: 'Flux bundle',
+      label: t('solenoid.overlays.bundle'),
       colour: 'var(--overlay-peak)',
       enabled: Boolean(report?.validity?.bundle_x),
-      why: report ? 'This run reports no bundle, so the leakage is not defined.' : noRun,
-      title: 'Where B_y changes sign — the ends of the bundle the leakage is measured against',
+      why: report ? t('solenoid.overlays.bundleWhy') : noRun,
+      title: t('solenoid.overlays.bundleTitle'),
     },
     {
       id: 'contour',
-      label: 'Ampère contour',
+      label: t('solenoid.overlays.contour'),
       colour: 'var(--overlay-ac)',
       enabled: Boolean(report?.validity?.ampere_contour),
       why: noRun,
-      title: 'The closed path H·dl is integrated around, and the winding it encloses',
+      title: t('solenoid.overlays.contourTitle'),
     },
   ]);
 }
@@ -940,7 +942,7 @@ function drawOverlay({ svg, project, layerOn, bounds }) {
         polyline([project([x, y - reach]), project([x, y + reach])], 'overlay__bundleline'),
       );
     }
-    group.append(marker(project([right, y]), 'bundle', 'overlay__peak'));
+    group.append(marker(project([right, y]), t('solenoid.plots.bundle'), 'overlay__peak'));
     svg.append(group);
   }
   if (layerOn('contour') && report?.validity?.ampere_contour) {
@@ -970,14 +972,15 @@ function magnetBox() {
 
 /** What the table shows at a glance. Everything else stays in the row, for Compare and export. */
 const COLUMNS = [
-  { path: 'geometry.label', label: 'Cross-section' },
+  { path: 'geometry.label', label: t('solenoid.columns.section') },
+  // The symbol columns are symbols in both languages: an Italian engineer reads Φ′ as Φ′.
   { path: 'metrics.flux_core', label: 'Φ′ Wb/m' },
   { path: 'metrics.ampere_turns', label: 'NI′ A' },
-  { path: 'metrics.leakage_ratio', label: 'leakage' },
+  { path: 'metrics.leakage_ratio', label: t('solenoid.columns.leakage') },
   { path: 'metrics.b_section_max', label: 'B_sec T' },
   { path: 'physical.mu_r', label: 'μᵣ' },
-  { path: 'numerics.cells_across', label: 'cells/magnet' },
-  { path: 'verification.energy_balance_rel', label: 'energy check' },
+  { path: 'numerics.cells_across', label: t('solenoid.columns.cells') },
+  { path: 'verification.energy_balance_rel', label: t('solenoid.columns.energy') },
 ];
 
 /** One row: every input, the answer, the residuals, the warnings, the provenance. */
@@ -1022,7 +1025,7 @@ function row() {
 /** A cross-section deserves a name, and its four dimensions are one. */
 function describeShape() {
   const { coreHalfWidth: a, gap: g, winding: w, halfHeight: h } = shape;
-  return `${2 * a}×${2 * h} core, ${w} mm winding at ${g} mm`;
+  return t('solenoid.shapeLabel', { core: 2 * a, length: 2 * h, winding: w, gap: g });
 }
 
 function refreshRuns(rows = runs.load(EXERCISE), evicted = 0) {
@@ -1044,8 +1047,8 @@ function refreshRuns(rows = runs.load(EXERCISE), evicted = 0) {
     { labels: METRIC_LABELS },
   );
 
-  const parts = [`${rows.length} of ${runs.CAPACITY} kept, in this browser only.`];
-  if (evicted) parts.push(`${evicted} oldest dropped to make room.`);
+  const parts = [t('experiment.kept', { count: rows.length, capacity: runs.CAPACITY })];
+  if (evicted) parts.push(t('experiment.evicted', { count: evicted }));
   dom.runsNote.textContent = parts.join(' ');
   for (const button of [dom.exportCsv, dom.exportJson, dom.clearRuns])
     button.disabled = !rows.length;
@@ -1070,10 +1073,7 @@ function loadRun(entry) {
   // rule a loaded row needs.
   buildForms({ ...currentParams(), ...entry.numerics });
   applyShape();
-  setStatusOn(
-    dom,
-    `Loaded the inputs of the ${entry.geometry.label} run. Press Run to recompute it.`,
-  );
+  setStatusOn(dom, t('experiment.loaded', { label: entry.geometry.label }));
 }
 
 function buildForms(previous = currentParams()) {
@@ -1093,7 +1093,7 @@ workspace = createWorkspace({
   root: dom.workspace,
   viewer: dom.viewer,
   editor: null,
-  fitLabel: 'Fit magnet',
+  fitLabel: t('solenoid.fitMagnet'),
   exportName: 'solenoid-field',
   subject: magnetBox,
   onDraw: drawOverlay,
@@ -1143,7 +1143,7 @@ dom.clearRuns.addEventListener('click', () => {
 
 try {
   const [loaded, info, solvers] = await Promise.all([
-    fetch('/experiments/solenoid/content.json').then((response) => response.json()),
+    fetch(contentUrl(EXERCISE)).then((response) => response.json()),
     health().catch(() => null),
     solversFor(GEOMETRY_TYPE, { physics: PHYSICS }),
   ]);
@@ -1165,22 +1165,18 @@ try {
   const canSolve = applyMaintenance(
     dom,
     info,
-    'The lab is not accepting new simulations right now. You can still read the problem, change the cross-section and look at any runs you have kept.',
+    t('bench.maintenance', { alternative: t('solenoid.maintenanceAlternative') }),
   );
 
   if (!chosen) {
-    setStatusOn(
-      dom,
-      'This server has no solver that reports magnetic metrics, so this exercise cannot be run here.',
-      'error',
-    );
+    setStatusOn(dom, t('solenoid.noSolverHere'), 'error');
   } else if (!canSolve) {
-    setStatusOn(dom, 'Simulations are paused for maintenance.');
+    setStatusOn(dom, t('experiment.maintenanceStatus'));
   } else {
     dom.run.disabled = false;
-    setStatusOn(dom, 'Press Run to solve the cross-section as it stands.');
+    setStatusOn(dom, t('solenoid.ready'));
   }
 } catch (error) {
-  setStatusOn(dom, `Cannot reach the server — ${describeError(error)}`, 'error');
+  setStatusOn(dom, t('experiment.unreachable', { detail: describeError(error) }), 'error');
   dom.run.disabled = true;
 }

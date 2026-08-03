@@ -12,6 +12,7 @@
  */
 
 import { el } from '/shared/components.js';
+import { t } from '/shared/i18n.js';
 
 /* --------------------------------------------------------------- grouped parameter panels */
 
@@ -99,11 +100,10 @@ export function renderChallenge(container, challenge, report, labels = {}) {
         'p',
         { class: 'challenge__blocked challenge__blocked--validity' },
         el('strong', {
-          text: allMet
-            ? 'The numbers are right, but the model is outside its domain of validity. '
-            : 'This run is outside the model’s domain of validity. ',
+          text: allMet ? t('exercise.metButOutside') : t('exercise.outside'),
         }),
-        `${outside.length === 1 ? 'The limit crossed is' : 'The limits crossed are'} listed under “How far to trust it”, and a run that crosses one cannot meet the target however good its numbers look.`,
+        (outside.length === 1 ? t('exercise.limitCrossedOne') : t('exercise.limitCrossedMany')) +
+          t('exercise.limitCrossedTail'),
       ),
     );
   }
@@ -112,7 +112,7 @@ export function renderChallenge(container, challenge, report, labels = {}) {
       el(
         'p',
         { class: 'challenge__blocked challenge__blocked--verification' },
-        el('strong', { text: 'This run did not verify. ' }),
+        el('strong', { text: t('exercise.didNotVerify') }),
         unverified,
       ),
     );
@@ -122,10 +122,10 @@ export function renderChallenge(container, challenge, report, labels = {}) {
       el(
         'p',
         { class: 'challenge__done' },
-        el('strong', { text: 'Target met. ' }),
+        el('strong', { text: t('exercise.targetMet') }),
         challenge.next_step
-          ? `Keep the run, then try to meet it another way — ${challenge.next_step} — and compare the two.`
-          : 'Keep the run, then try to meet it another way and compare the two.',
+          ? t('exercise.tryAnother', { next: challenge.next_step })
+          : t('exercise.tryAnotherPlain'),
       ),
     );
   }
@@ -148,9 +148,9 @@ function describeTarget(target, labels = {}) {
 }
 
 function judge(target, value, report) {
-  if (!report) return { state: 'pending', mark: '·', detail: 'not run yet' };
+  if (!report) return { state: 'pending', mark: '·', detail: t('exercise.notRunYet') };
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return { state: 'pending', mark: '·', detail: 'this run does not report it' };
+    return { state: 'pending', mark: '·', detail: t('exercise.notReported') };
   }
   // A target is met or it is not, and that verdict is about the number alone. Whether the *run*
   // counts is a separate question, answered once by `blockers` below — marking a satisfied
@@ -160,7 +160,7 @@ function judge(target, value, report) {
   return {
     state: met ? 'met' : 'missed',
     mark: met ? '✓' : '✕',
-    detail: `this run: ${round(target.absolute ? Math.abs(value) : value)}`,
+    detail: t('exercise.reading', { value: round(target.absolute ? Math.abs(value) : value) }),
   };
 }
 
@@ -206,10 +206,10 @@ function verificationBlocker(report, challenge) {
   if (!required) return null;
   const residual = report.verification?.[required.metric];
   if (typeof residual !== 'number' || residual <= required.below) return null;
-  return (
-    `The two independent routes to the answer differ by ${round(100 * residual)} %, ` +
-    `above the ${round(100 * required.below)} % this exercise asks for. Add panels and run again.`
-  );
+  return t('exercise.verificationGap', {
+    value: round(100 * residual),
+    limit: round(100 * required.below),
+  });
 }
 
 function round(value) {
@@ -264,7 +264,9 @@ export function renderKpis(container, spec, report) {
         ),
         el('span', {
           class: known ? 'kpi__value num' : 'kpi__value kpi__value--absent',
-          text: known ? value.toFixed(kpi.digits ?? 3) : (kpi.absent ?? 'not applicable'),
+          text: known
+            ? value.toFixed(kpi.digits ?? 3)
+            : (kpi.absent ?? t('exercise.notApplicable')),
         }),
         el('span', {
           class: 'kpi__unit',
@@ -278,7 +280,7 @@ export function renderKpis(container, spec, report) {
 export function renderMetrics(container, spec, report) {
   container.replaceChildren();
   if (!report) {
-    container.append(el('p', { class: 'field__hint', text: 'Runs with every solve.' }));
+    container.append(el('p', { class: 'field__hint', text: t('exercise.everySolve') }));
     return;
   }
 
@@ -290,9 +292,9 @@ export function renderMetrics(container, spec, report) {
     // missing `sweep` means on the aerofoil and not on anything else — so the fallback prints
     // the bare key rather than one exercise's sentence.
     const text = missing
-      ? (metric.absent ?? `needs ${metric.requires}`)
+      ? (metric.absent ?? t('exercise.needs', { key: metric.requires }))
       : value === null || value === undefined
-        ? 'not applicable'
+        ? t('exercise.notApplicable')
         : typeof value === 'number'
           ? value.toFixed(metric.digits ?? 4)
           : String(value);
@@ -325,7 +327,7 @@ export function renderMetrics(container, spec, report) {
 export function renderVerification(container, spec, report) {
   container.replaceChildren();
   if (!report) {
-    container.append(el('p', { class: 'field__hint', text: 'Runs with every solve.' }));
+    container.append(el('p', { class: 'field__hint', text: t('exercise.everySolve') }));
     return;
   }
 
@@ -338,7 +340,7 @@ export function renderVerification(container, spec, report) {
       'tr',
       { class: known ? (passed ? 'is-met' : 'is-missed') : 'is-absent' },
       el('th', { scope: 'row', title: check.describe ?? null, text: check.label }),
-      el('td', { class: 'num', text: known ? format(value) : 'not run' }),
+      el('td', { class: 'num', text: known ? format(value) : t('exercise.notRun') }),
       el('td', { class: 'num metrics__unit', text: known ? `≤ ${format(limit)}` : '' }),
       el('td', { text: known ? (passed ? '✓' : '✕') : '·' }),
     );
@@ -361,17 +363,21 @@ function format(value) {
 export function renderValidity(container, report) {
   container.replaceChildren();
   if (!report) {
-    container.append(el('p', { class: 'field__hint', text: 'Checked on every run.' }));
+    container.append(el('p', { class: 'field__hint', text: t('exercise.everyRun') }));
     return;
   }
+  // The warnings themselves are the solver's own sentences, shown as it wrote them: they are
+  // computed prose with the crossed threshold interpolated into it, and translating them means
+  // translating `physics_lab/solvers/*.py` rather than this file. ADR-020 §"What is not
+  // translated" says so on the page's behalf, and is where that work is scoped.
   const warnings = report.validity?.warnings ?? [];
   if (!warnings.length) {
     container.append(
       el(
         'p',
         { class: 'validity validity--ok' },
-        el('strong', { text: 'Inside the stated domain of validity. ' }),
-        'Every limit this model declares was checked against this run and none was crossed.',
+        el('strong', { text: t('exercise.inside') }),
+        t('exercise.insideTail'),
       ),
     );
     return;

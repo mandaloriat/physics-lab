@@ -52,6 +52,7 @@ import {
   showStats,
   syncFieldOptions,
 } from '/shared/experiment.js';
+import { contentUrl, t } from '/shared/i18n.js';
 import * as runs from '/shared/runs.js';
 import { createWorkspace, polyline, svgNode } from '/shared/workspace.js';
 
@@ -163,12 +164,12 @@ const dom = Object.fromEntries(
  * kind of thing a page usually hides because it looks like an error.
  */
 const PRESETS = {
-  'warren-8': { label: 'Warren, 8 panels, 3 m deep', build: () => warren(8, 3) },
-  'warren-10': { label: 'Warren, 10 panels, 3 m deep', build: () => warren(10, 3) },
-  'warren-6-deep': { label: 'Warren, 6 panels, 4.5 m deep', build: () => warren(6, 4.5) },
-  'pratt-8': { label: 'Pratt, 8 panels, 3 m deep', build: () => pratt(8, 3) },
-  deck: { label: 'The deck alone (it folds)', build: () => deckOnly(8) },
-  empty: { label: 'Nothing — start from bare ground', build: () => bare() },
+  'warren-8': { label: t('truss.presets.warren-8'), build: () => warren(8, 3) },
+  'warren-10': { label: t('truss.presets.warren-10'), build: () => warren(10, 3) },
+  'warren-6-deep': { label: t('truss.presets.warren-6-deep'), build: () => warren(6, 4.5) },
+  'pratt-8': { label: t('truss.presets.pratt-8'), build: () => pratt(8, 3) },
+  deck: { label: t('truss.presets.deck'), build: () => deckOnly(8) },
+  empty: { label: t('truss.presets.empty'), build: () => bare() },
 };
 
 /** The lattice the page opens with: it carries the load, and it misses the mission. */
@@ -243,33 +244,30 @@ const loading = { ...LOAD_DEFAULTS };
 const LOAD_CONTROLS = [
   {
     key: 'deck',
-    label: 'Traffic on the deck',
+    label: t('truss.loads.deck'),
     min: 0,
     max: 12,
     step: 0.5,
     unit: ' kN/m',
-    title:
-      'A load per unit length along the carriageway, carried by every bar with both ends at deck level and lumped half to each end. This is the mission’s load; the targets are set against it.',
+    title: t('truss.loads.deckTitle'),
   },
   {
     key: 'point',
-    label: 'A dropped load',
+    label: t('truss.loads.point'),
     min: 0,
     max: 60,
     step: 5,
     unit: ' kN',
-    title:
-      'How heavy each load you place with the Load tool is. Placed at a joint, it becomes a force_y on a boundary naming that joint alone.',
+    title: t('truss.loads.pointTitle'),
   },
   {
     key: 'wind',
-    label: 'Side load on the trusswork',
+    label: t('truss.loads.wind'),
     min: 0,
     max: 60,
     step: 5,
     unit: ' kN',
-    title:
-      'A horizontal total, shared equally between every joint above the deck. It has to reach the abutments through the lattice, which is a different journey from the vertical one.',
+    title: t('truss.loads.windTitle'),
   },
 ];
 
@@ -298,56 +296,56 @@ const PARAM_UI = [
     name: 'area',
     group: 'physical',
     panel: 'design',
-    label: 'Bar section',
+    label: t('truss.params.area'),
     step: 0.0002,
-    hint: 'Every bar, in m². The buckling load goes with its square, so this is the strongest lever on the page — and the most expensive.',
+    hint: t('truss.params.areaHint'),
   },
   {
     name: 'self_weight',
     group: 'physical',
     panel: 'conditions',
-    label: 'Carry its own weight',
-    hint: 'Each bar’s weight, half at each end. Leaving it out flatters exactly the designs that add material.',
+    label: t('truss.params.selfWeight'),
+    hint: t('truss.params.selfWeightHint'),
   },
   {
     name: 'safety_factor',
     group: 'physical',
     panel: 'conditions',
-    label: 'Safety factor',
+    label: t('truss.params.safety'),
     step: 0.1,
-    hint: 'Capacity is divided by this before a utilisation is taken. 1.0 reports the bare failure ratio.',
+    hint: t('truss.params.safetyHint'),
   },
   {
     name: 'yield_strength',
     group: 'physical',
     panel: 'conditions',
-    label: 'Yield strength',
+    label: t('truss.params.yield'),
     step: 1e7,
-    hint: '250 MPa is ordinary structural steel. It sets the tension capacity; compression is usually decided by buckling instead.',
+    hint: t('truss.params.yieldHint'),
   },
   {
     name: 'youngs_modulus',
     group: 'physical',
     panel: 'conditions',
-    label: 'Elastic modulus',
+    label: t('truss.params.modulus'),
     step: 1e10,
-    hint: '210 GPa for steel. It sets the deflection and the buckling load, and not a single member force in a determinate truss.',
+    hint: t('truss.params.modulusHint'),
   },
   {
     name: 'density',
     group: 'physical',
     panel: 'conditions',
-    label: 'Density',
+    label: t('truss.params.density'),
     step: 100,
-    hint: '7850 kg/m³ for steel. It decides the mass, which is what the budget is set on.',
+    hint: t('truss.params.densityHint'),
   },
   {
     name: 'bar_width',
     group: 'numerical',
     panel: 'advanced',
-    label: 'Drawn bar width',
+    label: t('truss.params.barWidth'),
     step: 0.05,
-    hint: 'How wide the bars are drawn, in metres. Zero derives one from the site. A real 2600 mm² bar is 58 mm across, which on a 24 m span is invisible.',
+    hint: t('truss.params.barWidthHint'),
   },
 ];
 
@@ -355,83 +353,83 @@ const PARAM_UI = [
 const METRICS = [
   {
     key: 'utilisation_max',
-    label: 'Worst member',
+    label: t('truss.metrics.worst'),
     symbol: 'η',
     unit: '1',
     digits: 3,
-    hint: 'Force over capacity for the busiest bar: yield in tension, the lesser of yield and Euler buckling in compression, both divided by the safety factor. One is the edge.',
+    hint: t('truss.metrics.worstHint'),
   },
   {
     key: 'span_ratio',
-    label: 'Deflection over span',
+    label: t('truss.metrics.spanRatio'),
     symbol: 'δ/L',
     unit: '1',
     digits: 6,
-    hint: 'The largest joint movement divided by the distance between the supports — the form a serviceability limit is written in.',
+    hint: t('truss.metrics.spanRatioHint'),
   },
   {
     key: 'deflection_max',
-    label: 'Largest deflection',
+    label: t('truss.metrics.deflection'),
     symbol: 'δ',
     unit: 'm',
     digits: 4,
-    hint: 'The furthest any joint moves. Where it moves is drawn on the field by the Deflected shape layer.',
+    hint: t('truss.metrics.deflectionHint'),
   },
   {
     key: 'mass',
-    label: 'Steel used',
+    label: t('truss.metrics.mass'),
     symbol: 'm',
     unit: 'kg',
     digits: 1,
-    hint: 'Density times area times length, summed over every bar. The budget the mission is set against.',
+    hint: t('truss.metrics.massHint'),
   },
   {
     key: 'carried_per_mass',
-    label: 'Carried per kilogram',
+    label: t('truss.metrics.carried'),
     symbol: 'F/m',
     unit: 'N/kg',
     digits: 1,
-    hint: 'The imposed load divided by the mass of steel. Self-weight is not in the numerator: a bridge is not paid to carry itself.',
+    hint: t('truss.metrics.carriedHint'),
   },
   {
     key: 'buckling_margin_min',
-    label: 'Buckling margin',
+    label: t('truss.metrics.buckling'),
     symbol: 'P_cr/P',
     unit: '1',
     digits: 3,
-    hint: 'Euler’s critical load over the force carried, for the worst member in compression. Below one it has gone. Absent when nothing is in compression.',
+    hint: t('truss.metrics.bucklingHint'),
   },
   {
     key: 'compression_max',
-    label: 'Largest compression',
+    label: t('truss.metrics.compression'),
     symbol: 'C',
     unit: 'N',
     digits: 0,
-    hint: 'As a positive number. Read it beside the buckling margin rather than beside the tension.',
+    hint: t('truss.metrics.compressionHint'),
   },
   {
     key: 'tension_max',
-    label: 'Largest tension',
+    label: t('truss.metrics.tension'),
     symbol: 'T',
     unit: 'N',
     digits: 0,
-    hint: 'The largest pull in any bar. Tension is the cheap direction: it does not buckle.',
+    hint: t('truss.metrics.tensionHint'),
   },
   {
     key: 'stress_max',
-    label: 'Peak axial stress',
+    label: t('truss.metrics.stress'),
     symbol: 'σ',
     unit: 'Pa',
     digits: 0,
-    hint: 'The largest stress magnitude anywhere, tension or compression. Compare it with the yield strength.',
+    hint: t('truss.metrics.stressHint'),
   },
   {
     key: 'reaction_max',
-    label: 'Largest reaction',
+    label: t('truss.metrics.reaction'),
     symbol: 'R',
     unit: 'N',
     digits: 0,
-    hint: 'What the busiest abutment has to be built for. The bridge is only as good as the ground under it.',
+    hint: t('truss.metrics.reactionHint'),
   },
 ];
 
@@ -439,11 +437,11 @@ const METRIC_LABELS = Object.fromEntries(METRICS.map((metric) => [metric.key, me
 
 /** The few numbers that answer the mission, shown before any table. */
 const KPIS = [
-  { key: 'utilisation_max', label: 'Worst member', symbol: 'η', unit: '1', digits: 2 },
-  { key: 'mass', label: 'Steel used', symbol: 'm', unit: 'kg', digits: 0 },
+  { key: 'utilisation_max', label: t('truss.metrics.worst'), symbol: 'η', unit: '1', digits: 2 },
+  { key: 'mass', label: t('truss.metrics.mass'), symbol: 'm', unit: 'kg', digits: 0 },
   {
     key: 'span_ratio',
-    label: 'Deflection',
+    label: t('truss.metrics.deflectionShort'),
     symbol: 'span ÷',
     unit: '1',
     digits: 0,
@@ -451,53 +449,56 @@ const KPIS = [
     // 0.000714 is not. The metric itself is unchanged; only its presentation is inverted.
     from: (found) =>
       found.metrics?.span_ratio > 0 ? Math.round(1 / found.metrics.span_ratio) : null,
-    absent: 'it does not move',
+    absent: t('truss.metrics.deflectionAbsent'),
   },
-  { key: 'carried_per_mass', label: 'Carried per kg', symbol: 'F/m', unit: 'N/kg', digits: 0 },
+  {
+    key: 'carried_per_mass',
+    label: t('truss.metrics.carriedShort'),
+    symbol: 'F/m',
+    unit: 'N/kg',
+    digits: 0,
+  },
   {
     key: 'buckling_margin_min',
-    label: 'Buckling margin',
+    label: t('truss.metrics.buckling'),
     symbol: 'P_cr/P',
     unit: '1',
     digits: 2,
-    absent: 'nothing is in compression',
+    absent: t('truss.metrics.bucklingAbsent'),
   },
-  { key: 'reaction_max', label: 'Largest reaction', symbol: 'R', unit: 'N', digits: 0 },
+  { key: 'reaction_max', label: t('truss.metrics.reaction'), symbol: 'R', unit: 'N', digits: 0 },
 ];
 
 const CHECKS = [
   {
     key: 'joint_equilibrium_rel',
-    label: 'The method of joints',
+    label: t('truss.checks.joints'),
     tolerance: 'joint_equilibrium_tolerance',
-    describe:
-      'At every free joint, the bar forces and the applied load must sum to zero. Computed from the member forces and the geometry alone — it never touches the stiffness matrix.',
+    describe: t('truss.checks.jointsDescribe'),
   },
   {
     key: 'reaction_balance_rel',
-    label: 'Force balance',
+    label: t('truss.checks.force'),
     tolerance: 'reaction_balance_tolerance',
-    describe: 'Everything applied plus everything the supports pushed back with is zero.',
+    describe: t('truss.checks.forceDescribe'),
   },
   {
     key: 'moment_balance_rel',
-    label: 'Moment balance',
+    label: t('truss.checks.moment'),
     tolerance: 'moment_balance_tolerance',
-    describe:
-      'The same about the origin — which catches a reaction of the right size in the wrong place, where the force balance cannot.',
+    describe: t('truss.checks.momentDescribe'),
   },
   {
     key: 'energy_consistency_rel',
-    label: 'Energy two ways',
+    label: t('truss.checks.energy'),
     tolerance: 'energy_consistency_tolerance',
-    describe:
-      'Strain energy summed over the bars against the work done by the load at the joints. Equal for a linear structure, by two routes that share no arithmetic.',
+    describe: t('truss.checks.energyDescribe'),
   },
   {
     key: 'linear_residual',
-    label: 'The linear solve',
+    label: t('truss.checks.linear'),
     tolerance: 'linear_residual_tolerance',
-    describe: 'How far the direct solve of K u = f actually got.',
+    describe: t('truss.checks.linearDescribe'),
   },
 ];
 
@@ -509,39 +510,33 @@ const CHECKS = [
  * somewhere arbitrary. `utilisation` is unsigned and has a meaningful threshold at 1 rather
  * than at its own maximum, which is what the Lock scale tool is for — pin the range on a run
  * that reaches 1 and every later run is read against the same edge.
+ *
+ * The captions are a symbol and two unit strings: the same in both languages, and short, which
+ * is what the widget's right-aligned colorbar label needs.
  */
 const FIELD_VIEW = {
   utilisation: {
-    option: 'Utilisation, η',
+    option: t('truss.fields.utilisation'),
     caption: 'η',
     colormap: 'plasma',
     contours: 0,
-    hint:
-      'Force over capacity, bar by bar. Anything reaching 1 has run out — in compression that ' +
-      'is usually Euler buckling rather than yield, which is why a long diagonal lights up ' +
-      'long before a short one carrying the same force.',
+    hint: t('truss.fields.utilisationHint'),
   },
   axial_force: {
-    option: 'Axial force, N',
+    option: t('truss.fields.force'),
     caption: 'N',
     colormap: 'coolwarm',
     contours: 0,
     symmetric: true,
-    hint:
-      'Positive is tension, negative is compression. Follow the sign along the chords: in a ' +
-      'simply supported truss the bottom is pulled and the top is pushed, and the diagonals ' +
-      'alternate as they carry the shear out to the supports.',
+    hint: t('truss.fields.forceHint'),
   },
   axial_stress: {
-    option: 'Axial stress, MPa',
+    option: t('truss.fields.stress'),
     caption: 'MPa',
     colormap: 'coolwarm',
     contours: 0,
     symmetric: true,
-    hint:
-      'The same forces divided by the section, in megapascals, so they can be compared with ' +
-      'the yield strength directly. Note how rarely it is the number that decides anything: ' +
-      'compression members are lost to buckling at a fraction of yield.',
+    hint: t('truss.fields.stressHint'),
   },
 };
 
@@ -560,27 +555,12 @@ let content = null;
 const build = { tool: 'joint', armed: null, hover: null, pointer: null, history: [] };
 
 const BUILD_TOOLS = [
-  { id: 'move', label: 'Move', icon: '✥', hint: 'Drag a joint. Everything attached follows it.' },
-  { id: 'joint', label: 'Joint', icon: '•', hint: 'Click anywhere to add a joint.' },
-  {
-    id: 'bar',
-    label: 'Bar',
-    icon: '╱',
-    hint: 'Click one joint, then another, to join them with a bar.',
-  },
-  {
-    id: 'support',
-    label: 'Support',
-    icon: '△',
-    hint: 'Click a joint to cycle it: pin, roller, free. A pin holds both ways; a roller only holds it up.',
-  },
-  {
-    id: 'load',
-    label: 'Load',
-    icon: '↓',
-    hint: 'Click a joint to drop the load on it, or to take it off again.',
-  },
-  { id: 'erase', label: 'Erase', icon: '⌫', hint: 'Click a joint or a bar to remove it.' },
+  { id: 'move', label: t('truss.tools.move'), icon: '✥', hint: t('truss.tools.moveHint') },
+  { id: 'joint', label: t('truss.tools.joint'), icon: '•', hint: t('truss.tools.jointHint') },
+  { id: 'bar', label: t('truss.tools.bar'), icon: '╱', hint: t('truss.tools.barHint') },
+  { id: 'support', label: t('truss.tools.support'), icon: '△', hint: t('truss.tools.supportHint') },
+  { id: 'load', label: t('truss.tools.load'), icon: '↓', hint: t('truss.tools.loadHint') },
+  { id: 'erase', label: t('truss.tools.erase'), icon: '⌫', hint: t('truss.tools.eraseHint') },
 ];
 
 /* --------------------------------------------------------------------------- the payloads */
@@ -615,28 +595,28 @@ function buildGeometry() {
     {
       name: 'deck',
       select: { type: 'near', axis: 'y', value: SITE.deck, tol: 0.05 },
-      description: 'The carriageway: every joint at deck level, and the bars between them.',
+      description: t('truss.boundaries.deck'),
     },
   ];
   for (const index of Object.keys(lattice.supports)) {
     boundaries.push({
       name: `support_${index}`,
       select: { type: 'box', bounds: boxAround(lattice.nodes[index]) },
-      description: `The ground under joint ${index}.`,
+      description: t('truss.boundaries.support', { index }),
     });
   }
   for (const index of Object.keys(lattice.loads)) {
     boundaries.push({
       name: `load_${index}`,
       select: { type: 'box', bounds: boxAround(lattice.nodes[index]) },
-      description: `Joint ${index}, where a load has been placed.`,
+      description: t('truss.boundaries.load', { index }),
     });
   }
   if (loading.wind > 0 && aboveDeck().length) {
     boundaries.push({
       name: 'above_deck',
       select: { type: 'box', bounds: [xmin, SITE.deck + 0.25, xmax, ymax] },
-      description: 'Everything the wind can reach: every joint above the carriageway.',
+      description: t('truss.boundaries.aboveDeck'),
     });
   }
 
@@ -718,26 +698,18 @@ function deckMembers() {
  */
 function readiness() {
   const attached = attachedJoints();
-  if (!lattice.members.length) return { ok: false, why: 'Nothing is built yet. Add some bars.' };
+  if (!lattice.members.length) return { ok: false, why: t('truss.readiness.nothingBuilt') };
   const held = Object.keys(lattice.supports).filter((index) => attached.has(Number(index)));
-  if (!held.length) {
-    return { ok: false, why: 'Nothing holds it up. Put a support on a joint the bars reach.' };
-  }
+  if (!held.length) return { ok: false, why: t('truss.readiness.nothingHolds') };
   if (loading.deck > 0 && !deckMembers().length) {
-    return {
-      ok: false,
-      why: 'The traffic load runs along the deck, and no bar has both ends on it. Build the carriageway, or set the deck load to zero.',
-    };
+    return { ok: false, why: t('truss.readiness.noDeck') };
   }
   const stray = Object.keys(lattice.loads).find((index) => !attached.has(Number(index)));
   if (stray !== undefined) {
-    return {
-      ok: false,
-      why: `A load sits on joint ${stray}, which no bar reaches, so it has nowhere to go.`,
-    };
+    return { ok: false, why: t('truss.readiness.strayLoad', { index: stray }) };
   }
   if (!Object.keys(lattice.loads).length && loading.deck === 0 && loading.wind === 0) {
-    return { ok: false, why: 'Nothing is loading it. Add a deck load, or drop a load on a joint.' };
+    return { ok: false, why: t('truss.readiness.noLoad') };
   }
   return { ok: true };
 }
@@ -776,8 +748,8 @@ function drawSite() {
     box(SITE.span, ymin, xmax, SITE.deck, 'site__ground'),
     box(cx0, cy0, cx1, cy1, 'site__clear'),
     line([0, SITE.deck], [SITE.span, SITE.deck], 'site__deck'),
-    text([cx0 + 0.4, cy1 - 1.2], 'keep clear', 'site__label'),
-    text([xmin + 0.4, SITE.deck - 1.2], 'ground', 'site__label'),
+    text([cx0 + 0.4, cy1 - 1.2], t('truss.site.keepClear'), 'site__label'),
+    text([xmin + 0.4, SITE.deck - 1.2], t('truss.site.ground'), 'site__label'),
   );
 }
 
@@ -1077,7 +1049,7 @@ function refreshBuildTools() {
           {
             type: 'button',
             class: `tool${build.tool === tool.id && editing ? ' is-active' : ''}`,
-            title: editing ? tool.hint : 'Press Build to lay out the lattice.',
+            title: editing ? tool.hint : t('truss.tools.pressBuild'),
             'aria-pressed': String(build.tool === tool.id && editing),
             disabled: editing ? null : true,
           },
@@ -1091,7 +1063,7 @@ function refreshBuildTools() {
   );
   dom.buildHint.textContent = editing
     ? (BUILD_TOOLS.find((tool) => tool.id === build.tool)?.hint ?? '')
-    : 'The lattice is shown over the field in Build mode, where the pointer belongs to the builder rather than to the view.';
+    : t('truss.tools.outsideBuild');
 }
 
 function describeLattice() {
@@ -1099,15 +1071,15 @@ function describeLattice() {
   const stray = lattice.nodes.length - attached.size;
   const supports = Object.values(lattice.supports);
   const parts = [
-    `${lattice.nodes.length} joints, ${lattice.members.length} bars.`,
-    `${supports.filter((kind) => kind === 'pin').length} pinned, ` +
-      `${supports.filter((kind) => kind === 'roller').length} on rollers.`,
+    t('truss.lattice.counts', { joints: lattice.nodes.length, bars: lattice.members.length }),
+    t('truss.lattice.supports', {
+      pinned: supports.filter((kind) => kind === 'pin').length,
+      rollers: supports.filter((kind) => kind === 'roller').length,
+    }),
   ];
   const dropped = Object.keys(lattice.loads).length;
-  if (dropped) parts.push(`${dropped} joint load(s) placed.`);
-  if (stray > 0) {
-    parts.push(`${stray} joint(s) reached by no bar — they are left out of the solve.`);
-  }
+  if (dropped) parts.push(t('truss.lattice.dropped', { count: dropped }));
+  if (stray > 0) parts.push(t('truss.lattice.stray', { count: stray }));
   return parts.join(' ');
 }
 
@@ -1134,11 +1106,11 @@ function renderDerived() {
     Object.values(lattice.loads).reduce((sum, value) => sum + value, 0);
 
   dom.derived.replaceChildren(
-    entry('Total bar length', `${total.toFixed(1)} m`),
-    entry('Longest bar', `${longest.toFixed(2)} m`),
-    entry('Steel, before the solve', `${(total * area * density).toFixed(0)} kg`),
-    entry('Vertical load imposed', `${imposed.toFixed(1)} kN`),
-    entry('Euler load of the longest bar', `${eulerOf(longest, area).toFixed(1)} kN`),
+    entry(t('truss.derived.totalLength'), `${total.toFixed(1)} m`),
+    entry(t('truss.derived.longest'), `${longest.toFixed(2)} m`),
+    entry(t('truss.derived.steel'), `${(total * area * density).toFixed(0)} kg`),
+    entry(t('truss.derived.imposed'), `${imposed.toFixed(1)} kN`),
+    entry(t('truss.derived.euler'), `${eulerOf(longest, area).toFixed(1)} kN`),
   );
 }
 
@@ -1169,7 +1141,7 @@ async function run() {
   if (running) return;
   const chosen = solver();
   if (!chosen) {
-    setStatusOn(dom, 'This server has no solver that answers a truss.', 'error');
+    setStatusOn(dom, t('truss.noSolver'), 'error');
     return;
   }
   const ready = readiness();
@@ -1206,7 +1178,7 @@ async function run() {
     showArtifacts(dom.artifacts, result.artifacts);
     present();
     drawBuilder();
-    setStatusOn(dom, 'Done.', 'done');
+    setStatusOn(dom, t('experiment.done'), 'done');
   } finally {
     running = false;
     currentJob = null;
@@ -1256,10 +1228,15 @@ function present() {
 function drawMemberLadder() {
   const utilisation = [...(report.members?.utilisation ?? [])].sort((a, b) => b - a);
   drawCurve(dom.forceCurve, {
-    traces: [{ name: 'η', points: utilisation.map((value, index) => [index + 1, value]) }],
-    xLabel: 'members, worst first',
-    yLabel: 'utilisation η',
-    marks: [{ y: 1, label: 'capacity' }],
+    traces: [
+      {
+        name: t('truss.members.ladderTrace'),
+        points: utilisation.map((value, index) => [index + 1, value]),
+      },
+    ],
+    xLabel: t('truss.members.ladderX'),
+    yLabel: t('truss.members.ladderY'),
+    marks: [{ y: 1, label: t('truss.members.capacity') }],
   });
 }
 
@@ -1280,10 +1257,10 @@ function drawMemberTable() {
         el(
           'tr',
           {},
-          // "utilisation" rather than the symbol: the table's headers are uppercased by the
+          // The word rather than the symbol: the table's headers are uppercased by the
           // stylesheet, and an uppercased eta is a capital H.
-          ...['bar', 'force kN', 'length m', 'utilisation', 'limited by'].map((label) =>
-            el('th', { scope: 'col', text: label }),
+          ...['bar', 'force', 'length', 'utilisation', 'limitedBy'].map((key) =>
+            el('th', { scope: 'col', text: t(`truss.members.${key}`) }),
           ),
         ),
       ),
@@ -1303,7 +1280,10 @@ function drawMemberTable() {
             el('td', { class: 'num', text: members.length[index].toFixed(2) }),
             el('td', { class: 'num', text: value.toFixed(2) }),
             el('td', {
-              text: !compressed ? 'yield' : critical < squash ? 'buckling' : 'yield',
+              text:
+                !compressed || critical >= squash
+                  ? t('truss.members.yield')
+                  : t('truss.members.buckling'),
             }),
           );
         }),
@@ -1312,42 +1292,43 @@ function drawMemberTable() {
   );
 
   const worst = report.members?.utilisation?.indexOf(report.metrics?.utilisation_max);
-  dom.membersNote.textContent =
-    worst >= 0
-      ? `The eight busiest bars. Bar ${worst} is the one the mission is decided by, and it is ` +
-        `marked on the field by the Worst member layer. A bar limited by buckling is one whose ` +
-        `Euler load is below its squash load — shortening it helps by the square of the length, ` +
-        `where thickening it helps by the square of the area.`
-      : '';
+  dom.membersNote.textContent = worst >= 0 ? t('truss.members.note', { index: worst }) : '';
 }
 
 /* --------------------------------------------------------------- the annotation layer */
 
 function declareOverlays() {
-  const noRun = 'Run the solve first.';
+  const noRun = t('workspace.noRun');
   workspace.setOverlays([
-    { id: 'lattice', label: 'The lattice', colour: 'var(--overlay-profile)', on: true },
+    {
+      id: 'lattice',
+      label: t('truss.overlays.lattice'),
+      colour: 'var(--overlay-profile)',
+      on: true,
+    },
     {
       id: 'deformed',
       // The factor is in the label, not in a footnote. A picture of a deflection with no scale
       // on it is the easiest way there is to leave someone thinking a bridge is sagging.
-      label: report ? `Deflected shape ×${Math.round(magnification())}` : 'Deflected shape',
+      label: report
+        ? t('truss.overlays.deformedScaled', { factor: Math.round(magnification()) })
+        : t('truss.overlays.deformed'),
       colour: 'var(--overlay-chord)',
       on: true,
       enabled: Boolean(report?.displacement?.length),
       why: noRun,
-      title: 'Where every joint went, magnified until the largest movement can be seen',
+      title: t('truss.overlays.deformedTitle'),
     },
     {
       id: 'worst',
-      label: 'Worst member',
+      label: t('truss.overlays.worst'),
       colour: 'var(--overlay-peak)',
       on: true,
       enabled: Boolean(report?.members?.utilisation?.length),
       why: noRun,
-      title: 'The bar the mission is decided by',
+      title: t('truss.overlays.worstTitle'),
     },
-    { id: 'loads', label: 'Loads & supports', colour: 'var(--overlay-cp)', on: true },
+    { id: 'loads', label: t('truss.overlays.loads'), colour: 'var(--overlay-cp)', on: true },
   ]);
 }
 
@@ -1455,14 +1436,15 @@ function latticeBox() {
 /* ------------------------------------------------------------------------ the run table */
 
 const COLUMNS = [
-  { path: 'geometry.label', label: 'Lattice' },
+  { path: 'geometry.label', label: t('truss.columns.lattice') },
+  // The symbol columns are symbols in both languages.
   { path: 'metrics.utilisation_max', label: 'η' },
-  { path: 'metrics.mass', label: 'mass kg' },
+  { path: 'metrics.mass', label: t('truss.columns.mass') },
   { path: 'metrics.span_ratio', label: 'δ/L' },
   { path: 'metrics.carried_per_mass', label: 'N/kg' },
-  { path: 'physical.area', label: 'A m²' },
-  { path: 'physical.deck_load', label: 'deck kN/m' },
-  { path: 'verification.joint_equilibrium_rel', label: 'joint check' },
+  { path: 'physical.area', label: t('truss.columns.area') },
+  { path: 'physical.deck_load', label: t('truss.columns.deck') },
+  { path: 'verification.joint_equilibrium_rel', label: t('truss.columns.joint') },
 ];
 
 /** One row: every input, the answer, the residuals, the warnings, the provenance. */
@@ -1509,7 +1491,7 @@ function row() {
 
 function describeShape() {
   const depth = Math.max(...lattice.nodes.map(([, y]) => y), 0) - SITE.deck;
-  return `${lattice.members.length} bars, ${depth.toFixed(1)} m deep`;
+  return t('truss.shapeLabel', { bars: lattice.members.length, depth: depth.toFixed(1) });
 }
 
 function refreshRuns(rows = runs.load(EXERCISE), evicted = 0) {
@@ -1531,8 +1513,8 @@ function refreshRuns(rows = runs.load(EXERCISE), evicted = 0) {
     { labels: METRIC_LABELS },
   );
 
-  const parts = [`${rows.length} of ${runs.CAPACITY} kept, in this browser only.`];
-  if (evicted) parts.push(`${evicted} oldest dropped to make room.`);
+  const parts = [t('experiment.kept', { count: rows.length, capacity: runs.CAPACITY })];
+  if (evicted) parts.push(t('experiment.evicted', { count: evicted }));
   dom.runsNote.textContent = parts.join(' ');
   for (const button of [dom.exportCsv, dom.exportJson, dom.clearRuns]) {
     button.disabled = !rows.length;
@@ -1558,7 +1540,7 @@ function loadRun(entry_) {
   build.history = [];
   dom.undo.disabled = true;
   afterEdit();
-  setStatusOn(dom, `Loaded the ${entry_.geometry.label} run. Press Run to recompute it.`);
+  setStatusOn(dom, t('truss.loadedRun', { label: entry_.geometry.label }));
 }
 
 function buildForms(previous = currentParams()) {
@@ -1586,7 +1568,7 @@ function updateReadiness() {
   if (!chosen || dom.maintenance.hidden === false) return;
   dom.run.disabled = !ready.ok;
   if (!running) {
-    setStatusOn(dom, ready.ok ? 'Press Run to solve the lattice as it stands.' : ready.why);
+    setStatusOn(dom, ready.ok ? t('truss.ready') : ready.why);
   }
 }
 
@@ -1605,9 +1587,9 @@ workspace = createWorkspace({
   root: dom.workspace,
   viewer: dom.viewer,
   editor: dom.editor,
-  fitLabel: 'Fit the bridge',
-  editLabel: 'Build',
-  editTitle: 'Lay out the lattice: joints, bars, supports and loads',
+  fitLabel: t('truss.fitBridge'),
+  editLabel: t('truss.build'),
+  editTitle: t('truss.buildTitle'),
   exportName: 'bridge-lattice',
   subject: latticeBox,
   onDraw: drawOverlay,
@@ -1682,7 +1664,7 @@ dom.clearRuns.addEventListener('click', () => {
 
 try {
   const [loaded, info, solvers] = await Promise.all([
-    fetch('/experiments/truss/content.json').then((response) => response.json()),
+    fetch(contentUrl(EXERCISE)).then((response) => response.json()),
     health().catch(() => null),
     solversFor(GEOMETRY_TYPE, { physics: PHYSICS }),
   ]);
@@ -1705,21 +1687,17 @@ try {
   const canSolve = applyMaintenance(
     dom,
     info,
-    'The lab is not accepting new simulations right now. You can still read the problem, build a lattice and look at any runs you have kept.',
+    t('bench.maintenance', { alternative: t('truss.maintenanceAlternative') }),
   );
 
   if (!chosen) {
-    setStatusOn(
-      dom,
-      'This server has no solver that answers a truss, so this exercise cannot be run here.',
-      'error',
-    );
+    setStatusOn(dom, t('truss.noSolverHere'), 'error');
   } else if (!canSolve) {
-    setStatusOn(dom, 'Simulations are paused for maintenance.');
+    setStatusOn(dom, t('experiment.maintenanceStatus'));
   } else {
     updateReadiness();
   }
 } catch (error) {
-  setStatusOn(dom, `Cannot reach the server — ${describeError(error)}`, 'error');
+  setStatusOn(dom, t('experiment.unreachable', { detail: describeError(error) }), 'error');
   dom.run.disabled = true;
 }

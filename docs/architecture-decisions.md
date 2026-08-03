@@ -358,6 +358,12 @@ pre-solved.
 
 ## ADR-011 — English throughout, site included
 
+> **Superseded in part by [ADR-020](#adr-020--the-site-is-bilingual-the-repository-is-not).**
+> The site is now English and Italian; the code, the tests and these records stayed English.
+> The reasoning below is why the split was refused the first time, and it is still the reasoning
+> — what changed is that the second language was actually wanted, which is the condition the
+> last paragraph names.
+
 **Decision.** One language everywhere: the pages, the experiment content, the status
 messages, the code, the tests and these records are all in English.
 
@@ -870,6 +876,102 @@ and neither is load-bearing anywhere else.
 
 ---
 
+## ADR-020 — The site is bilingual; the repository is not
+
+**Decision.** The pages read in English or Italian, chosen with a switch at the top right of
+every page. The code, the comments, the tests, the commit messages and these records stay in
+English, and so does everything the *server* writes.
+
+[ADR-011](#adr-011--english-throughout-site-included) refused an Italian site over an English
+repository and ended by naming the condition for revisiting it — "not due until a second
+language is actually wanted, which is also when the seam should be designed for the languages
+it will really carry". This is that seam. Every reason ADR-011 gave still holds; none of them
+was an argument against a *reader* choosing, and each of them shaped where the translation
+stops.
+
+### The three pieces
+
+| Piece | Where it lives | Why there |
+|---|---|---|
+| the wording | `frontend/shared/strings/{en,it}.js` — one nested object each, `t('runs.load')` | one file per language, so a sentence is changed once instead of in the markup, the script and the test that reads it |
+| the markup | `data-i18n`, `data-i18n-html`, `data-i18n-attr` on the elements that carry prose | the English stays in the file, so the page is readable, crawlable and reviewable without running anything |
+| the lesson | `content.json` beside `content.it.json` | the prose was already data ([ADR-013](#adr-013--the-pages-become-exercises-not-demonstrations)); a second file is the whole change |
+
+`content.json` keeps its name for English rather than becoming `content.en.json`. It is the
+*source*: the exercise is written in it and every other language is a translation of it, checked
+against it section by section by `scripts/check-i18n.mjs`. Renaming it would have made the two
+look like peers, which they are not.
+
+**One catalogue is loaded, at the top level, before anything that uses it.** `shared/i18n.js`
+imports English statically and the active language with a top-level `await import()`, so every
+module that imports it — which is every module — is deferred until the wording is in hand. That
+is the property the whole design rests on: `app.js` keeps its metric, parameter and field tables
+as module-level constants, exactly as before, and by the time their initialisers run `t` already
+answers. No build step, no framework, no reactive store. [ADR-009](#adr-009--no-front-end-framework-and-no-bundler)
+stands, and this is the change that most looked like it would break it.
+
+**Switching language is a navigation, not a listener.** The switch is two links to `?lang=en`
+and `?lang=it`; following one reloads the page, which re-evaluates those constant tables. Making
+it live would mean re-deriving every control, every overlay declaration and every table from a
+signal — a component model, which is the thing ADR-009 declined to grow for a lab of four pages.
+The links are also shareable and undoable with the back button, which a listener is not. The
+cost is one page load and, with it, an unsaved result; the kept runs are in `localStorage` and
+survive.
+
+**The language is resolved once, in one order:** `?lang=`, then the stored choice, then the
+browser's own `Accept-Language`, then English. Only an explicit choice is stored — a detected
+language is re-detected every time, so changing the browser's setting changes the site rather
+than losing to a stale copy of an old answer.
+
+**The first paint is held back, and only when it would be wrong.** The pages ship English in the
+markup, so an Italian reader would otherwise read a frame of English while the module graph
+loads. A ten-line blocking snippet in each `<head>` applies the same resolution rule and, for a
+non-English load only, sets `data-lang-pending` on `<html>`; the stylesheet hides the body while
+it is there and `translateDom` removes it. The snippet clears the attribute itself after two
+seconds, so a script that never runs cannot leave a blank page. Duplicating the rule in ten
+lines of ES5 was the price of not shipping a flash of the wrong language; `shared/i18n.js`
+re-resolves independently rather than trusting the snippet, so a page that lost it is wrong
+about its paint and right about its text.
+
+### What is not translated, and why that is not an omission
+
+**Anything the server wrote.** The validity warnings in `report.json` are computed prose with
+the crossed threshold interpolated into them — "Member 12 carries 291 MPa, past the 250 MPa
+yield of the material" — and they are built in `physics_lab/solvers/*.py`. Translating them
+means either teaching every solver a language, or replacing the sentences with codes and
+arguments and rebuilding them in the browser. The second is the right design and it is a change
+to the report contract and its tests, not to this seam; it is the obvious next step and it is
+deliberately not bundled here. The same goes for each capability's `title` and `description`
+from `GET /api/v1/solvers`, which are upstream's and reach the page unread.
+
+**Anything that is a name.** `mock.laplace2d`, `NACA 2412`, `Φ′`, `C_p`, `Wb/m`, `Fenix Spoon`.
+This is ADR-011's central observation and it did not stop being true: the vocabulary around
+these identifiers is not national, and inventing Italian for a solver name would mean
+maintaining a mapping that the API would contradict on its next release. Symbols and units are
+the same in both languages because they are the same in both languages.
+
+**Anything a program reads.** The CSV and JSON exports keep their raw keys and their English
+summaries (`"3 values"`), because a column that changes wording with the browser's locale is an
+export no script can read twice.
+
+### How it is kept honest
+
+`scripts/check-i18n.mjs`, run by CI beside the formatter, is the guard, because every way this
+breaks is silent in a browser: a key Italian never got shows English inside Italian prose, a key
+the pages ask for and neither catalogue has prints the key, a placeholder lost in translation
+prints a brace, and an `content.it.json` that has drifted from its source quietly changes the
+exercise. It checks all four, plus that the two files' `{placeholders}` agree. The Python suite
+asserts that every page declares both versions and that the Italian lesson is not the English
+one copied; Playwright is pinned to `en-GB` so the existing assertions test the code rather than
+the runner's locale.
+
+**Cost.** Two files to keep in step instead of one, and a translation to write for every
+sentence added — which is the real cost and lands on whoever adds the fifth experiment. About
+600 keys today. The check makes forgetting loud rather than invisible, which is the most that
+can be automated; what cannot be is whether the Italian is any good.
+
+---
+
 ## Deferred
 
 Not built, on purpose. Each would have been a plausible use of the kickstart's time; none
@@ -887,3 +989,4 @@ would have made the one finished experiment better.
 | **STEP upload, 3D, Navier–Stokes, automatic optimisation** | All need protocol capabilities that do not exist yet: `step3d` geometry, 3D result kinds. (Vector fields were in this list and are not any more — both lab solvers that have one publish it, and the workspace integrates streamlines from it.) Upstream's roadmap, not the lab's. |
 | **MCP / local agent interface** | No longer unimplemented upstream — M2.5 landed whole in the pin the lab now runs, so `fenix-spoon rpc --stdio`, the MCP adapter and the CLI all exist. Still deferred here, and for a different reason than before: the lab is a *public web* application with anonymous quotas, and none of those transports is reachable through a browser. What would bring it back is a reason for a script to drive this deployment rather than its own. |
 | **Analytics** | None. A page that reports nothing needs no cookie banner and no privacy policy, and the lab collects no personal data at all. |
+| **Translated validity warnings** | [ADR-020](#adr-020--the-site-is-bilingual-the-repository-is-not) translates everything the browser writes and nothing the server does. The warnings in `report.json` are prose built in the solvers with a threshold interpolated into it, so translating them means replacing each sentence with a code and its arguments and rebuilding it in the page — a change to the report contract, its tests and three solvers, and the right one. What would bring it back is upstream's issue #46 giving the envelope somewhere to put typed metrics and messages, at which point the codes have a home that is not `report.json`'s ad-hoc shape. |
