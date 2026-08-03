@@ -211,6 +211,29 @@ def _grid_cells(solver, geometry, params):
     return _grid_for(geometry, params.cells_across, params.far_field_growth).cells
 
 
+def test_the_mesh_output_is_not_billed_for_a_raster_it_never_builds(tmp_path):
+    """`mesh2d` publishes the solver's own cells as nodes and allocates no raster.
+
+    Charging for one anyway is not a rounding error in the estimate: at the default field
+    resolution it is 65 536 cells, a third of the public server's budget, and enough to have a
+    mesh run refused for a reason that was not true of it.
+    """
+    solver = Magnetics2D()
+    geometry = cross_section()
+    settings = {"cells_across": 40, "convergence_check": False}
+    raster = solver.Params(output="grid2d", **settings)
+    mesh = solver.Params(output="mesh2d", **settings)
+
+    grid_cells = _grid_cells(solver, geometry, mesh)
+    assert solver.estimate_cells(geometry, mesh) == grid_cells
+    assert solver.estimate_cells(geometry, raster) > solver.estimate_cells(geometry, mesh)
+
+    # And the estimate is met rather than merely smaller: the mesh really does carry one node
+    # per cell of the solve.
+    result, _ = run(tmp_path, output="mesh2d", **settings)
+    assert len(result.data["points"]) == grid_cells
+
+
 def test_progress_is_reported_and_can_be_cancelled(tmp_path):
     """Cancellation is cooperative, so the iteration loop has to check for it."""
     import threading
@@ -328,6 +351,25 @@ def test_the_material_can_declare_its_own_saturation(tmp_path):
 
     assert report["model"]["saturation_flux_density"] == 0.4
     assert any("0.40 T" in w for w in report["validity"]["warnings"])
+
+
+def test_a_run_with_no_flux_reports_no_leakage_rather_than_zero(tmp_path):
+    """A ratio whose denominator vanishes has no value, and `null` is how that is said.
+
+    Reachable by switching the coil off: the geometry is still a magnet, the mid-plane is still
+    where it was, and there is simply no bundle for the core flux to be a share of. Zero would
+    be the wrong answer twice over — it reads as "none of the flux leaks", which is a claim
+    about a magnet that is not carrying any.
+    """
+    off = cross_section(current=0.0)
+    _, report = run(tmp_path, geometry=off)
+
+    assert report["metrics"]["leakage_ratio"] is None
+    assert report["metrics"]["flux_total"] == 0.0
+    assert report["metrics"]["ampere_turns"] == 0.0
+    # The bundle's ends still exist — they are where A_z turns over — so the page has marks to
+    # draw and has to decide what to say about a ratio that does not.
+    assert report["validity"]["bundle_x"] is not None
 
 
 def test_a_coil_with_no_core_says_which_metrics_it_is_not_reporting(tmp_path):

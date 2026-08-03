@@ -375,6 +375,35 @@ test('a kept magnetics run records enough to be recomputed, and reloads its geom
   await expect(page.locator('#param-cells_across')).toHaveValue('40');
 });
 
+test('a leakage the run does not report is not printed as zero', async ({ page }) => {
+  // `leakage_ratio` is null when no flux crosses the mid-plane in either direction — the ratio
+  // has no denominator. `100 * null` is 0 in JavaScript, so the arithmetic would have printed a
+  // confident "0.00 %", which reads as "none of the flux leaks" for a magnet carrying none.
+  //
+  // The page's own sliders cannot reach it: the current density stops at 0.5 A/mm². So the
+  // report is doctored on the wire instead, which is the only way to exercise a branch the
+  // solver is right about and the page was wrong about.
+  await page.route('**/report.json', async (route) => {
+    const response = await route.fetch();
+    const report = await response.json();
+    report.metrics.leakage_ratio = null;
+    await route.fulfill({ json: report });
+  });
+
+  await page.goto('/experiments/solenoid/');
+  await openAdvanced(page);
+  await page.locator('#param-cells_across').fill('40');
+  await page.locator('#param-convergence_check').uncheck();
+  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
+
+  await expect(page.locator('#plane-note')).not.toContainText('0.00 %');
+  await expect(page.locator('#plane-note')).toContainText('no leakage is reported');
+  // The marks are still drawn: they are where A_z turns over, which is a fact about the field
+  // and not about the ratio.
+  await expect(page.locator('#plane-note')).toContainText('outer pair');
+});
+
 test('the magnetics workspace keeps the cross-section and can be explored', async ({ page }) => {
   await page.goto('/experiments/solenoid/');
   await openAdvanced(page);

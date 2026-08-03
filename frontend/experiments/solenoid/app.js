@@ -848,11 +848,20 @@ function present() {
     marks,
   });
 
+  // `leakage_ratio` is null when the bundle carries no flux at all — the marks still exist,
+  // because they are where A_z turns over, and the ratio they would be part of does not. Read
+  // through `Number.isFinite` rather than trusting the branch: `100 * null` is 0 in JavaScript,
+  // so the arithmetic would have printed a confident "0.00 %" for a quantity that has no value.
+  const leakage = report.metrics.leakage_ratio;
+  const share = Number.isFinite(leakage)
+    ? `Leakage is one minus their ratio — ${(100 * leakage).toFixed(2)} % on this run.`
+    : 'No flux crosses this plane in either direction on this run, so there is no bundle for ' +
+      'the core flux to be a share of, and no leakage is reported.';
+
   dom.planeNote.textContent = bundle
     ? 'The inner pair of marks is the core, the outer pair is where B_y changes sign. The drop ' +
       'in A_z across the inner pair is the core flux; across the outer pair, the whole bundle. ' +
-      `Leakage is one minus their ratio — ${(100 * report.metrics.leakage_ratio).toFixed(2)} % ` +
-      'on this run. The outer marks sit where B_y crosses zero, which is what makes that ' +
+      `${share} The outer marks sit where B_y crosses zero, which is what makes that ` +
       'surface — and therefore the leakage — insensitive to exactly where it is placed. ' +
       `Shown out to ±${limit.toFixed(0)} mm; the solve runs to ±${windowHalf()} mm, where A_z ` +
       'reaches the zero the boundary condition imposes.'
