@@ -29,10 +29,15 @@ Everything — pages, experiment content, code and documentation — is in Engli
 
 | Experiment | Physics | Status |
 |---|---|---|
-| **Airfoil design** | Ideal flow with a Kutta condition, by a panel method: hit a lift target under a pitching-moment constraint | **Available** — the first *exercise* |
-| **The magnetic circuit** — *magnetostatics* | Vector potential for an out-of-plane current, on a grid fitted to the iron: carry a required flux on an ampere-turn budget without leaking it | **Available** — the second *exercise* |
-| **The bridge** — *statics* | A pin-jointed lattice by the direct stiffness method: build a truss across a gorge and carry the traffic on a steel budget, without buckling a member | **Available** — the third *exercise*, and the one you draw |
+| **Airfoil design** | Ideal flow with a Kutta condition, by a panel method: hit a lift target under a pitching-moment constraint | **Available** — the first page built to the *exercise* contract |
+| **The magnetic circuit** — *magnetostatics* | Vector potential for an out-of-plane current, on a grid fitted to the iron: carry a required flux on an ampere-turn budget without leaking it | **Available** — the second |
+| **The bridge** — *statics* | A pin-jointed lattice by the direct stiffness method: build a truss across a gorge and carry the traffic on a steel budget, without buckling a member | **Available** — the third, and the one you draw |
 | **Heat sink conduction and convection** | Conduction in a finned body with convective surfaces | Planned |
+
+Each page also numbers *itself* — "Exercise 1", "Exercise 3", "Exercise 4" — and that number is its
+row in [the contract's list of exercises](docs/exercise-contract.md#7-the-exercises), not the order
+the pages were built in. The two differ because the list has rows nobody has built yet: the bridge
+is Exercise 4 there and the third one built here.
 
 The three experiments deliberately exercise different halves of the protocol. The airfoil
 sends `domain2d` — one polygon cut out of a rectangle, edited by dragging control points.

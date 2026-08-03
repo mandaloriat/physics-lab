@@ -220,14 +220,24 @@ what upstream's README says — the publish workflow tags `latest` only on a `v*
 and none has been pushed. Anyone debugging a failed pull should know that before they
 "fix" it by switching to a tag that has never existed.
 
-**Where the pin lives, and why in four places.** `pyproject.toml` (what pip resolves),
-`Dockerfile` build args (what the image is built from), the compose files and `.env.example`
-(what a deployment runs), and `physics_lab/settings.py` plus `scripts/fetch-widgets.sh`
-(the fallback for a checkout using neither pip's metadata nor Docker). They cannot be
-derived from one another because they are read by different tools at different times. A
-bump that updates three of four gives a container whose widgets, server and adapters come
-from different commits — and that failure is silent. `scripts/check-pins.sh` makes it loud,
-and CI runs it.
+**Where the pin lives, and why in four kinds of place.** `pyproject.toml` (what pip resolves),
+`Dockerfile` build args (what the image is built from), the compose files, `.env.example` and
+`.github/workflows/ci.yml` (what a deployment — or a build — runs), and
+`physics_lab/settings.py` plus `scripts/fetch-widgets.sh` (the fallback for a checkout using
+neither pip's metadata nor Docker). They cannot be derived from one another because they are
+read by different tools at different times. A bump that updates three of four gives a
+container whose widgets, server and adapters come from different commits — and that failure is
+silent. `scripts/check-pins.sh` makes it loud, and CI runs it.
+
+**The check is only as wide as its file list, and that was found the hard way.** The bump to
+`4e7c296` updated every file the script read and one it did not: the CI workflow, which names
+the slim image the container job builds `FROM` and which carried a comment claiming it was
+checked here. The build then did exactly what this ADR says a partial bump does — vendored the
+widgets from the new commit onto a runtime whose `fenixspoon` was the old one — and failed with
+`ModuleNotFoundError: No module named 'fenixspoon.boundaries'` three minutes in. The workflow
+and `compose.host-caddy.yaml`, which was unread for the same reason, are now both in the
+script's lists, and the comment is true. A tripwire that does not cover a file is a tripwire
+that says the file is fine.
 
 **How to upgrade.**
 
@@ -238,9 +248,15 @@ and CI runs it.
    `curl -s "https://ghcr.io/token?scope=repository:mandaloriat/fenix-spoon:pull&service=ghcr.io"`,
    then a `HEAD` on `…/manifests/sha-<short>`. Not every commit is published.
 3. Replace the SHA in `pyproject.toml`, `Dockerfile`, `compose.yaml`,
-   `compose.production.yaml`, `.env.example`, `scripts/fetch-widgets.sh` and
-   `physics_lab/settings.py`, and the image tags with the new short SHA.
-4. `./scripts/check-pins.sh` — it must pass before anything else is tried.
+   `compose.production.yaml`, `compose.host-caddy.yaml`, `.env.example`,
+   `scripts/fetch-widgets.sh` and `physics_lab/settings.py`, and the image tags — including
+   the one in `.github/workflows/ci.yml` — with the new short SHA. The digests in `README.md`
+   and in this file are part of it: `check-pins.sh` reads the commit out of both documents, but
+   nothing checks a digest against the registry, so those two lines are the only ones a human
+   has to get right unaided.
+4. `./scripts/check-pins.sh` — it must pass before anything else is tried. It reads every file
+   in the list above; a file it does not read is a file that will drift, so anything that
+   learns to name the pin is added to it in the same commit.
 5. `FORCE=1 ./scripts/fetch-widgets.sh && pip install -e ".[dev]" --force-reinstall --no-deps`
    then `pytest`, `npx playwright test`, `./scripts/smoke-test.sh`.
 6. Deploy, and roll back on a red smoke test — `./scripts/deploy.sh` does both.
