@@ -1,0 +1,124 @@
+{
+  "id": "airfoil",
+  "title": "Progetto di un profilo alare",
+  "subtitle": "Flusso ideale con condizione di Kutta",
+  "intro": "Una sezione alare in una corrente uniforme. Scegli un profilo, scegli un'incidenza, e centra un obiettivo di portanza senza violare il vincolo che lo accompagna. Il solutore riporta che cosa fa davvero la sezione — distribuzione di pressione, portanza, momento di beccheggio, centro di pressione — e, a ogni esecuzione, fino a che punto ci si può fidare di quei numeri.",
+  "challenge": {
+    "statement": "Scegli un profilo e un angolo d'attacco che generino 800 N/m di portanza per unità di apertura a 40 m/s e a livello del mare, mantenendo piccolo il momento di beccheggio: |C_m,c/4| sotto 0,08. Le prove che escono dal campo di validità del modello non contano.",
+    "targets": [
+      {
+        "metric": "l_prime",
+        "comparator": "==",
+        "value": 800,
+        "unit": "N/m",
+        "tolerance": 0.02,
+        "tolerance_kind": "relative"
+      },
+      {
+        "metric": "c_m_c4",
+        "comparator": "<",
+        "value": 0.08,
+        "unit": "1",
+        "absolute": true
+      }
+    ],
+    "requires_valid": true,
+    "requires_verified": {
+      "metric": "cl_consistency_rel",
+      "below": 0.02
+    },
+    "next_step": "un profilo diverso a un'incidenza diversa"
+  },
+  "sections": [
+    {
+      "id": "problem",
+      "heading": "Il problema",
+      "lead": "Ricava 800 N/m di portanza da un metro di corda, e tieni sotto controllo il momento di beccheggio.",
+      "body": [
+        "A 40 m/s e a livello del mare la pressione dinamica è 980 Pa, quindi su una corda di un metro l'obiettivo chiede un coefficiente di portanza di 0,816. Quasi ogni sezione lo raggiunge a una qualche incidenza. È il vincolo a farne un problema di progetto: **|C_m,c/4| < 0,08**, perché il momento di beccheggio è ciò che un piano di coda deve equilibrare, e una sezione che richiede una coda grande non è gratis.",
+        "La curvatura compra portanza a bassa incidenza e la fa pagare in momento di beccheggio. Un NACA 4412 raggiunge l'obiettivo a 2,5° ed è **squalificato** con |C_m| ≈ 0,11. Un 0009 simmetrico non ha quasi momento, e paga invece in incidenza — 6,9° — e in depressione: il suo C_p,min è circa −4,8, un picco di pressione a cui uno strato limite reale non sopravvivrebbe. Niente in questo modello ti impedirà di sceglierlo, ed è esattamente per questo che quel numero è sullo schermo.",
+        "Non esiste un profilo che vinca su tutti i fronti. Trovane uno che passi, salva la prova, poi trovane un altro che passi anch'esso e confronta i due."
+      ]
+    },
+    {
+      "id": "model",
+      "heading": "Il modello",
+      "body": [
+        "Flusso stazionario, bidimensionale, incomprimibile, non viscoso e irrotazionale attorno a un profilo chiuso: **l'equazione di Laplace**, con la pressione recuperata da Bernoulli. Serve uno scalare in più per rendere il problema ben posto, ed è tutto il punto di questa pagina — la **circolazione**, fissata dalla condizione di Kutta al bordo d'uscita.",
+        "Senza quella condizione il problema ha una famiglia di soluzioni a un parametro, di cui quella a portanza nulla non è più corretta di nessun'altra; e la portanza nulla è ciò che calcolava la versione precedente di questa pagina. Puoi ancora chiederla: imposta **Condizione di Kutta** su *nessuna* e guarda la portanza andare a zero e la velocità al bordo d'uscita andare all'infinito.",
+        "**Materiale.** Aria, a densità e viscosità costanti. L'atmosfera è fissata dalla quota ISA oppure inserita a mano. La densità scala le grandezze dimensionali e nient'altro: ogni coefficiente di questa pagina ne è indipendente.",
+        "**La temperatura è un dato in ingresso, non un risultato.** Il modello è isotermo e non risolve alcuna equazione dell'energia, quindi non c'è alcun campo di temperatura da mostrare. La temperatura entra soltanto attraverso densità, viscosità e velocità del suono.",
+        "**Nessuna condizione iniziale.** Il problema è stazionario, quindi non c'è alcuno stato a t = 0. Dove un esercizio in transitorio ne elencherebbe una, questa pagina non ha nulla da elencare, e inventare qualcosa per riempire il vuoto sarebbe una menzogna sul modello.",
+        "**Unità.** SI dappertutto. Gli angoli sono in gradi nell'interfaccia e in radianti all'interno."
+      ]
+    },
+    {
+      "id": "boundary-conditions",
+      "heading": "Condizioni al contorno",
+      "body": [
+        "**Sul profilo: tangenza del flusso.** La superficie è solida, impermeabile e priva di attrito, quindi la componente di velocità che la attraversa è nulla. Imposta nel punto medio di ogni pannello.",
+        "**Al bordo d'uscita: la condizione di Kutta.** Il flusso lascia il bordo d'uscita in modo regolare — stessa velocità tangenziale sulle due superfici, nessun salto di pressione attraverso di esso. È l'unica condizione che seleziona la circolazione, e quindi la portanza.",
+        "**All'infinito: la corrente indisturbata.** La velocità tende alla corrente indisturbata a distanza infinita. Nota *infinita*: un metodo a pannelli soddisfa questa condizione analiticamente, quindi, a differenza di una soluzione su mesh, non c'è alcun contorno esterno posto a distanza finita e nessun errore di bloccaggio da far convergere.",
+        "**Nella scia: niente.** Il flusso è stazionario, non viscoso e irrotazionale ovunque fuori dal corpo, quindi non c'è alcuna superficie di scia, alcun difetto di velocità e alcuna separazione. La circolazione legata è tutto il contenuto vorticoso della soluzione."
+      ]
+    },
+    {
+      "id": "inputs",
+      "heading": "Che cosa cambiare, e che tipo di cosa è",
+      "body": [
+        "I controlli sono in tre gruppi, e la divisione non è estetica.",
+        "**I dati fisici** sono il problema: profilo, corda, angolo d'attacco, velocità della corrente, atmosfera. Cambiane uno e la risposta *deve* cambiare.",
+        "**Le impostazioni numeriche** sono l'approssimazione: numero di pannelli, trattamento del bordo d'uscita, griglia di campionamento per l'immagine. Cambiane una e la risposta *non deve* cambiare — di quanto cambia è l'errore di discretizzazione, ed è ciò che misura il pannello di verifica.",
+        "**Studio** decide quante soluzioni calcolare. Una singola incidenza dà una distribuzione di pressione e una portanza. Una scansione in incidenza dà in più la pendenza della curva di portanza, l'angolo di portanza nulla e il **centro aerodinamico**, che da una sola soluzione non si può proprio ottenere. Una scansione qui non costa più di una soluzione: la matrice di influenza non dipende dall'incidenza, quindi ogni angolo in più è una sostituzione all'indietro in più.",
+        "**L'angolo d'attacco inclina la corrente, non il profilo.** Il profilo resta nei propri assi e la corrente indisturbata arriva inclinata. È la convenzione che usa ogni diagramma di aerodinamica delle sezioni, mantiene x/c esatto, ed è ciò che permette a un'intera scansione di condividere una sola geometria.",
+        "I **punti di controllo** bianchi si possono trascinare col mouse, o con le frecce una volta selezionati col Tab. Da quel momento la forma è tua, il menu dei profili non la descrive più — e il solutore riporta comunque la sua corda, la sua incidenza, la sua linea media e il suo spessore, perché legge tutto questo dal contorno e non dal menu."
+      ]
+    },
+    {
+      "id": "fields",
+      "heading": "I campi, e come leggerli",
+      "body": [
+        "**C_p** è il coefficiente di pressione, ed è il campo da guardare. Il blu è depressione, il rosso compressione, e il singolo punto rosso vicino al naso a C_p = 1 è il punto di ristagno. La depressione sul dorso è da dove viene la portanza, e con la condizione di Kutta imposta non si annulla più: è questa la differenza fra questa pagina e la precedente.",
+        "**Velocità** è il modulo della velocità, e **velocità vettoriale** è il campo vettoriale — le frecce mostrano dove il flusso va davvero, compresa la svolta che compie al bordo d'uscita.",
+        "**Non c'è alcun campo di funzione di corrente**, ed è un cambiamento rispetto alla versione precedente di questa pagina. Un metodo a pannelli rappresenta il corpo con distribuzioni di sorgenti e vortici, e la funzione di corrente di una distribuzione di sorgenti è polidroma: valutarla pannello per pannello disegnerebbe una cucitura visibile attraverso l'immagine lungo la retta di ogni pannello. Il campo di velocità porta la stessa informazione senza quel rischio.",
+        "La **curva di C_p sulla superficie** sotto il campo è il diagramma che un aerodinamico legge per primo: pressione contro x/c per entrambe le superfici, disegnata con la depressione verso l'alto come vuole la convenzione. L'area fra le due tracce è la portanza.",
+        "Passa col puntatore sul campo per leggere il valore sotto il cursore."
+      ]
+    },
+    {
+      "id": "metrics",
+      "heading": "Il risultato",
+      "body": [
+        "**C_L** è calcolato due volte, per due vie che condividono la soluzione e nient'altro: dalla circolazione via Kutta–Joukowski, e integrando la pressione sulla superficie. Il loro disaccordo è un residuo di verifica, non una curiosità.",
+        "**C_m,c/4** è il momento rispetto al quarto di corda, positivo a cabrare. **x_cp** è il centro di pressione — e quando la forza normale tende a zero è riportato come *non applicabile* invece che come numero, perché il centro di pressione se ne va davvero all'infinito.",
+        "**x_ac**, il centro aerodinamico, è il punto rispetto al quale il momento non cambia con l'incidenza. È una proprietà di più soluzioni, quindi resta non disponibile finché non esegui una scansione.",
+        "**Che cosa non c'è: la resistenza, e l'efficienza.** Questo modello è non viscoso e il suo flusso è attaccato, quindi il paradosso di d'Alembert rende la resistenza di pressione identicamente nulla e non c'è attrito a parete da aggiungere. C_D sarebbe zero ed E = L/D sarebbe una divisione per esso. Entrambi sono dichiarati come non riportati invece che mostrati come zero, e la forza lungo la corda che *esce* dall'integrazione delle pressioni è etichettata per quello che è — una barra d'errore."
+      ]
+    },
+    {
+      "id": "verification",
+      "heading": "Quanto fidarsi",
+      "body": [
+        "Quattro controlli girano a ogni esecuzione e sono riportati insieme alla tolleranza rispetto a cui si leggono.",
+        "**Portanza per due vie** — circolazione contro pressione integrata. Un errore di pannellizzazione, uno sbaglio di convenzione sui segni o una condizione di Kutta mal applicata rompono tutti il loro accordo.",
+        "**d'Alembert** — la forza lungo la corda deve annullarsi nel flusso potenziale esatto, quindi quello che esce è una misura dell'errore di discretizzazione e non una resistenza.",
+        "**Convergenza** — la stessa geometria è risolta anche con metà dei pannelli, e viene riportata la variazione di C_L. Mostra che la discretizzazione si è assestata, non che si è assestata sulla verità, ed è per questo che è il più debole dei quattro.",
+        "**Teoria del profilo sottile** — l'angolo di portanza nulla e il momento al quarto di corda per la linea media di questo profilo, calcolati dal contorno così com'è disegnato. Una banda invece di un'uguaglianza: la teoria del profilo sottile non ha spessore, e la pendenza della curva di portanza di una sezione reale sta qualche punto percentuale sopra il suo 2π.",
+        "Due soluzioni esatte vivono nella suite di test invece che sulla pagina, perché richiedono geometrie che questo esercizio non offre: un cilindro circolare con circolazione assegnata, e un profilo di Kármán–Trefftz la cui soluzione portante è nota in forma chiusa. Il metodo a pannelli riproduce la seconda meglio dello 0,1 % alle incidenze che contano — è questo il controllo che valida la condizione di Kutta stessa."
+      ]
+    },
+    {
+      "id": "limits",
+      "heading": "Limiti del modello",
+      "caution": true,
+      "body": [
+        "**Niente viscosità, quindi niente resistenza e niente stallo.** Non c'è strato limite, non c'è attrito a parete e non c'è separazione. Qui la portanza cresce con l'incidenza all'infinito; una sezione reale si ferma fra i 10° e i 16° e poi ne perde la maggior parte. La pagina avvisa quando una prova è oltre l'intervallo in cui il confronto ha senso, ma non può dirti che cosa farebbe la sezione reale.",
+        "**Incomprimibile.** Valido fino a circa Mach 0,3. Oltre, la pagina avvisa, e le pressioni sono sbagliate di più della differenza fra due profili.",
+        "**Un picco di depressione non è gratis.** C_p,min è riportato proprio perché questo modello produrrà volentieri un −5 senza dire nulla della separazione che ne seguirebbe.",
+        "**Bidimensionale.** Tutto è per unità di apertura. Non c'è ala finita, non c'è downwash e non c'è resistenza indotta; l'apertura non è un dato in ingresso perché implicherebbe un modello che qui non esiste.",
+        "**La geometria risolta è il contorno che è stato disegnato.** Il menu dei profili costruisce una spline attraverso punti di controllo, ed è quella spline che il solutore legge. Lo spessore e la curvatura che ha ricavato dal tuo contorno sono mostrati accanto alla geometria, così ogni differenza dal profilo nominale è visibile invece che data per scontata.",
+        "Il risultato non è un'ala e non deve essere usato per dimensionare alcunché."
+      ]
+    }
+  ]
+}

@@ -224,6 +224,58 @@ code {
   text-underline-offset: 3px;
 }
 
+/* ------------------------------------------------------------- the language switch */
+
+/* Two links in a segmented control at the top right of every page. Deliberately small and
+ * unaccented: it is a preference, not one of the lab's sections, and putting it in the nav's
+ * own type size would give it the weight of an experiment. */
+.lang-switch {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* `margin-left: auto` sits on the nav; when the nav wraps away on a narrow screen the switch
+ * has to take over pushing itself right, or it lands under the brand. */
+.site-nav + .lang-switch {
+  margin-left: 0.35rem;
+}
+
+.lang-switch__option {
+  padding: 0.2rem 0.5rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  background: transparent;
+  line-height: 1.5;
+}
+
+.lang-switch__option + .lang-switch__option {
+  border-left: 1px solid var(--line-strong);
+}
+
+.lang-switch__option:hover {
+  color: var(--ink);
+  background: var(--surface-sunken);
+  text-decoration: none;
+}
+
+.lang-switch__option.is-active {
+  color: var(--surface);
+  background: var(--accent);
+}
+
+/* The first paint, held back only while the page is about to say something other than what
+ * its markup says. `shared/i18n.js` clears the attribute; the snippet that sets it clears it
+ * too after two seconds, so a script that never runs cannot leave a blank page. */
+html[data-lang-pending] body {
+  visibility: hidden;
+}
+
 .site-footer {
   border-top: 1px solid var(--line);
   margin-top: 4rem;

@@ -19,6 +19,12 @@ EXPERIMENTS = ["airfoil", "solenoid", "truss"]
 
 PAGES = ["/", *(f"/experiments/{name}/" for name in EXPERIMENTS)]
 
+#: The languages the site is written in, and the suffix each one's lesson content carries.
+#:
+#: English has no suffix because it is the source: ``content.json`` is the file the exercise is
+#: written in and every other language is a translation of it. See ADR-020.
+LANGUAGES = {"en": "", "it": ".it"}
+
 
 @pytest.mark.parametrize("path", PAGES)
 def test_pages_are_served(client, path):
@@ -167,8 +173,15 @@ def test_the_solenoid_page_renders_the_field_and_draws_its_own_cross_section(cli
         "/shared/runs.js",
         "/shared/curve.js",
         "/shared/atmosphere.js",
+        "/shared/i18n.js",
+        "/shared/strings/en.js",
+        "/shared/strings/it.js",
         *(f"/experiments/{name}/app.js" for name in EXPERIMENTS),
-        *(f"/experiments/{name}/content.json" for name in EXPERIMENTS),
+        *(
+            f"/experiments/{name}/content{suffix}.json"
+            for name in EXPERIMENTS
+            for suffix in LANGUAGES.values()
+        ),
     ],
 )
 def test_static_assets_the_pages_reference_are_reachable(client, path):
@@ -197,15 +210,22 @@ def test_the_import_map_matches_what_is_vendored(client, name):
         assert client.get(target).status_code == 200
 
 
+@pytest.mark.parametrize("suffix", LANGUAGES.values())
 @pytest.mark.parametrize("name", EXPERIMENTS)
-def test_every_experiment_has_didactic_content_with_the_sections_the_page_renders(client, name):
+def test_every_experiment_has_didactic_content_with_the_sections_the_page_renders(
+    client, name, suffix
+):
     """The lesson is data, and the page renders whatever shape it finds.
 
     ``renderLesson`` reads ``intro``, ``title`` and ``sections[]`` with ``id`` and ``heading``.
     A content file missing one of those produces a page with a blank panel and no error, which
     is the kind of failure that survives review — so the contract is asserted here instead.
+
+    Run against every language, because a translation is a second file with the same contract
+    and no second reviewer: ``scripts/check-i18n.mjs`` checks that the two agree with each
+    other, and this checks that each is usable on its own.
     """
-    content = client.get(f"/experiments/{name}/content.json").json()
+    content = client.get(f"/experiments/{name}/content{suffix}.json").json()
 
     assert content["title"]
     assert content["intro"]
@@ -236,23 +256,73 @@ def test_the_shared_challenge_banner_speaks_no_exercise_s_vocabulary():
     # takes saying the word. What is asserted is the code, which is what a visitor reads.
     source = re.sub(r"/\*.*?\*/", "", source, flags=re.DOTALL)
     code = "\n".join(line for line in source.splitlines() if not line.strip().startswith("//"))
+
+    # The wording moved into the string catalogues when the site gained a second language
+    # (ADR-020), so checking `exercise.js` alone would now pass by being empty of prose. Its
+    # own block in each catalogue is read too — and only that block, because a file holding
+    # every exercise's vocabulary is supposed to hold every exercise's vocabulary.
+    for catalogue in sorted((FRONTEND / "shared" / "strings").glob("*.js")):
+        block = re.search(r"^  exercise: \{$(.*?)^  \},$", catalogue.read_text(), re.M | re.S)
+        assert block, f"{catalogue.name} has no `exercise:` block to check"
+        code += "\n" + block.group(1)
+
     for word in ["incidence", "aerofoil", "airfoil", "chord", "ampere-turn", "permeability"]:
         assert word not in code.lower(), f"the shared banner names {word}, which is one exercise's"
 
 
+@pytest.mark.parametrize("suffix", LANGUAGES.values())
 @pytest.mark.parametrize("name", EXPERIMENTS)
-def test_every_challenge_names_its_own_second_route(client, name):
+def test_every_challenge_names_its_own_second_route(client, name, suffix):
     """A met target invites a second solve, in the terms of the exercise that was solved.
 
     The field is optional in the renderer — an exercise without it gets a shorter sentence
     rather than a wrong one — but every exercise the lab ships states it, so the invitation
     is concrete: there is more than one design that passes, and comparing two is the lesson.
     """
-    challenge = client.get(f"/experiments/{name}/content.json").json()["challenge"]
+    challenge = client.get(f"/experiments/{name}/content{suffix}.json").json()["challenge"]
 
     assert challenge["statement"] and challenge["targets"]
     hint = challenge["next_step"]
     assert hint and not hint.endswith("."), "the hint is a clause inside a sentence, not a sentence"
+
+
+@pytest.mark.parametrize("path", PAGES)
+def test_every_page_offers_both_languages(client, path):
+    """The switch is rendered by `components.js`, but three things are the page's own.
+
+    A page that lost any of them fails quietly rather than loudly: without the ``hreflang``
+    alternates the two versions are one URL to a crawler, without the ``<head>`` snippet an
+    Italian reader gets a frame of English before the modules load, and without a single
+    ``data-i18n`` hook the markup is a page that can never be translated at all.
+    """
+    body = client.get(path).text
+
+    for code in LANGUAGES:
+        assert f'hreflang="{code}"' in body, f"{path} does not declare its {code} version"
+        assert f"lang={code}" in body
+    assert "data-lang-pending" in body, f"{path} would paint English at an Italian reader"
+    assert "data-i18n" in body, f"{path} carries no translatable markup"
+
+
+@pytest.mark.parametrize("name", EXPERIMENTS)
+def test_the_italian_lesson_is_a_translation_and_not_a_copy(client, name):
+    """Every paragraph of the Italian lesson differs from the English it stands for.
+
+    The failure this catches is the boring one and the likely one: a `content.it.json` created
+    by copying `content.json` and translating the first two sections. The structure is checked
+    against the English by ``scripts/check-i18n.mjs``; what cannot be checked mechanically is
+    whether the prose was ever written, so the weakest useful claim is asserted here — that it
+    is not the same prose.
+    """
+    english = client.get(f"/experiments/{name}/content.json").json()
+    italian = client.get(f"/experiments/{name}/content.it.json").json()
+
+    assert english["intro"] != italian["intro"]
+    assert english["challenge"]["statement"] != italian["challenge"]["statement"]
+    for source, translated in zip(english["sections"], italian["sections"], strict=True):
+        assert source["heading"] != translated["heading"], source["id"]
+        for before, after in zip(source.get("body", []), translated.get("body", []), strict=True):
+            assert before != after, f"{name}/{source['id']} is still in English"
 
 
 def test_the_vendored_widgets_record_their_source_commit():

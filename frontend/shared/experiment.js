@@ -19,6 +19,7 @@ import { JobFailedError } from '@fenix-spoon/client';
 
 import { MODES, client, modeOf, paramSpec } from '/shared/api.js';
 import { describeError, el, formatBytes, statEntries } from '/shared/components.js';
+import { num, t } from '/shared/i18n.js';
 
 /* ------------------------------------------------------------------ solver picker */
 
@@ -62,9 +63,7 @@ export function describeSolver(solver, catalogue) {
   );
   return [
     mode ? `${mode.summary} ${mode.caveat}` : solver.description,
-    missing.length
-      ? `Not available on this server: ${missing.map((m) => m.label).join(', ')}.`
-      : '',
+    missing.length ? t('solver.missing', { modes: missing.map((m) => m.label).join(', ') }) : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -218,7 +217,7 @@ function renderParam(config, spec, value, onChange) {
 }
 
 function formatNumber(value, integer) {
-  if (value === null || value === undefined) return 'not set';
+  if (value === null || value === undefined) return t('experiment.notSet');
   return integer ? String(Math.round(value)) : String(Number(value.toFixed(4)));
 }
 
@@ -295,7 +294,7 @@ export async function runSolve({ dom, solver, geometry, params, conditions, onJo
   dom.cancel.hidden = false;
   dom.progress.hidden = false;
   dom.progress.value = 0;
-  setStatus('Submitting…', 'running');
+  setStatus(t('experiment.submitting'), 'running');
 
   try {
     const job = await client.submit({
@@ -309,20 +308,27 @@ export async function runSolve({ dom, solver, geometry, params, conditions, onJo
     const result = await job.wait((event) => {
       if (event.type === 'progress') {
         if (event.total) dom.progress.value = event.iteration / event.total;
+        // The server's own `message` wins where it sends one — it is the solver talking about
+        // its own progress, and this page has no vocabulary for it in any language.
+        const counted = event.total
+          ? t('experiment.iterationOf', { index: event.iteration, total: event.total })
+          : t('experiment.iteration', { index: event.iteration });
         const detail = event.message
           ? event.message
-          : `iteration ${event.iteration}${event.total ? ` of ${event.total}` : ''}` +
-            (event.residual != null ? ` — residual ${event.residual.toExponential(2)}` : '');
+          : counted +
+            (event.residual != null
+              ? t('experiment.residual', { value: event.residual.toExponential(2) })
+              : '');
         setStatus(detail, 'running');
       } else if (event.type === 'status' && event.status === 'running') {
-        setStatus('Solving…', 'running');
+        setStatus(t('experiment.solving'), 'running');
       }
     });
 
     return result;
   } catch (error) {
     if (error instanceof JobFailedError && error.status === 'cancelled') {
-      setStatus('Cancelled.', 'idle');
+      setStatus(t('experiment.cancelled'), 'idle');
     } else {
       setStatus(describeError(error), 'error');
     }
@@ -353,8 +359,8 @@ export function setStatusOn(dom, text, state = 'idle') {
 export function showStats(container, result) {
   const topology =
     result.kind === 'mesh2d'
-      ? { label: 'elements', value: (result.data.triangles?.length ?? 0).toLocaleString('en-US') }
-      : { label: 'grid', value: (result.data.shape ?? []).join(' × ') };
+      ? { label: t('stats.elements'), value: num(result.data.triangles?.length ?? 0) }
+      : { label: t('stats.grid'), value: (result.data.shape ?? []).join(' × ') };
 
   container.replaceChildren(
     ...[...statEntries(result.stats), topology]
@@ -368,7 +374,7 @@ export function showStats(container, result) {
 export function showArtifacts(container, artifacts = []) {
   container.replaceChildren();
   if (!artifacts.length) return;
-  container.append('Download: ');
+  container.append(t('experiment.download'));
   artifacts.forEach((artifact, index) => {
     if (index) container.append(' · ');
     container.append(
@@ -465,7 +471,7 @@ export function richText(markdown) {
  */
 export function renderLesson({ content, intro, lesson, open = [] }) {
   if (intro) intro.textContent = content.intro;
-  document.title = `${content.title} — Spoon Physics`;
+  document.title = t('experiment.pageTitle', { title: content.title });
 
   lesson.replaceChildren(
     ...content.sections.map((section) => {

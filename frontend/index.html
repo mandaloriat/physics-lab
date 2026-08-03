@@ -2,12 +2,41 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Spoon Physics</title>
+<title data-i18n="home.title">Spoon Physics</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Interactive problems. Computed fields. Checkable answers. An interactive laboratory: set a quantitative target, change the geometry and the conditions, compute the field, and check the answer.">
+<meta name="description" data-i18n-attr="content: home.description" content="Interactive problems. Computed fields. Checkable answers. An interactive laboratory: set a quantitative target, change the geometry and the conditions, compute the field, and check the answer.">
 <meta name="color-scheme" content="light dark">
+<link rel="alternate" hreflang="en" href="/?lang=en">
+<link rel="alternate" hreflang="it" href="/?lang=it">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/shared/lab.css">
+<!-- The language, before the first paint. The markup ships English, so an Italian reader
+     would otherwise read a frame of it while the module graph loads; this hides the body
+     until `translateDom` has run and clears the attribute. Blocking rather than deferred,
+     and wrapped in its own timeout so that a broken script can never leave a blank page.
+     It applies the same rule as `shared/i18n.js` — see ADR-020. -->
+<script>
+(function () {
+  try {
+    var asked = new URLSearchParams(location.search).get('lang');
+    var stored = window.localStorage && localStorage.getItem('spoon-physics:lang');
+    var wanted = [asked, stored].concat(navigator.languages || [navigator.language || '']);
+    for (var i = 0; i < wanted.length; i += 1) {
+      var code = String(wanted[i] || '').slice(0, 2).toLowerCase();
+      if (code === 'en' || code === 'it') {
+        document.documentElement.lang = code;
+        if (code !== 'en') document.documentElement.setAttribute('data-lang-pending', '');
+        break;
+      }
+    }
+  } catch (error) {
+    // A blocked store, or no URL API: English, visible, now.
+  }
+  setTimeout(function () {
+    document.documentElement.removeAttribute('data-lang-pending');
+  }, 2000);
+})();
+</script>
 </head>
 <body>
 
@@ -16,8 +45,8 @@
 <main class="wrap">
 
   <section class="hero">
-    <h1>Interactive problems.<br>Computed fields. Checkable answers.</h1>
-    <p class="lede">
+    <h1 data-i18n-html="home.heroHeading">Interactive problems.<br>Computed fields. Checkable answers.</h1>
+    <p class="lede" data-i18n="home.lede">
       Each experiment sets a quantitative target under constraints. Change the geometry and the
       conditions, run a real solver, explore the field it computes — and find out whether you
       met the target, and how far the numbers can be trusted.
@@ -28,7 +57,7 @@
        clicking is what the thing looks like when it works. Every thumbnail is a solve, made by
        scripts/make-thumbnails.py from the same solver the page runs — not an illustration. -->
   <section aria-labelledby="experiments">
-    <h2 id="experiments" class="visually-hidden">Experiments</h2>
+    <h2 id="experiments" class="visually-hidden" data-i18n="home.experiments">Experiments</h2>
     <ul class="card-grid">
 
       <li class="card card--available">
@@ -36,18 +65,18 @@
           <img src="/assets/thumbnails/airfoil.png" alt="" width="480" height="222" loading="lazy">
         </a>
         <div class="card__body">
-          <span class="badge badge--available">Exercise</span>
-          <h3><a href="/experiments/airfoil/">Airfoil design</a></h3>
-          <p class="card__problem">
+          <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
+          <h3><a href="/experiments/airfoil/" data-i18n="home.airfoil.name">Airfoil design</a></h3>
+          <p class="card__problem" data-i18n-html="home.airfoil.problem">
             Find a wing section that lifts <strong>800 N per metre of span</strong> at 40 m/s —
             without a pitching moment a tail could not trim out.
           </p>
           <dl class="card__facts">
-            <div><dt>Target</dt><dd class="num">L′ = 800 N/m ± 2 %</dd></div>
-            <div><dt>Constraint</dt><dd class="num">|C_m,c/4| &lt; 0.08</dd></div>
-            <div><dt>Checked by</dt><dd>lift computed two independent ways</dd></div>
+            <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.airfoil.target">L′ = 800 N/m ± 2 %</dd></div>
+            <div><dt data-i18n="home.constraint">Constraint</dt><dd class="num" data-i18n="home.airfoil.constraint">|C_m,c/4| &lt; 0.08</dd></div>
+            <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.airfoil.checked">lift computed two independent ways</dd></div>
           </dl>
-          <p class="card__foot"><a class="cta" href="/experiments/airfoil/">Design an airfoil →</a></p>
+          <p class="card__foot"><a class="cta" href="/experiments/airfoil/" data-i18n="home.airfoil.cta">Design an airfoil →</a></p>
         </div>
       </li>
 
@@ -56,18 +85,18 @@
           <img src="/assets/thumbnails/solenoid.png" alt="" width="480" height="480" loading="lazy">
         </a>
         <div class="card__body">
-          <span class="badge badge--available">Exercise</span>
-          <h3><a href="/experiments/solenoid/">The magnetic circuit</a></h3>
-          <p class="card__problem">
+          <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
+          <h3><a href="/experiments/solenoid/" data-i18n="home.solenoid.name">The magnetic circuit</a></h3>
+          <p class="card__problem" data-i18n="home.solenoid.problem">
             Carry a required flux through an iron core on a fixed ampere-turn budget, without
             letting it leak away into the air.
           </p>
           <dl class="card__facts">
-            <div><dt>Target</dt><dd class="num">4.5 mWb/m at ≤ 3600 A</dd></div>
-            <div><dt>You set</dt><dd>core, gap, winding, length, μᵣ, current density</dd></div>
-            <div><dt>Checked by</dt><dd>an energy balance, Ampère’s law and a mesh study</dd></div>
+            <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.solenoid.target">4.5 mWb/m at ≤ 3600 A</dd></div>
+            <div><dt data-i18n="home.youSet">You set</dt><dd data-i18n="home.solenoid.youSet">core, gap, winding, length, μᵣ, current density</dd></div>
+            <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.solenoid.checked">an energy balance, Ampère’s law and a mesh study</dd></div>
           </dl>
-          <p class="card__foot"><a class="cta" href="/experiments/solenoid/">Design a magnetic circuit →</a></p>
+          <p class="card__foot"><a class="cta" href="/experiments/solenoid/" data-i18n="home.solenoid.cta">Design a magnetic circuit →</a></p>
         </div>
       </li>
 
@@ -76,18 +105,18 @@
           <img src="/assets/thumbnails/truss.png" alt="" width="480" height="120" loading="lazy">
         </a>
         <div class="card__body">
-          <span class="badge badge--available">Exercise</span>
-          <h3><a href="/experiments/truss/">The bridge</a></h3>
-          <p class="card__problem">
+          <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
+          <h3><a href="/experiments/truss/" data-i18n="home.truss.name">The bridge</a></h3>
+          <p class="card__problem" data-i18n="home.truss.problem">
             Build a lattice across a 24 m gorge and carry the traffic on a steel budget — the
             bar that gives way first is almost never the one you expect.
           </p>
           <dl class="card__facts">
-            <div><dt>Target</dt><dd class="num">η &lt; 1 on ≤ 2400 kg</dd></div>
-            <div><dt>You set</dt><dd>every joint, every bar, the supports, the loads, the section</dd></div>
-            <div><dt>Checked by</dt><dd>the method of joints, a moment balance and an energy check</dd></div>
+            <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.truss.target">η &lt; 1 on ≤ 2400 kg</dd></div>
+            <div><dt data-i18n="home.youSet">You set</dt><dd data-i18n="home.truss.youSet">every joint, every bar, the supports, the loads, the section</dd></div>
+            <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.truss.checked">the method of joints, a moment balance and an energy check</dd></div>
           </dl>
-          <p class="card__foot"><a class="cta" href="/experiments/truss/">Build a bridge →</a></p>
+          <p class="card__foot"><a class="cta" href="/experiments/truss/" data-i18n="home.truss.cta">Build a bridge →</a></p>
         </div>
       </li>
 
@@ -96,15 +125,15 @@
           <img src="/assets/thumbnails/heatsink.png" alt="" width="480" height="320" loading="lazy">
         </span>
         <div class="card__body">
-          <span class="badge badge--planned">In preparation</span>
-          <h3>Heat sink</h3>
-          <p class="card__problem">
+          <span class="badge badge--planned" data-i18n="home.badgePlanned">In preparation</span>
+          <h3 data-i18n="home.heatsink.name">Heat sink</h3>
+          <p class="card__problem" data-i18n="home.heatsink.problem">
             Dissipate a given power below a maximum temperature, using less metal. How many fins
             actually help, and when do they stop?
           </p>
           <dl class="card__facts">
-            <div><dt>Would target</dt><dd class="num">T_max under a stated limit</dd></div>
-            <div><dt>Status</dt><dd>the preview solver exists upstream — the field above is one of its solves. The lesson does not.</dd></div>
+            <div><dt data-i18n="home.wouldTarget">Would target</dt><dd class="num" data-i18n="home.heatsink.target">T_max under a stated limit</dd></div>
+            <div><dt data-i18n="home.status">Status</dt><dd data-i18n="home.heatsink.status">the preview solver exists upstream — the field above is one of its solves. The lesson does not.</dd></div>
           </dl>
         </div>
       </li>
@@ -113,49 +142,49 @@
   </section>
 
   <p class="disclaimer">
-    <strong>Note.</strong>
-    The simulations are demonstrative and educational. They are not a substitute for
-    professional engineering verification.
+    <strong data-i18n="home.disclaimerLabel">Note.</strong>
+    <span data-i18n="home.disclaimer">The simulations are demonstrative and educational. They are not a substitute for
+    professional engineering verification.</span>
   </p>
 
   <!-- Below the fold, and folded. Both sections are worth reading and neither is worth
        putting between a visitor and the experiment they came for. -->
   <section class="about" id="modes" aria-labelledby="about-heading">
-    <h2 id="about-heading">How it works</h2>
+    <h2 id="about-heading" data-i18n="home.aboutHeading">How it works</h2>
 
     <details class="lesson__block">
-      <summary><span>Two ways to compute the same thing</span></summary>
+      <summary><span data-i18n="home.modesSummary">Two ways to compute the same thing</span></summary>
       <div class="lesson__body">
-        <p>
+        <p data-i18n-html="home.modesLead">
           The same problem can be solved quickly and approximately, or slowly and more
           faithfully. The lab offers both routes and always tells you which one you are looking
           at — because the difference between them <em>is</em> part of what there is to learn.
         </p>
         <ul>
-          <li>
+          <li data-i18n-html="home.modeFast">
             <strong>Fast preview</strong> — a regular Cartesian grid solved in NumPy.
             Near-instant, and approximate by construction: the grid does not follow the body's
             outline.
           </li>
-          <li>
+          <li data-i18n-html="home.modeFenics">
             <strong>FEniCSx computation</strong> — an unstructured triangular mesh generated
             with Gmsh, solved with P1 finite elements. Slower, more faithful close to the body,
             and it produces a VTK file that opens in ParaView.
           </li>
-          <li>
+          <li data-i18n-html="home.modePanel">
             <strong>Panel method</strong> — for the airfoil, neither of the above: source and
             vortex sheets on the body itself, so the boundary is exact rather than meshed. It is
             not a preview of something better; it is the most accurate surface solution here.
           </li>
         </ul>
-        <p id="capability" class="notice">Checking what is installed on this server…</p>
+        <p id="capability" class="notice" data-i18n="home.capabilityChecking">Checking what is installed on this server…</p>
       </div>
     </details>
 
     <details class="lesson__block">
-      <summary><span>How it is made</span></summary>
+      <summary><span data-i18n="home.madeSummary">How it is made</span></summary>
       <div class="lesson__body">
-        <p>
+        <p data-i18n-html="home.madeBody">
           The lab is an application built on
           <a href="https://github.com/mandaloriat/fenix-spoon">Fenix Spoon</a>, an open-source
           toolkit that puts a finite-element solver behind a web page: the protocol, the job
@@ -163,7 +192,7 @@
           is the teaching experience built on top — the problems, the explanations, the design
           and the public deployment.
         </p>
-        <p>
+        <p data-i18n-html="home.madeLicence">
           The code for this lab is on
           <a href="https://github.com/mandaloriat/physics-lab">GitHub</a> under the MIT
           licence. The real computations are carried out by
@@ -180,6 +209,7 @@
 
 <script type="module">
 import { mountChrome, health } from '/shared/components.js';
+import { t } from '/shared/i18n.js';
 
 mountChrome('home');
 
@@ -192,19 +222,14 @@ try {
   const solvers = info.solvers ?? [];
   const hasFenics = solvers.some((name) => name.startsWith('dolfinx.'));
   const parts = [];
-  parts.push(
-    hasFenics
-      ? 'Both modes are active on this server.'
-      : 'Only the fast preview is active on this server: no FEniCSx solver is installed. The experiments remain fully usable, and the airfoil exercise does not need one.',
-  );
+  parts.push(hasFenics ? t('home.capabilityBoth') : t('home.capabilityPreviewOnly'));
   if (info.jobs_enabled === false) {
-    parts.push('New simulations are temporarily suspended for maintenance.');
+    parts.push(t('home.capabilityPaused'));
     capability.classList.add('notice--warn');
   }
   capability.textContent = parts.join(' ');
 } catch {
-  capability.textContent =
-    'The server cannot be reached at the moment; the experiments may be unavailable.';
+  capability.textContent = t('home.capabilityUnreachable');
   capability.classList.add('notice--warn');
 }
 </script>

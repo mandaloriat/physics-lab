@@ -9,8 +9,9 @@
     "widgets": "./scripts/fetch-widgets.sh",
     "build": "./scripts/fetch-widgets.sh",
     "test:e2e": "playwright test",
-    "lint": "prettier --check 'frontend/**/*.{js,css,json}' 'e2e/**/*.mjs' playwright.config.mjs",
-    "format": "prettier --write 'frontend/**/*.{js,css,json}' 'e2e/**/*.mjs' playwright.config.mjs"
+    "lint": "prettier --check 'frontend/**/*.{js,css,json}' 'e2e/**/*.mjs' playwright.config.mjs scripts/*.mjs",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "format": "prettier --write 'frontend/**/*.{js,css,json}' 'e2e/**/*.mjs' playwright.config.mjs scripts/*.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",

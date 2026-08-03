@@ -14,6 +14,7 @@
  */
 
 import { el } from '/shared/components.js';
+import { t } from '/shared/i18n.js';
 
 /** Bump when a stored row's shape changes in a way that would misread an older one. */
 export const SCHEMA = 1;
@@ -94,6 +95,9 @@ export function flatten(row, prefix = '') {
     const path = prefix ? `${prefix}.${key}` : key;
     if (Array.isArray(value)) {
       if (value.every((entry) => typeof entry === 'string')) out[path] = value.join(' | ');
+      // Not translated, and not by oversight: `flatten` feeds the CSV export as well as the
+      // screen, and a column whose cells read "3 valori" in one browser and "3 values" in
+      // another is an export no script can read. The comparison table shows what the file holds.
       else out[path] = `${value.length} values`;
     } else if (value && typeof value === 'object') {
       Object.assign(out, flatten(value, path));
@@ -106,7 +110,7 @@ export function flatten(row, prefix = '') {
 
 function show(value) {
   if (value === null || value === undefined || value === '') return '—';
-  if (typeof value === 'boolean') return value ? 'yes' : 'no';
+  if (typeof value === 'boolean') return value ? t('runs.yes') : t('runs.no');
   if (typeof value !== 'number') return String(value);
   if (value === 0) return '0';
   const magnitude = Math.abs(value);
@@ -131,12 +135,7 @@ export function renderTable(container, rows, handlers) {
   container.replaceChildren();
 
   if (!rows.length) {
-    container.append(
-      el('p', {
-        class: 'field__hint',
-        text: 'No runs kept yet. Solve something and press Keep run — a kept run records every input, so it can be recomputed and compared.',
-      }),
-    );
+    container.append(el('p', { class: 'field__hint', text: t('runs.none') }));
     return;
   }
 
@@ -153,14 +152,14 @@ export function renderTable(container, rows, handlers) {
     const box = el('input', {
       type: 'checkbox',
       checked: selected.has(row.saved_at),
-      'aria-label': 'Select this run for comparison',
+      'aria-label': t('runs.select'),
     });
     box.addEventListener('change', () => onSelect(row.saved_at, box.checked));
 
     const warned = (row.validity?.warnings ?? []).length > 0;
-    const loadButton = el('button', { type: 'button', class: 'link', text: 'Load' });
+    const loadButton = el('button', { type: 'button', class: 'link', text: t('runs.load') });
     loadButton.addEventListener('click', () => onLoad(row));
-    const deleteButton = el('button', { type: 'button', class: 'link', text: 'Delete' });
+    const deleteButton = el('button', { type: 'button', class: 'link', text: t('runs.delete') });
     deleteButton.addEventListener('click', () => onDelete(row.saved_at));
 
     return el(
@@ -183,30 +182,33 @@ export function renderTable(container, rows, handlers) {
  * ever have to learn. The export keeps the raw keys, because a CSV is read by a program and
  * a renamed column is a broken script; the table on screen does not.
  */
-const BLOCKS = {
-  exercise: 'Exercise',
-  solver: 'Solver',
-  model: 'Model',
-  geometry: 'Geometry',
-  physical: 'Conditions',
-  numerics: 'Numerics',
-  dimensionless: 'Dimensionless',
-  metrics: 'Answer',
-  sweep: 'Sweep',
-  verification: 'Verification',
-  validity: 'Validity',
-  cost: 'Cost',
-};
+const BLOCKS = [
+  'exercise',
+  'solver',
+  'model',
+  'geometry',
+  'physical',
+  'numerics',
+  'dimensionless',
+  'metrics',
+  'sweep',
+  'verification',
+  'validity',
+  'cost',
+];
 
 /** A flattened path as a heading: `metrics.l_prime` → `Answer · L′`. */
 function humanise(path, labels = {}) {
   const [block, ...rest] = path.split('.');
   const key = rest.join('.');
   const named = labels[key] ?? labels[path];
+  // The leaf falls back to the storage key with its underscores opened out, and that fallback
+  // stays in English on purpose: it is the key itself, not a word the lab chose.
   const tail = named
     ? (named.symbol ?? named.label ?? String(named))
     : key.replace(/_/g, ' ') || block.replace(/_/g, ' ');
-  return rest.length ? `${BLOCKS[block] ?? block} · ${tail}` : tail;
+  if (!rest.length) return tail;
+  return `${BLOCKS.includes(block) ? t(`runs.blocks.${block}`) : block} · ${tail}`;
 }
 
 /**
@@ -221,9 +223,7 @@ function humanise(path, labels = {}) {
 export function renderComparison(container, rows, options = {}) {
   container.replaceChildren();
   if (rows.length < 2) {
-    container.append(
-      el('p', { class: 'field__hint', text: 'Select two or more runs to compare them.' }),
-    );
+    container.append(el('p', { class: 'field__hint', text: t('runs.selectTwo') }));
     return;
   }
 
@@ -243,9 +243,12 @@ export function renderComparison(container, rows, options = {}) {
         el(
           'tr',
           {},
-          el('th', { scope: 'col', text: 'Field' }),
+          el('th', { scope: 'col', text: t('runs.field') }),
           ...rows.map((row, index) =>
-            el('th', { scope: 'col', text: row.geometry?.label ?? `Run ${index + 1}` }),
+            el('th', {
+              scope: 'col',
+              text: row.geometry?.label ?? t('runs.run', { index: index + 1 }),
+            }),
           ),
         ),
       ),
@@ -266,9 +269,12 @@ export function renderComparison(container, rows, options = {}) {
     ),
     el('p', {
       class: 'field__hint',
-      text: `${differing.length} field${differing.length === 1 ? '' : 's'} differ; ${
-        paths.length - differing.length
-      } are identical and hidden.`,
+      // Two keys rather than one with a suffix glued on: the plural is a property of the
+      // language, and Italian inflects the verb as well as the noun.
+      text: t(differing.length === 1 ? 'runs.differOne' : 'runs.differMany', {
+        differ: differing.length,
+        same: paths.length - differing.length,
+      }),
     }),
   );
 }

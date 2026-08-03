@@ -49,6 +49,7 @@ import {
 } from '@fenix-spoon/viewer';
 
 import { el } from '/shared/components.js';
+import { t } from '/shared/i18n.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -192,21 +193,21 @@ export function createWorkspace(spec) {
     {
       id: 'pan',
       group: 'mode',
-      label: 'Pan',
-      title: 'Drag to move the view',
+      label: t('workspace.pan.label'),
+      title: t('workspace.pan.title'),
       icon: '✥',
       available: () => true,
     },
     {
       id: 'probe',
       group: 'mode',
-      label: 'Probe',
-      title: 'Click to pin the value and coordinates at a point',
+      label: t('workspace.probe.label'),
+      title: t('workspace.probe.title'),
       icon: '⌖',
       available: () =>
         capabilities.probe && viewer.result
           ? { ok: true }
-          : { ok: false, why: 'Probing needs a computed field. Run the solve first.' },
+          : { ok: false, why: t('workspace.probe.why') },
     },
     {
       id: 'edit',
@@ -214,9 +215,10 @@ export function createWorkspace(spec) {
       // Wording, because "the profile's control points" is a statement about *an* experiment
       // and this file holds none. The airfoil drags a spline and the bridge lays out a
       // lattice; both are the mode in which the editor owns the pointer, and the button has
-      // to say which one it is. Same rule as `fitLabel` above it.
-      label: spec.editLabel ?? 'Edit shape',
-      title: spec.editTitle ?? 'Show and drag the geometry’s control points',
+      // to say which one it is. Same rule as `fitLabel` above it — and the page hands over a
+      // translated string, because only the page knows which exercise it is.
+      label: spec.editLabel ?? t('workspace.edit.label'),
+      title: spec.editTitle ?? t('workspace.edit.title'),
       icon: '✎',
       hidden: () => !editor,
       available: () => true,
@@ -224,41 +226,34 @@ export function createWorkspace(spec) {
     {
       id: 'zoom-out',
       group: 'view',
-      label: 'Zoom out',
+      label: t('workspace.zoomOut.label'),
       icon: '−',
       action: () => setZoom(state.zoom / ZOOM_STEP),
       available: () =>
-        state.zoom > ZOOM_MIN ? { ok: true } : { ok: false, why: 'Already fitted.' },
+        state.zoom > ZOOM_MIN ? { ok: true } : { ok: false, why: t('workspace.zoomOut.why') },
     },
     {
       id: 'zoom-in',
       group: 'view',
-      label: 'Zoom in',
+      label: t('workspace.zoomIn.label'),
       icon: '+',
       action: () => setZoom(state.zoom * ZOOM_STEP),
       available: () =>
-        state.zoom < ZOOM_MAX
-          ? { ok: true }
-          : {
-              ok: false,
-              why: 'At the limit: past this the picture is the sampling grid, magnified.',
-            },
+        state.zoom < ZOOM_MAX ? { ok: true } : { ok: false, why: t('workspace.zoomIn.why') },
     },
     {
       id: 'fit',
       group: 'view',
-      label: spec.fitLabel ?? 'Fit body',
+      label: spec.fitLabel ?? t('workspace.fit.label'),
       icon: '⤢',
       action: fitSubject,
       available: () =>
-        spec.subject?.()
-          ? { ok: true }
-          : { ok: false, why: 'Nothing to frame until the geometry is known.' },
+        spec.subject?.() ? { ok: true } : { ok: false, why: t('workspace.fit.why') },
     },
     {
       id: 'reset',
       group: 'view',
-      label: 'Reset view',
+      label: t('workspace.reset.label'),
       icon: '⟲',
       action: resetView,
       available: () => true,
@@ -266,8 +261,8 @@ export function createWorkspace(spec) {
     {
       id: 'vectors',
       group: 'field',
-      label: 'Vectors',
-      title: 'Arrow glyphs of the velocity field',
+      label: t('workspace.vectors.label'),
+      title: t('workspace.vectors.title'),
       icon: '➜',
       toggle: true,
       on: () => state.vectors,
@@ -277,22 +272,19 @@ export function createWorkspace(spec) {
       },
       available: () => {
         if (!capabilities.vectors) {
-          return { ok: false, why: 'This build of the viewer draws no vector glyphs.' };
+          return { ok: false, why: t('workspace.vectors.whyBuild') };
         }
-        if (!viewer.result) return { ok: false, why: 'Run the solve first.' };
+        if (!viewer.result) return { ok: false, why: t('workspace.noRun') };
         return (viewer.vectorFields ?? []).length
           ? { ok: true }
-          : {
-              ok: false,
-              why: 'This result publishes no vector field, so there is nothing to draw.',
-            };
+          : { ok: false, why: t('workspace.vectors.whyField') };
       },
     },
     {
       id: 'streamlines',
       group: 'field',
-      label: 'Streamlines',
-      title: 'Curves integrated from the velocity field',
+      label: t('workspace.streamlines.label'),
+      title: t('workspace.streamlines.title'),
       icon: '≈',
       toggle: true,
       on: () => state.streamlines,
@@ -301,29 +293,23 @@ export function createWorkspace(spec) {
         draw();
       },
       available: () => {
-        if (!viewer.result) return { ok: false, why: 'Run the solve first.' };
+        if (!viewer.result) return { ok: false, why: t('workspace.noRun') };
         if (!(viewer.vectorFields ?? []).length) {
-          return {
-            ok: false,
-            // Said precisely, because "unavailable" invites the guess that the page is
-            // incomplete. What is missing is the *data*: a streamline is an integral curve of
-            // the velocity, and a solver that publishes only scalars has not published one.
-            why: 'This result publishes no velocity field. A streamline is an integral of one, so there is nothing to integrate.',
-          };
+          // Said precisely, because "unavailable" invites the guess that the page is
+          // incomplete. What is missing is the *data*: a streamline is an integral curve of
+          // the velocity, and a solver that publishes only scalars has not published one.
+          return { ok: false, why: t('workspace.streamlines.whyField') };
         }
         return viewer.result.kind === 'grid2d'
           ? { ok: true }
-          : {
-              ok: false,
-              why: 'Integration here samples the regular grid. Choose the grid result kind, or use vector glyphs on the mesh.',
-            };
+          : { ok: false, why: t('workspace.streamlines.whyMesh') };
       },
     },
     {
       id: 'lock-scale',
       group: 'field',
-      label: 'Lock scale',
-      title: 'Hold the colour range fixed while comparing runs',
+      label: t('workspace.lockScale.label'),
+      title: t('workspace.lockScale.title'),
       icon: '🔒',
       toggle: true,
       on: () => state.locked !== null,
@@ -344,24 +330,21 @@ export function createWorkspace(spec) {
       available: () =>
         capabilities.lockRange
           ? { ok: true }
-          : {
-              ok: false,
-              // Upstream gap on an older pin, named rather than worked around. Faking it by
-              // rescaling the legend alone would put a range on the bar the canvas does not use.
-              why: 'The viewer computes its colour range from the data and exposes no way to set one, so a locked scale would disagree with the picture.',
-            },
+          : // Upstream gap on an older pin, named rather than worked around. Faking it by
+            // rescaling the legend alone would put a range on the bar the canvas does not use.
+            { ok: false, why: t('workspace.lockScale.why') },
     },
     {
       id: 'export',
       group: 'field',
-      label: 'Export image',
-      title: 'Download the current view as a PNG',
+      label: t('workspace.export.label'),
+      title: t('workspace.export.title'),
       icon: '⤓',
       action: exportImage,
       available: () =>
         capabilities.exportImage && viewer.result
           ? { ok: true }
-          : { ok: false, why: 'Available once a field has been drawn.' },
+          : { ok: false, why: t('workspace.export.why') },
     },
   ];
 
@@ -469,14 +452,14 @@ export function createWorkspace(spec) {
     return el(
       'label',
       { class: 'toolgroup toolgroup--density', for: 'workspace-density' },
-      el('span', { class: 'tool__label', text: 'Density' }),
+      el('span', { class: 'tool__label', text: t('workspace.density') }),
       input,
     );
   }
 
   function normaliseVerdict(verdict) {
     if (verdict === true || verdict === undefined) return { ok: true };
-    if (verdict === false) return { ok: false, why: 'Unavailable.' };
+    if (verdict === false) return { ok: false, why: t('workspace.unavailable') };
     return verdict;
   }
 
@@ -626,10 +609,10 @@ export function createWorkspace(spec) {
       el('span', { class: 'num', text: formatValue(value) }),
       el('span', {
         class: 'readout__at',
-        text: `at (${at[0].toPrecision(3)}, ${at[1].toPrecision(3)})`,
+        text: t('workspace.at', { x: at[0].toPrecision(3), y: at[1].toPrecision(3) }),
       }),
     );
-    const clear = el('button', { type: 'button', class: 'link', text: 'clear' });
+    const clear = el('button', { type: 'button', class: 'link', text: t('workspace.clear') });
     clear.addEventListener('click', () => {
       state.pinned = null;
       showReadout();
@@ -662,7 +645,11 @@ export function createWorkspace(spec) {
     svg.setAttribute('role', 'img');
     svg.setAttribute(
       'aria-label',
-      `Colour scale for ${viewer.field}, ${range.min.toPrecision(3)} to ${range.max.toPrecision(3)}`,
+      t('workspace.scaleAria', {
+        field: viewer.field,
+        min: range.min.toPrecision(3),
+        max: range.max.toPrecision(3),
+      }),
     );
 
     const defs = document.createElementNS(SVG_NS, 'defs');
@@ -711,7 +698,7 @@ export function createWorkspace(spec) {
     scale.append(
       el('span', {
         class: 'scale__caption',
-        text: state.locked ? `${units} fixed`.trim() : units,
+        text: state.locked ? `${units} ${t('workspace.fixed')}`.trim() : units,
       }),
     );
   }

@@ -9,6 +9,8 @@
 
 import { FenixSpoonClient } from '@fenix-spoon/client';
 
+import { t } from '/shared/i18n.js';
+
 /**
  * Same-origin, always. The empty base URL makes every request relative, which is what
  * keeps the deployment free of CORS: Caddy serves the site and proxies `/api/v1` under
@@ -35,28 +37,26 @@ export const client = new FenixSpoonClient('');
  * shows up correctly without this file changing.
  */
 export const MODES = {
-  mock: {
-    id: 'mock',
-    label: 'Fast preview',
-    summary:
-      'A Cartesian grid solved in NumPy. Answers in an instant — ideal while you reshape the geometry.',
-    caveat: 'It is an approximation: a regular grid, with no mesh fitted to the body.',
-  },
-  fenicsx: {
-    id: 'fenicsx',
-    label: 'FEniCSx computation',
-    summary:
-      'An unstructured Gmsh mesh solved with finite elements. Slower, and more faithful near the boundary.',
-    caveat: 'Requires a worker with dolfinx installed.',
-  },
-  'panel-method': {
-    id: 'panel-method',
-    label: 'Panel method',
-    summary:
-      'Source and vortex sheets on the body itself, closed by the Kutta condition. The boundary is exact rather than meshed, and the far field is satisfied analytically.',
-    caveat: 'Milliseconds of arithmetic — not a preview of something better.',
-  },
+  mock: mode('mock', 'mock'),
+  fenicsx: mode('fenicsx', 'fenicsx'),
+  'panel-method': mode('panel-method', 'panel'),
 };
+
+/**
+ * One mode, worded in the language this page load resolved to.
+ *
+ * The `id` is the protocol's `availability` and never changes; the three sentences beside it
+ * are the lab's own and live in `shared/strings/*.js`. Read once here rather than at every use,
+ * because a mode is a constant and only its wording is not.
+ */
+function mode(id, key) {
+  return {
+    id,
+    label: t(`solver.${key}.label`),
+    summary: t(`solver.${key}.summary`),
+    caveat: t(`solver.${key}.caveat`),
+  };
+}
 
 /**
  * Every installed capability, with what it declares about itself.

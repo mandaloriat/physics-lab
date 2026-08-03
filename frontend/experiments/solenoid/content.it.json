@@ -1,0 +1,135 @@
+{
+  "id": "solenoid",
+  "title": "Il circuito magnetico",
+  "subtitle": "Magnetostatica della sezione di un solenoide",
+  "intro": "Una sezione di un elettromagnete: un nucleo di ferro al centro, e ai suoi lati lo stesso avvolgimento tagliato due volte dal piano — corrente entrante nella pagina da un lato e uscente dall'altro. Dimensiona la sezione perché porti il flusso richiesto senza spendere più rame di quanto il budget consenta.",
+  "challenge": {
+    "statement": "Dimensiona la sezione perché porti 4,5 mWb per metro di profondità attraverso il ferro, usando non più di 3600 amperspire in ciascun lato dell'avvolgimento, e tenendo fuori dal nucleo meno dell'1 % del flusso. Le prove che escono dal campo di validità del modello non contano.",
+    "targets": [
+      {
+        "metric": "flux_core",
+        "comparator": ">=",
+        "value": 0.0045,
+        "unit": "Wb/m",
+        "absolute": true
+      },
+      {
+        "metric": "ampere_turns",
+        "comparator": "<=",
+        "value": 3600,
+        "unit": "A"
+      },
+      {
+        "metric": "leakage_ratio",
+        "comparator": "<",
+        "value": 0.01,
+        "unit": "1"
+      }
+    ],
+    "requires_valid": true,
+    "requires_verified": {
+      "metric": "energy_balance_rel",
+      "below": 0.02
+    },
+    "next_step": "una sezione diversa con un budget di amperspire diverso"
+  },
+  "sections": [
+    {
+      "id": "problem",
+      "heading": "Il problema",
+      "lead": "Porta 4,5 mWb per metro di profondità su per il nucleo, con un budget di amperspire, senza disperderlo.",
+      "body": [
+        "La sezione predefinita porta circa 3,45 mWb/m con 3000 amperspire e disperde l'1,7 % del suo flusso fuori dal ferro, quindi manca due dei tre obiettivi. È il budget a farne un problema di progetto invece che una manopola: **3600 amperspire** è quasi il massimo che questa finestra possa utilmente ricevere, quindi il flusso in più deve venire dal circuito magnetico e non dalla corrente.",
+        "Tre cose vale la pena sapere prima di cominciare. **Il flusso è limitato dall'aria, non dal ferro** — a μᵣ = 1000 il nucleo è già mille volte il percorso più facile, quindi migliorarlo compra quasi nulla mentre accorciare il *ritorno* compra molto. **Le amperspire sono spessore dell'avvolgimento per semialtezza per densità di corrente**, quindi lo stesso budget si può spendere come una bobina alta e sottile o come una bassa e grassa, e le due cose non sono equivalenti. E **la dispersione è fissata dall'intercapedine d'aria**: a 1 mm un decimo di punto percentuale del flusso manca il nucleo, a 5 mm l'1,7 %, a 10 mm oltre il 6 %.",
+        "C'è più di una sezione che passa. Trovane una, salva la prova, poi trovane un'altra che passi anch'essa e confronta le due — la tabella delle prove esiste per rendere possibile quel confronto, non per conservare schermate."
+      ]
+    },
+    {
+      "id": "model",
+      "heading": "Il modello",
+      "body": [
+        "Magnetostatica statica, bidimensionale e lineare per una corrente che scorre perpendicolare al piano. Con la corrente fuori dal piano il potenziale vettore magnetico ha solo quella componente, e l'intero problema collassa in una sola equazione scalare:",
+        "**−∇·( ν ∇A_z ) = J_z**, con **ν = 1/(μ₀ μᵣ)** la riluttività, e **B = ( ∂A_z/∂y , −∂A_z/∂x )**.",
+        "Vale la pena rileggerla, perché ne discendono direttamente due fatti utili. Le isolinee di A_z **sono** le linee di campo magnetico. E il flusso che attraversa una qualsiasi curva, per metro di profondità, è semplicemente la differenza di A_z fra i suoi due estremi — ed è per questo che ogni flusso di questa pagina è una sottrazione invece che un integrale, e perché può essere verificato contro uno.",
+        "**Materiale.** Lineare e isotropo: μᵣ è una costante che imposti tu, e il solutore la applica qualunque sia il campo. Il rame non è magnetico e porta la corrente; l'aria ha μᵣ = 1 e non ne porta.",
+        "**Nessuna condizione iniziale.** Il problema è statico, quindi non c'è alcuno stato a *t* = 0. Dove un esercizio in transitorio ne elencherebbe una, questa pagina non ha nulla da elencare, e inventare qualcosa per riempire il vuoto sarebbe una menzogna sul modello.",
+        "**Unità.** SI dappertutto. I cursori sono in millimetri e A/mm² perché è così che si pensa a una bobina; tutto è convertito al confine, e ogni numero riportato è in SI.",
+        "**Per metro di profondità.** Una sezione bidimensionale non ha lunghezza, quindi qui un flusso è un flusso *per metro* (Wb/m) e un'energia è un'energia per metro (J/m). Moltiplica per la profondità reale per ottenere la grandezza tridimensionale — e poi leggi i limiti, perché un magnete reale ha delle estremità e questo no.",
+        "**Il segno del flusso** è fissato dal verso dell'avvolgimento, che anche questa pagina fissa: corrente uscente dalla pagina a destra, entrante a sinistra. Il flusso riportato è negativo perché attraversa il piano mediano verso il basso, e i riquadri in evidenza e la missione ne mostrano il modulo. Il valore con segno resta nella tabella completa e nella riga esportata, dove lo legge un programma."
+      ]
+    },
+    {
+      "id": "boundary-conditions",
+      "heading": "Condizioni al contorno",
+      "body": [
+        "**Sul bordo esterno della finestra: A_z = 0**, su tutti e quattro i lati. Poiché le linee di campo sono isolinee di A_z, un valore costante sul contorno significa che il contorno *è* una linea di campo: il flusso è costretto a chiudersi dentro la finestra modellata invece di sfuggire all'infinito.",
+        "È una scelta di modellazione e non una parete fisica, quindi la finestra deve essere comodamente più grande del magnete. Questa pagina la dimensiona automaticamente a **otto volte la semiestensione del magnete**, il che tiene l'energia contro il contorno sotto il mezzo punto percentuale in ogni configurazione che i cursori possono raggiungere. È verificato a ogni esecuzione e riportato sotto *Quanto fidarsi*: oltre l'1 % la prova è squalificata, perché a quel punto è la scatola a stabilire la risposta tanto quanto il magnete.",
+        "**All'interfaccia ferro/aria: non si impone nulla.** La componente normale di **B** e quella tangenziale di **H** vi sono continue, ed entrambe discendono dall'equazione invece di essere applicate a essa. Quello che il solutore deve invece azzeccare è la *discretizzazione* di quell'interfaccia, ed è per questo che la griglia mette una faccia di cella su ogni confine fra materiali invece di rasterizzarlo.",
+        "**Sugli avvolgimenti: nessuna condizione.** Un avvolgimento è una regione che porta una densità di corrente, non un contorno. La corrente è l'unica sorgente dell'intero problema — il ferro, che non porta corrente, non produce campo da solo, e tutto ciò che è sullo schermo è il campo dell'avvolgimento, ridistribuito dal ferro."
+      ]
+    },
+    {
+      "id": "inputs",
+      "heading": "I dati fisici",
+      "body": [
+        "**La semilarghezza del nucleo** ispessisce il percorso nel ferro. Fissa l'area attraverso cui il flusso deve passare, quindi controlla la *densità* di flusso più del flusso.",
+        "**L'intercapedine d'aria** allontana l'avvolgimento dal nucleo — lo spazio che prendono isolanti e supporti. Costa dispersione: più il rame è lontano dal ferro, più il suo campo si chiude attraverso l'aria prima di raggiungere il nucleo.",
+        "**Lo spessore dell'avvolgimento** aggiunge rame verso l'esterno, e con esso amperspire. La bobina è misurata verso l'esterno a partire dal nucleo invece che dall'asse, così nessuna combinazione di cursori può essere trascinata in una geometria che il solutore rifiuterebbe.",
+        "**La semialtezza** allunga il nucleo e la bobina lungo l'asse. Compra amperspire *e* accorcia il percorso di ritorno rispetto al magnete, ed è per questo che è di solito il cursore più efficace di questa pagina.",
+        "**La permeabilità del nucleo μᵣ** si muove per decadi, perché è così che si comporta la grandezza: 1 significa nessun nucleo, e 10³–10⁴ è ferro dolce o ferrite reali. Portala da 1000 a 10 000 e guarda quanto poco succede — tre decimi di punto percentuale di flusso in più per dieci volte il ferro, perché il flusso deve comunque tornare attraverso l'aria e migliorare la metà facile di un percorso in serie non compra nulla.",
+        "**La densità di corrente** scala la sorgente. Poiché il materiale è lineare, raddoppiarla raddoppia esattamente ogni campo e non cambia nulla della forma della soluzione. È una proprietà del modello e non del ferro, ed è il primo dei limiti qui sotto.",
+        "La **finestra modellata non è fra questi**, di proposito. È ricavata dal magnete con un rapporto fisso, perché è una scelta numerica: non dovrebbe cambiare la risposta, e ogni esecuzione dice quanto ciò sia vero."
+      ]
+    },
+    {
+      "id": "fields",
+      "heading": "I campi",
+      "body": [
+        "**|B|** è la densità di flusso, in tesla — ciò che legge una sonda di Hall o un gaussmetro. Guarda la banda chiara dentro il nucleo, e con quanta bruschezza finisce alla superficie del ferro.",
+        "**A_z** è il potenziale vettore, e le sue isolinee **sono** le linee di campo magnetico. Guardale correre su per il nucleo e chiudere i loro anelli attraverso l'aria. Il flusso fra due linee adiacenti è lo stesso ovunque, quindi dove le linee si infittiscono il campo è intenso — l'intera immagine in un solo colpo d'occhio.",
+        "**H** è l'intensità di campo. Alterna fra questa e |B| con il nucleo a μᵣ = 1000: B è grande nel ferro e H è piccolo lì, e nell'aria è il contrario. È quel contrasto a *essere* ciò che significa la permeabilità — il nucleo porta flusso a un costo quasi nullo in H.",
+        "**μᵣ** non è un risultato ma un controllo sul modello: mostra dove il solutore ha messo il ferro. Ogni confine fra materiali cade su una faccia di cella invece di essere scalinato su un raster, ed è questo che rende il nucleo largo esattamente quanto è stato disegnato, a ogni risoluzione.",
+        "Il solutore pubblica anche **B come vettore**, così il banco può disegnare frecce e integrare linee di corrente invece di limitarsi a colorare un modulo. Passa col puntatore ovunque per leggere il valore sotto il cursore."
+      ]
+    },
+    {
+      "id": "metrics",
+      "heading": "Il risultato ingegneristico",
+      "body": [
+        "**Il flusso nel nucleo Φ′**, per metro di profondità, attraverso il piano mediano del nucleo — la linea orizzontale a metà del ferro, dove in un solenoide il flusso è massimo e dove un progettista metterebbe una bobina di misura. È la caduta di A_z fra i due bordi del nucleo, ed è calcolato una seconda volta integrando **B** lungo la stessa linea, così i due valori si possono confrontare.",
+        "**La densità di flusso media B̄** è quel flusso diviso la larghezza del nucleo, e **la sezione più impegnata** è la stessa grandezza valutata a ogni altezza lungo il nucleo e massimizzata. Per una barra dritta le due sono quasi uguali; per un nucleo a gradini o rastremato non lo sarebbero, ed è la sezione peggiore a saturare per prima.",
+        "**La dispersione** è la quota del flusso che attraversa il piano mediano mancando il ferro. La superficie rispetto a cui si misura non è una scelta: corre fra i due punti in cui la componente verticale di **B** cambia segno, cioè dove il flusso che va in un verso finisce e comincia il ritorno. Terminare la superficie dove l'integrando si annulla è ciò che rende il numero insensibile a dove esattamente lo si metta.",
+        "**Le amperspire** sono la corrente attraverso un lato dell'avvolgimento. Non richiedono alcun calcolo — sono un integrale sulla geometria — e sono il budget su cui è fissata la sfida.",
+        "**L'energia immagazzinata** è ½∫**B**·**H** sulla finestra, e la **permeanza** è il flusso nel nucleo per amperspira: la cifra di merito del circuito magnetico. Moltiplica la permeanza per il quadrato delle spire e per la profondità reale per ottenere un'induttanza.",
+        "**Qui non c'è alcuna densità di flusso di picco, e non è un caso.** Lo spigolo del nucleo è una singolarità della soluzione esatta: raffina la mesh e il massimo puntuale continua a salire — 0,148, 0,185, 0,230, 0,290 T per lo stesso magnete a quattro risoluzioni — perché lì non c'è nulla da risolvere. Un numero che cresce ogni volta che lo si guarda più da vicino non è una misura, quindi questo esercizio riporta medie di sezione, che convergono, e lo dice invece di stampare il picco e sperare.",
+        "**Non c'è nemmeno una forza al traferro.** Questa sezione non ha traferro utile: un nucleo a barra dritta fra due avvolgimenti opposti è simmetrico, quindi la forza netta su di esso è esattamente zero e qualsiasi numero riportato sarebbe errore di arrotondamento. Una forza al traferro richiede un nucleo a C e un'ancora — una sezione diversa."
+      ]
+    },
+    {
+      "id": "verification",
+      "heading": "Come sono verificati i numeri",
+      "body": [
+        "**Bilancio energetico.** L'energia immagazzinata calcolata dal campo, ½∫**B**·**H**, contro la stessa energia calcolata dalle sorgenti, ½∫A_z J_z. Sono uguali per un materiale lineare e condividono la soluzione e nient'altro, quindi lo scarto fra loro è il residuo principale — coglie sia un calcolo fermatosi presto sia una mesh troppo grossolana per portare il campo.",
+        "**Il flusso nel nucleo, per due vie.** Una volta come caduta di A_z attraverso il nucleo, una volta integrando **B** lungo la stessa linea. Stessa superficie, due vie indipendenti.",
+        "**La legge di Ampère.** La circuitazione di **H** lungo un contorno che racchiude un avvolgimento, contro la corrente che quel contorno racchiude. Corre lungo i centri delle celle attraverso l'aria invece che lungo le facce, di proposito: sulle facce le equazioni ai volumi finiti si elidono a telescopio e l'identità varrebbe alla tolleranza del solutore senza dire nulla, quindi è collocata dove misura il campo ricostruito. Attiva il suo livello di annotazione per vedere esattamente dove corre.",
+        "**Raffinamento.** Lo stesso problema risolto di nuovo al doppio della risoluzione, riportando di quanto si è spostata la densità di flusso media. È l'unico controllo che misura la *mesh*, costa quattro volte le celle, e quando è disattivato la pagina dice che il controllo non è stato eseguito invece di mostrare uno zero.",
+        "**Il residuo lineare.** Fin dove è arrivata davvero la soluzione a gradiente coniugato, rispetto alla tolleranza che le era stata chiesta. Vale la pena averlo sullo schermo, perché l'alternativa è il fallimento che questo esercizio è stato costruito per evitare: un solutore che compie un numero fisso di passate, si ferma, e restituisce qualcosa che sembra esattamente una risposta convergente."
+      ]
+    },
+    {
+      "id": "limits",
+      "heading": "Limiti del modello",
+      "caution": true,
+      "body": [
+        "Il materiale è **lineare**: μᵣ è una costante che imposti tu, e il solutore la applica qualunque sia il campo. Il ferro reale **satura** — sopra circa 1,5 T per gli acciai comuni la sua permeabilità collassa verso quella dell'aria, e nessuna quantità di corrente in più compra molto più flusso. Ogni esecuzione confronta la sezione più impegnata del nucleo con quella soglia e si squalifica al di sopra. Nota da che parte va l'errore: oltre la saturazione questo modello **sovrastima**, perché continua a restituire flusso in proporzione alla corrente mentre un nucleo reale no.",
+        "Non c'è **isteresi** e non c'è magnetismo residuo: spegni la corrente in questo modello e il campo è esattamente zero, che non è ciò che succede a un nucleo di ferro reale.",
+        "Questa è una **sezione bidimensionale**, il che significa un magnete infinitamente lungo. Un solenoide reale ha estremità, e a quelle estremità il flusso sfrangia verso l'esterno in un modo che nessuna sezione 2-D può mostrare. Considera l'immagine come la parte centrale di qualcosa di lungo, e ogni flusso come un flusso per metro di quella lunghezza.",
+        "Il contorno esterno impone **A_z = 0**, che confina il flusso nella finestra modellata. Il campo reale si estende indefinitamente, indebolendosi con la distanza; qui è costretto a chiudersi dentro la scatola. La finestra è dimensionata a otto volte il magnete proprio per questo, e la quota di energia immagazzinata che sta contro il contorno è riportata a ogni esecuzione.",
+        "Tutto è **statico**. Niente correnti parassite, niente effetto pelle, niente transitorio induttivo — questo è il campo dopo che la corrente si è assestata, non il campo mentre sta cambiando.",
+        "L'avvolgimento è un **blocco uniforme di densità di corrente**, non spire individuali. Le amperspire sono giuste e la struttura fine fra i conduttori è assente.",
+        "Gli **spigoli del nucleo sono singolari**, ed è una proprietà della soluzione esatta e non della mesh. È il motivo per cui non è riportato alcun campo di picco puntuale, e per cui ogni numero che *è* riportato è un integrale — un flusso, una media di sezione, un'energia — in cui una singolarità non pesa.",
+        "Il risultato non è un progetto magnetico e non deve essere usato per dimensionare alcunché."
+      ]
+    }
+  ]
+}

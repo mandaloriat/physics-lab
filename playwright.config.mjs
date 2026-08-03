@@ -16,6 +16,12 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   use: {
     baseURL: process.env.BASE_URL ?? 'http://127.0.0.1:8000',
+    // Pinned, because the site now reads it. The pages fall back to the browser's preferred
+    // language when nothing has been chosen (ADR-020), so a runner configured in Italian would
+    // serve Italian to a suite that asserts English wording — a failure that depends on the
+    // machine rather than on the code. The Italian half is exercised explicitly, by asking for
+    // it with `?lang=it`.
+    locale: 'en-GB',
     trace: 'retain-on-failure',
     // Normally Playwright manages its own browser download (`npx playwright install
     // chromium`, which is what CI does). CHROMIUM_PATH points it at an already-present
