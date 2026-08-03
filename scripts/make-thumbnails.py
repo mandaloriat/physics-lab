@@ -134,6 +134,14 @@ def crop(result, half: float):
     y = np.linspace(ymin, ymax, ny)
     keep_x = np.nonzero(np.abs(x) <= half)[0]
     keep_y = np.nonzero(np.abs(y) <= half)[0]
+    if not len(keep_x) or not len(keep_y):
+        # Reachable by asking for a crop finer than the raster, which is a mistake in the
+        # caller rather than in the solve. Said plainly, because the alternative is an
+        # IndexError three lines later that names neither number.
+        raise SystemExit(
+            f"crop half-width {half} keeps no sample points of a raster spanning "
+            f"{result.data['bounds']} at {ny} x {nx}: raise the resolution or the crop"
+        )
     take = np.ix_(keep_y, keep_x)
 
     data = dict(result.data)

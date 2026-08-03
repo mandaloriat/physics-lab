@@ -283,9 +283,17 @@ class Magnetics2D(Solver):
         more cells for every one, and it is included when it was asked for. The field raster is
         a separate array of its own size, and it is what the *memory* goes on — the airfoil
         adapter counts only that, and here the solve is the larger half.
+
+        The raster is counted **only when one is built**. ``mesh2d`` publishes the solver's own
+        cells as nodes and allocates no raster at all, so charging for one would bill a job for
+        an array it never makes: at the default resolution that is 65 536 cells, a third of the
+        public server's budget, and enough to have a mesh run refused for a reason that was not
+        true of it.
         """
         cells = _grid_for(geometry, params.cells_across, params.far_field_growth).cells
         solve = cells * 5 if params.convergence_check else cells
+        if params.output == "mesh2d":
+            return solve
         ny, nx = _raster_shape(geometry.bounds, params.resolution)
         return solve + ny * nx
 
