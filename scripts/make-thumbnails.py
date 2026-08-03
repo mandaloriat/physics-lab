@@ -159,8 +159,13 @@ def crop(result, half: float):
 # -------------------------------------------------------------------------------- the solves
 
 
-def solve(name: str, geometry: dict, params: dict):
-    """Run one registered capability in-process, exactly as a worker would."""
+def solve(name: str, geometry: dict, params: dict, conditions: dict | None = None):
+    """Run one registered capability in-process, exactly as a worker would.
+
+    ``conditions`` is an inline load case (protocol 1.9), for a capability that takes one. It
+    goes on the context the way the server puts it there, rather than being folded into the
+    params, so a thumbnail is produced by the same code path as a job.
+    """
     from fenixspoon.geometry import Geometry
     from fenixspoon.solvers.base import SolverContext
     from fenixspoon.solvers.registry import get_solver
@@ -173,7 +178,9 @@ def solve(name: str, geometry: dict, params: dict):
     # Outside the served tree: these adapters register a report artifact, and a stray
     # report.json under frontend/assets would be published by the static mount.
     artifacts = Path(tempfile.mkdtemp(prefix="spoon-thumbnails-"))
-    context = SolverContext(progress_cb=lambda _event: None, artifact_dir=artifacts)
+    context = SolverContext(
+        progress_cb=lambda _event: None, artifact_dir=artifacts, conditions=conditions
+    )
     return solver_cls().solve(parsed, solver_cls.Params(**params), context)
 
 
@@ -343,10 +350,117 @@ def heatsink() -> None:
     )
 
 
+def truss() -> None:
+    """A lattice that meets the mission, coloured by how hard each bar is working.
+
+    The only card whose result is a `mesh2d` rather than a raster, and the only one that
+    therefore cannot go through `render()`. That is the geometry being honest rather than an
+    inconvenience: this exercise's answer is *per bar*, so the picture is bars, and the
+    rasteriser below draws exactly what `<fs-viewer>` draws — each member as a ribbon of one
+    colour, because one force runs the whole length of it.
+    """
+    span, panels, depth = 24.0, 10, 3.0
+    step = span / panels
+    nodes = [[round(i * step, 3), 0.0] for i in range(panels + 1)]
+    nodes += [[round((i + 0.5) * step, 3), depth] for i in range(panels)]
+    members = [[i, i + 1] for i in range(panels)]
+    members += [[panels + 1 + i, panels + 2 + i] for i in range(panels - 1)]
+    for i in range(panels):
+        members += [[i, panels + 1 + i], [panels + 1 + i, i + 1]]
+
+    def rect(x0, y0, x1, y1):
+        return {"type": "polygon2d", "points": [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]}
+
+    result = solve(
+        "lab.truss2d",
+        {
+            "type": "regions2d",
+            "bounds": [-4.0, -8.0, 28.0, 12.0],
+            "regions": [
+                {"name": "left_bank", "shape": rect(-3.9, -7.9, 0.0, 0.0)},
+                {"name": "right_bank", "shape": rect(24.0, -7.9, 27.9, 0.0)},
+                {
+                    "name": "channel",
+                    "shape": rect(4.0, -5.0, 20.0, -0.6),
+                    "material": {"keep_clear": 1},
+                },
+            ],
+            "boundaries": [
+                {"name": "support_0", "select": {"type": "box", "bounds": [-0.2, -0.2, 0.2, 0.2]}},
+                {
+                    "name": f"support_{panels}",
+                    "select": {"type": "box", "bounds": [23.8, -0.2, 24.2, 0.2]},
+                },
+                {
+                    "name": "deck",
+                    "select": {"type": "near", "axis": "y", "value": 0.0, "tol": 0.05},
+                },
+            ],
+        },
+        {"nodes": nodes, "members": members, "area": 2.6e-3},
+        conditions={
+            "support_0": {"fixed_x": 1.0, "fixed_y": 1.0},
+            f"support_{panels}": {"fixed_y": 1.0},
+            "deck": {"load_y": -4000.0},
+        },
+    )
+    window = (-1.5, -1.5, 25.5, 5.0)
+    write_png(OUT / "truss.png", render_lattice(result, "utilisation", "plasma", window))
+
+
+def render_lattice(result, field: str, colormap: str, window) -> np.ndarray:
+    """Colour a `mesh2d` of one-quad-per-bar the way the viewer does, and rasterise it.
+
+    Each bar contributes four consecutive points — the two corners at one end, then the two at
+    the other — so the midline and the drawn half-width come straight back out of them, and a
+    pixel belongs to the bar it is within a half-width of. Nearest wins where two bars overlap
+    at a joint, which is what the viewer's own painter's order comes to in this geometry.
+    """
+    points = np.asarray(result.data["points"], dtype=float)
+    values = np.asarray(result.data["point_fields"][field], dtype=float)
+    bars = len(points) // 4
+    corners = points.reshape(bars, 4, 2)
+    start = 0.5 * (corners[:, 0] + corners[:, 3])
+    end = 0.5 * (corners[:, 1] + corners[:, 2])
+    half = 0.5 * np.linalg.norm(corners[:, 0] - corners[:, 3], axis=1)
+    per_bar = values.reshape(bars, 4)[:, 0]
+
+    xmin, ymin, xmax, ymax = window
+    height = max(1, round(WIDTH * (ymax - ymin) / (xmax - xmin)))
+    xs = np.linspace(xmin, xmax, WIDTH)
+    ys = np.linspace(ymin, ymax, height)
+    gx, gy = np.meshgrid(xs, ys)
+
+    low, high = float(per_bar.min()), float(per_bar.max())
+    if high - low < 1e-12:
+        high = low + 1.0
+
+    rgb = np.full((height, WIDTH, 3), 30, dtype=np.uint8)
+    rgb[..., 2] = 34
+    nearest = np.full((height, WIDTH), np.inf)
+    for index in range(bars):
+        vx, vy = end[index] - start[index]
+        length = vx * vx + vy * vy
+        t = np.clip(((gx - start[index, 0]) * vx + (gy - start[index, 1]) * vy) / length, 0.0, 1.0)
+        distance = np.hypot(start[index, 0] + t * vx - gx, start[index, 1] + t * vy - gy)
+        hit = (distance <= half[index]) & (distance < nearest)
+        nearest[hit] = distance[hit]
+        colour = sample(colormaps()[colormap], np.array([(per_bar[index] - low) / (high - low)]))[0]
+        rgb[hit] = colour
+
+    # Row 0 of the arrays is the bottom of the domain; image rows go down.
+    return np.flipud(rgb)
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     made = []
-    for label, build in [("airfoil", airfoil), ("solenoid", solenoid), ("heatsink", heatsink)]:
+    for label, build in [
+        ("airfoil", airfoil),
+        ("solenoid", solenoid),
+        ("truss", truss),
+        ("heatsink", heatsink),
+    ]:
         try:
             build()
             made.append(label)

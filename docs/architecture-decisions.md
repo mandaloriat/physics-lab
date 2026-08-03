@@ -167,21 +167,43 @@ it is for.
 
 ## ADR-007 — The dependency is pinned to a commit, in four places, checked by a script
 
-**Decision.** Fenix Spoon is pinned to commit `988ad64b8cd25f94e52b985bf2d2456230a9eed3`.
+**Decision.** Fenix Spoon is pinned to commit `4e7c296a7d351575194e25a1d4ebc1c703a6e08f`.
 Never `main`, never `latest`.
 
-**What this pin carries, and why the lab moved to it.** Protocol 1.2, and with it the
-capability declaration a solver adapter can make: `physics`, `availability`, `requires`,
-`metrics`, `artifacts`, `features` and `examples`, plus the three progressive-discovery
-operations (`GET /api/v1/capabilities`, `.../capabilities/{name}`, `GET /api/v1/environment`).
-The lab needs `MetricSpec` and `ArtifactSpec` to declare what the airfoil exercise reports
-before a visitor runs it (ADR-014), and they do not exist in the previous pin. The upgrade was
-verified to be purely additive first: between the two commits no shipped solver's `Params`
-model changed a field, which is the one thing that would have altered the parameter form the
-pages generate from `params_schema`.
+**What this pin carries, and why the lab moved to it.** Protocol 1.9. The pin before it
+(`988ad64`) carried 1.2 and the capability declaration a solver adapter can make — `physics`,
+`availability`, `requires`, `metrics`, `artifacts`, `features` and `examples`, plus the three
+progressive-discovery operations — which is what the airfoil and magnetics exercises are built
+on. Four minors have landed since, and the bridge exercise needs two of them:
 
-Note what the declaration still is at this commit: **declared, not computed.** Upstream says
-so plainly — the values are issue #46 — so a metric a solver publishes in `metrics` is a
+- **1.8, a geometry can name pieces of its own boundary.** `boundaries` on `domain2d` and
+  `regions2d`, with `part` / `points` / `near` / `box` / `all_of` selectors resolving to a
+  predicate over coordinates.
+- **1.9, a load case says what happens there.** `conditions` on a job request, keyed by those
+  names, refused rather than ignored when a name or a key is one nobody declared.
+
+Together they are the whole of [ADR-019](#adr-019--the-bridge-carries-its-lattice-in-params-because-the-protocol-has-no-network-geometry)'s
+"loaded at one or more joints or stretches": the geometry says *where*, the load case says
+*what*, and neither can be silently dropped. 1.6 (a metric declares what it is taken over) and
+1.7 (an artifact knows which instant it holds) come along and are unused here — nothing in the
+lab is transient yet.
+
+The upgrade was verified to be purely additive first: between the two commits no shipped
+solver's `Params` model changed a field, which is the one thing that would have altered the
+parameter form the pages generate from `params_schema`. Every existing test passed unchanged,
+and the three committed thumbnails regenerated **byte for byte identical**, which is a
+stronger statement than a green suite — no shipped solver's numbers moved.
+
+**One assertion in the browser suite had to be inverted, and it is the good kind.** The
+`<fs-viewer>` at the old pin computed its colour range from the data and exposed only a getter,
+so the lab's Lock scale tool was drawn *disabled, with the reason*, and a test asserted exactly
+that. The new pin adds the setter and `autoRange` beside it. Because `viewerCapabilities`
+probes for the **property** rather than checking a version, the tool turned itself on; what
+changed in the lab was the four lines that implement the lock and the test that had always been
+the one to move.
+
+Note what the metric declaration still is at this commit: **declared, not computed.** Upstream
+says so plainly — the values are issue #46 — so a metric a solver publishes in `metrics` is a
 promise about what it will report, and the result envelope has nowhere to put the number yet.
 That is why a lab solver carries its metrics in a declared artifact for now (ADR-015).
 
@@ -190,9 +212,9 @@ That is why a lab solver carries its metrics in a declared artifact for now (ADR
 complete one — it fixes the server, the solvers, the protocol models and the widget source
 together.
 
-**Why the image tags are what they are.** GHCR carries `sha-988ad64` (FEniCSx, dolfinx
-v0.11.0, digest `sha256:9066f980…`) and `sha-988ad64-slim` (mock solvers only, digest
-`sha256:99230d7e…`). `dolfinx-v0.11.0` is the same image today but is re-pointed on every
+**Why the image tags are what they are.** GHCR carries `sha-4e7c296` (FEniCSx, dolfinx
+v0.11.0, digest `sha256:08213ca6…`) and `sha-4e7c296-slim` (mock solvers only, digest
+`sha256:8189808c…`). `dolfinx-v0.11.0` is the same image today but is re-pointed on every
 push to `main`, so it is not a pin. And `latest` / `latest-slim` **do not exist**, despite
 what upstream's README says — the publish workflow tags `latest` only on a `v*` git tag,
 and none has been pushed. Anyone debugging a failed pull should know that before they
@@ -760,6 +782,78 @@ thing that changes when a slider moves and one less thing that can be set wrong.
 
 ---
 
+## ADR-019 — The bridge carries its lattice in params, because the protocol has no network geometry
+
+**Decision.** The fourth exercise is a planar pin-jointed truss, solved by `lab.truss2d` — the
+lab's third own solver. Its three payloads are split like this, and the split is not where it
+would be if the protocol had a third geometry kind:
+
+| What | Travels as | Why there |
+|---|---|---|
+| the **site** — bounds, banks, the shipping channel that must stay clear, and a *name* for every place a condition can attach to | `regions2d` geometry, with protocol 1.8 `boundaries` | it is a region map, which is exactly what `regions2d` is for |
+| the **lattice** — joints and bars | `params.nodes` and `params.members` | there is nowhere else it can go, and that is the finding |
+| **what the bridge must carry** — supports, dropped loads, the deck load | protocol 1.9 `conditions` | the geometry says where, the load case says what |
+
+**Why the lattice is not geometry, stated as a gap rather than as a convention.** `Geometry` is
+`Domain2D | Regions2D`: one polygon cut out of a rectangle, or a rectangle filled with material
+regions. **A bar network is neither**, and neither is a near miss:
+
+- It cannot be regions. Bars *meet at joints*, so their outlines properly cross, and partially
+  overlapping regions are refused — correctly, because for a material assignment they genuinely
+  are ambiguous. The refusal is right and the geometry is still unexpressible.
+- It cannot be a `domain2d` obstacle. A truss's voids are many holes; that geometry has one.
+
+So the third geometry kind the protocol will eventually want is a **network**: nodes, edges,
+and a property per edge. This exercise is the evidence for it, and the honest arrangement until
+then is the one above — the geometry carries what it *can* say about the site, and the lattice
+is params, where its revision is still hashed into the cache key and still recorded whole in a
+run row. What it costs is real and worth writing down: the lattice gets no geometry validation
+from the protocol (the params model repeats it), no `<fs-geometry-2d>` (the page brings its own
+editor), and no `points` selector, so a boundary naming a joint is a small `box` around it
+rather than an id that would follow the joint through an edit.
+
+**Why a lab solver rather than upstream's elasticity.** `mock.elasticity2d` and
+`dolfinx.elasticity2d` landed in the same pin bump and are not the same problem discretised
+differently. They solve a **continuum**: a body filling a region, meshed, with a stress field
+through it. A truss is a graph — an axial force in each bar and nothing in between them.
+Meshing a lattice of 50 mm bars over a 24 m span as a continuum would need cells finer than the
+bars across an area a thousand times larger; and the answer a designer wants is *the force in
+member 14*, which a continuum solve does not have members to report. This is the same test the
+first two lab solvers passed ([ADR-014](#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first),
+[ADR-018](#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force)):
+a solver of the lab's own only when the physics a metric needs is missing, never to demonstrate
+the adapter contract.
+
+**Three consequences worth stating, because each one shortened the page.**
+
+*There is no numerical panel.* With the joints pinned, one element per bar **is** the structure
+rather than an approximation of it, so there is no mesh size, no tolerance, no iteration count
+and no convergence study — the first page in the lab where *Advanced* holds a display width and
+an explanation of why it holds nothing else. The verification is about equilibrium instead:
+four residuals, all at machine precision, and one of them (the method of joints) computed from
+the member forces and the geometry alone, so it never touches the stiffness matrix it is
+checking.
+
+*Capacity in compression is not the yield stress.* A 5 m bar of 2200 mm² solid section buckles
+at about 47 kN against a 550 kN squash load, so a utilisation measured against yield reports
+nine per cent on a member that has already gone. The headline metric is therefore the ratio to
+the **lesser** of yield and the Euler load — and the section shape is fixed at the conservative
+solid-circular end rather than offered, so a compression member cannot be made safe by
+asserting a better section.
+
+*A mechanism is refused, not reported.* A lattice that folds has no equilibrium — the reduced
+stiffness matrix is singular, and the honest answer is not a large deflection but no solution.
+The refusal names how many independent ways it folds and which joints swing, and the preset
+list deliberately includes one ("the deck alone"), because meeting that refusal is the fastest
+way to learn what triangulation is for.
+
+**Cost.** A page-owned editor — about 300 lines of SVG and pointer handling that
+`<fs-geometry-2d>` would otherwise have covered — and a params model that repeats the lattice
+validation the protocol would do if a network geometry existed. Both go away the day it does,
+and neither is load-bearing anywhere else.
+
+---
+
 ## Deferred
 
 Not built, on purpose. Each would have been a plausible use of the kickstart's time; none
@@ -767,12 +861,13 @@ would have made the one finished experiment better.
 
 | Deferred | Why, and what would bring it back |
 |---|---|
+| **A network geometry kind** | [ADR-019](#adr-019--the-bridge-carries-its-lattice-in-params-because-the-protocol-has-no-network-geometry) records why the bridge's lattice travels as params: `domain2d` and `regions2d` cannot express joints and bars, and the refusal that blocks the nearest attempt (partially overlapping regions) is correct rather than a bug to route around. Belongs upstream, as a third member of the `Geometry` union with the boundary selectors it would need. What would bring it back here is that kind existing; the lab would then delete a params model and an editor rather than build anything. |
 | **The heat-sink experiment** | `mock.heat2d` exists upstream, takes `regions2d`, and carries its convective boundary condition as parameters (`h`, `t_ambient`) rather than needing anything of the geometry schema — so the machinery is ready and what is missing is the didactic half: a fin generator, and the lesson that makes "how many fins actually help" answerable. It would also ship with only the fast preview, since upstream has no FEniCSx heat adapter to pair with it. The homepage lists it as planned rather than pretending. (The solenoid was in this row until ADR-012.) |
-| ~~**A lab-specific solver**~~ | *No longer deferred.* It was, on the grounds that nothing the airfoil needed was missing from Fenix Spoon — which stopped being true the moment the pages became exercises. `lab.airfoil_panel2d` landed with [ADR-014](#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first) and `lab.magnetics2d` with [ADR-018](#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force). In both cases the missing piece was physics a metric needed, not an adapter to demonstrate. |
+| ~~**A lab-specific solver**~~ | *No longer deferred.* It was, on the grounds that nothing the airfoil needed was missing from Fenix Spoon — which stopped being true the moment the pages became exercises. `lab.airfoil_panel2d` landed with [ADR-014](#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first), `lab.magnetics2d` with [ADR-018](#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force) and `lab.truss2d` with [ADR-019](#adr-019--the-bridge-carries-its-lattice-in-params-because-the-protocol-has-no-network-geometry). In all three the missing piece was physics a metric needed, not an adapter to demonstrate. |
 | **Accounts, quotas per person, an admin dashboard** | Would need an identity provider, which would defeat "open the page and try it". Fenix Spoon supports API keys and per-principal quotas the day this changes. |
 | **Per-IP rate limiting on by default** | Needs a custom Caddy build. Configured and commented in the Caddyfile; see ADR-010. |
 | **Publishing the lab image to GHCR** | The server builds from the checkout, which keeps one source of truth while the project is one person and one machine. A published image matters when a second deployment does. |
 | **A FEniCSx job in CI** | Would mean pulling a 3 GB image and running a real solve on every push, for a code path this repository does not own — the adapters are upstream's and are tested there in that exact image. CI builds and runs the slim image, which exercises everything the lab actually wrote. |
-| **STEP upload, 3D, Navier–Stokes, automatic optimisation** | All need protocol capabilities that do not exist yet: `step3d` geometry, 3D result kinds, vector fields. Upstream's roadmap, not the lab's. |
-| **MCP / local agent interface** | Upstream design draft (M2.5), unimplemented there. An application cannot ship a transport its toolkit does not have. |
+| **STEP upload, 3D, Navier–Stokes, automatic optimisation** | All need protocol capabilities that do not exist yet: `step3d` geometry, 3D result kinds. (Vector fields were in this list and are not any more — both lab solvers that have one publish it, and the workspace integrates streamlines from it.) Upstream's roadmap, not the lab's. |
+| **MCP / local agent interface** | No longer unimplemented upstream — M2.5 landed whole in the pin the lab now runs, so `fenix-spoon rpc --stdio`, the MCP adapter and the CLI all exist. Still deferred here, and for a different reason than before: the lab is a *public web* application with anonymous quotas, and none of those transports is reachable through a browser. What would bring it back is a reason for a script to drive this deployment rather than its own. |
 | **Analytics** | None. A page that reports nothing needs no cookie banner and no privacy policy, and the lab collects no personal data at all. |

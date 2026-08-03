@@ -75,9 +75,14 @@ export function viewerCapabilities(viewer) {
     probe: typeof viewer?.probe === 'function',
     vectors: prototype ? 'vectors' in prototype : false,
     exportImage: typeof viewer?.toDataURL === 'function',
-    /** A settable scalar range. False on 988ad64: `range` is a getter and nothing else. */
+    /**
+     * A settable scalar range. False on 988ad64, where `range` was a getter and nothing else;
+     * true from 4e7c296, which added the setter and `autoRange` beside it. The probe is what
+     * made that bump a feature rather than a lie — the tool was disabled with a reason, and it
+     * enabled itself when the property arrived.
+     */
     lockRange: Boolean(range?.set),
-    /** Sampling along a section. No upstream API at this pin; see the note in `TOOLS`. */
+    /** Sampling along a section. */
     section: typeof viewer?.sample === 'function',
   };
 }
@@ -94,6 +99,9 @@ export function viewerCapabilities(viewer) {
  * @param {Array<object>} spec.overlays overlay layer descriptors (see {@link setOverlays})
  * @param {(context: object) => void} spec.onDraw called to paint the annotation layer
  * @param {string} spec.fitLabel wording for the "frame the body" action, e.g. `Fit profile`
+ * @param {string} [spec.editLabel] wording for the edit mode, e.g. `Build`; the editor is
+ *   whatever the page hands over, so only the page can name what editing it means
+ * @param {string} [spec.editTitle] the tooltip that goes with it
  * @param {() => ([number, number, number, number]|null)} [spec.subject] the bounding box the
  *   fit action frames, in domain coordinates — the profile, the magnet, whatever the page is
  *   actually about
@@ -117,6 +125,14 @@ export function createWorkspace(spec) {
     /** Overlay layers the page declared, by id, and whether each is on. */
     layers: new Map(),
     pinned: null,
+    /**
+     * The colour range held fixed across results, or null while it follows the data.
+     *
+     * Deliberately outlives `setResult`: two solves are only comparable by eye if the second
+     * one is drawn on the first one's scale, so a lock the next result silently released would
+     * be a lock that does the one thing it exists to prevent.
+     */
+    locked: null,
   };
 
   // The viewer draws no colorbar of its own: this workspace draws one, and the plot area
@@ -195,8 +211,12 @@ export function createWorkspace(spec) {
     {
       id: 'edit',
       group: 'mode',
-      label: 'Edit shape',
-      title: 'Show and drag the profile’s control points',
+      // Wording, because "the profile's control points" is a statement about *an* experiment
+      // and this file holds none. The airfoil drags a spline and the bridge lays out a
+      // lattice; both are the mode in which the editor owns the pointer, and the button has
+      // to say which one it is. Same rule as `fitLabel` above it.
+      label: spec.editLabel ?? 'Edit shape',
+      title: spec.editTitle ?? 'Show and drag the geometry’s control points',
       icon: '✎',
       hidden: () => !editor,
       available: () => true,
@@ -306,15 +326,28 @@ export function createWorkspace(spec) {
       title: 'Hold the colour range fixed while comparing runs',
       icon: '🔒',
       toggle: true,
-      on: () => false,
-      action: () => {},
+      on: () => state.locked !== null,
+      /**
+       * Pin the colour range to what this result happens to span, or let it float again.
+       *
+       * Pinned from `autoRange` rather than from a range the page invents: the point is to
+       * compare the *next* solve against this one, so the scale that has to survive is the one
+       * currently on screen. The viewer's own `range` is what the canvas colours by, so the
+       * strip this workspace draws and the picture cannot disagree — `drawScale` reads the
+       * same property.
+       */
+      action: () => {
+        state.locked = state.locked ? null : (viewer.autoRange ?? null);
+        viewer.range = state.locked;
+        draw();
+      },
       available: () =>
         capabilities.lockRange
           ? { ok: true }
           : {
               ok: false,
-              // Upstream gap, named rather than worked around. Faking it by rescaling the
-              // legend alone would put a range on the bar that the canvas does not use.
+              // Upstream gap on an older pin, named rather than worked around. Faking it by
+              // rescaling the legend alone would put a range on the bar the canvas does not use.
               why: 'The viewer computes its colour range from the data and exposes no way to set one, so a locked scale would disagree with the picture.',
             },
     },
@@ -672,7 +705,15 @@ export function createWorkspace(spec) {
         ),
       ),
     );
-    scale.append(el('span', { class: 'scale__caption', text: viewer.getAttribute('units') ?? '' }));
+    // A pinned scale says so. Silence would leave a bar whose numbers do not move with the
+    // field looking like a field that did not move.
+    const units = viewer.getAttribute('units') ?? '';
+    scale.append(
+      el('span', {
+        class: 'scale__caption',
+        text: state.locked ? `${units} fixed`.trim() : units,
+      }),
+    );
   }
 
   /* ------------------------------------------------------------------ the overlay layer */

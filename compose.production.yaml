@@ -59,7 +59,7 @@ services:
   api:
     build:
       args:
-        FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-988ad64}
+        FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-4e7c296}
     image: ${LAB_IMAGE:-physics-lab:prod}
     # No `ports`. Caddy reaches it over the compose network; nothing else can.
     environment:
@@ -104,8 +104,8 @@ services:
     build:
       context: .
       args:
-        FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-988ad64b8cd25f94e52b985bf2d2456230a9eed3}
-        FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-988ad64}
+        FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-4e7c296a7d351575194e25a1d4ebc1c703a6e08f}
+        FENIX_SPOON_IMAGE: ${FENIX_SPOON_FENICS_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-4e7c296}
     image: ${LAB_IMAGE:-physics-lab:prod}
     restart: unless-stopped
     # arq drains the queue the API dispatches to. physics_lab.worker re-exports fenixspoon's
@@ -115,7 +115,7 @@ services:
     # adapters would fail here with "this worker has no solver named …".
     command: ["arq", "physics_lab.worker.WorkerSettings"]
     environment:
-      FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-988ad64b8cd25f94e52b985bf2d2456230a9eed3}
+      FENIX_SPOON_COMMIT: ${FENIX_SPOON_COMMIT:-4e7c296a7d351575194e25a1d4ebc1c703a6e08f}
       FENIXSPOON_DATA_DIR: /data
       FENIXSPOON_REDIS_URL: redis://redis:6379
       # One solve per container. Keep it at 1 and scale containers instead, so the memory
