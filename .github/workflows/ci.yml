@@ -12,8 +12,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # The one place CI names the pin. Kept in step with everything else by check-pins.
-  FENIX_SPOON_SLIM_IMAGE: ghcr.io/mandaloriat/fenix-spoon:sha-988ad64-slim
+  # The one place CI names the pin, and — since the bump to 4e7c296 walked straight past it —
+  # one of the files `check-pins.sh` reads. It used to say it was checked here and was not,
+  # which is exactly the silent skew ADR-007 exists to prevent: the image stage would build
+  # the widgets from the new commit onto a runtime whose `fenixspoon` was the old one, and the
+  # first symptom was an ImportError three minutes into a Docker build.
+  FENIX_SPOON_SLIM_IMAGE: ghcr.io/mandaloriat/fenix-spoon:sha-4e7c296-slim
 
 jobs:
   # ────────────────────────────────────────────────────────────────── static checks

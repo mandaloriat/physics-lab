@@ -14,7 +14,7 @@ services:
       args:
         # The mock-solver image: ~100 MB against ~3 GB, and the whole protocol, both
         # widgets and the airfoil experiment run on it. Front-end work never needs FEniCSx.
-        FENIX_SPOON_IMAGE: ${FENIX_SPOON_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-988ad64-slim}
+        FENIX_SPOON_IMAGE: ${FENIX_SPOON_IMAGE:-ghcr.io/mandaloriat/fenix-spoon:sha-4e7c296-slim}
     # A separate tag from LAB_IMAGE, which production uses. Sharing one would let a
     # development build — mock solvers only — overwrite the tag production then starts,
     # and the symptom would be a production site that quietly lost its FEniCSx mode.

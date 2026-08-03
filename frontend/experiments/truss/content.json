@@ -1,0 +1,119 @@
+{
+  "id": "truss",
+  "title": "The bridge",
+  "subtitle": "Statics of a pin-jointed lattice",
+  "intro": "A 24-metre gorge with a shipping channel under the middle of it, and a lattice of steel bars to get across. Lay out the joints and the bars yourself, put the supports where the ground can take them, load the deck, and find out which bar gives way first.",
+  "challenge": {
+    "statement": "Carry 4 kN per metre along the 24 m deck with no bar past its capacity, no more than 2400 kg of steel, and a deflection under an eight-hundredth of the span. Runs that leave the model's domain of validity do not count — a lattice with a buckled member has already failed, whatever the rest of its numbers say.",
+    "targets": [
+      {
+        "metric": "utilisation_max",
+        "comparator": "<",
+        "value": 1,
+        "unit": "1"
+      },
+      {
+        "metric": "mass",
+        "comparator": "<",
+        "value": 2400,
+        "unit": "kg"
+      },
+      {
+        "metric": "span_ratio",
+        "comparator": "<",
+        "value": 0.00125,
+        "unit": "1"
+      }
+    ],
+    "requires_valid": true,
+    "requires_verified": {
+      "metric": "joint_equilibrium_rel",
+      "below": 1e-6
+    },
+    "next_step": "a different lattice at a different section"
+  },
+  "sections": [
+    {
+      "id": "problem",
+      "heading": "The problem",
+      "lead": "Get 4 kN per metre of traffic across 24 metres, on 2400 kg of steel, without losing a bar.",
+      "body": [
+        "The lattice the page opens with — a Warren truss of eight panels, three metres deep, in 2200 mm² bars — carries the load and **fails the mission**: its busiest diagonal is at about 1.9 times what it may carry, and the run is disqualified besides, because that diagonal has passed its buckling load and a linear model cannot see it go. It uses 1700 kg of the 2400 allowed, which is the room you have to fix it in.",
+        "Three things decide this exercise, and only the first is obvious. **Compression is what fails, not tension.** A slender bar buckles at a fraction of the force that would yield it — for a 5 m bar of 2200 mm² the Euler load is about 47 kN against a 550 kN squash load — so the utilisation you are fighting is almost always a compression member's, and almost always the longest one. **The Euler load goes with the square of the area and the inverse square of the length**, so halving a compression member's length is worth as much as doubling its section, and costs nothing in steel. And **depth buys chord force**: a deeper truss carries the same bending with less force in its chords, at the price of longer diagonals and more of them.",
+        "There is more than one lattice that passes. Find one, keep the run, then find a different one — a different panel count, a different depth, a different section — that also passes, and compare the two. The run table exists to make that comparison, not to store screenshots."
+      ]
+    },
+    {
+      "id": "model",
+      "heading": "The model",
+      "body": [
+        "Static, two-dimensional, linear-elastic, small-displacement statics of a **pin-jointed** lattice. Every joint is a frictionless pin, so a bar carries force along itself and nothing else — no bending, no shear, no moment anywhere in the structure.",
+        "Assemble each bar's contribution into a global stiffness matrix and solve **K u = f** once for the joint displacements; the force in a bar is then its stiffness times the stretch of its own axis, **N = (EA/L)·(u_j − u_i)·ê**. There is nothing iterative and nothing to converge: with the joints pinned, one element per bar *is* the structure, not an approximation of it. That is why this page has no mesh size, no tolerance and no convergence study, and why the verification below is about equilibrium rather than about refinement.",
+        "**Capacity, and why it is not the yield stress.** A bar in tension may carry the yield stress times its area. A bar in compression may carry the *lesser* of that and Euler's critical load, **P_cr = π²EI/L²**, and for the solid circular section this model assumes — **I = A²/4π** — that is **P_cr = πEA²/4L²**. Both are divided by the safety factor before a utilisation is taken. Measuring compression against yield instead would report four per cent on a member that has already gone.",
+        "**No initial conditions.** The problem is static, so there is no state at *t* = 0. Where a transient exercise would list one, this page has nothing to list, and inventing something to fill the gap would be a lie about the model.",
+        "**Units.** SI throughout. The sliders are in kilonewtons and kilonewtons per metre because that is how a load is spoken about; everything is converted at the boundary, and every reported number is SI."
+      ]
+    },
+    {
+      "id": "boundary-conditions",
+      "heading": "Where it is held, and where it is loaded",
+      "body": [
+        "This is the half of the exercise the toolkit is being asked a new question by, so it is worth reading in the terms the wire uses. The **site** is the geometry: the bounds, the two banks, the shipping channel that must stay clear. It also *names* places — a box around a joint, a band along the carriageway — and those names are all a load case can refer to.",
+        "**The load case says what happens at each named place.** A support becomes `fixed_x` and `fixed_y` on a box naming one joint; a load you drop becomes a total force on a box naming one joint; the traffic becomes a load per unit length along the deck band, carried by every bar with **both** ends on it. Restraints are exact — a pinned joint does not move at all — and a load per unit length is lumped half onto the joint at each end of the bar it acts along, which is exact for the joint equilibrium and exact for the axial force, because a pin-jointed bar has no bending for the rest of it to go into.",
+        "**A condition that lands on nothing is refused, not ignored.** A support box that catches no joint, or a deck load with no bar to act along, comes back as a refusal naming the boundary rather than as a solve that quietly answers a lighter problem. That asymmetry is deliberate and it is upstream's: an unread material property leaves a default, and an unread boundary condition leaves a clamp out of the structure — which converges, and answers a different question, with no symptom anywhere on the result.",
+        "**A pin and a roller, not two pins.** The pair the page starts with is the statically determinate one: one joint held both ways, one held only upwards. Two pins would be a perfectly good bridge and a different problem — it cannot lengthen, so a warm day puts force into the chords with no load on the deck at all, and this model has no temperature in it to show you that."
+      ]
+    },
+    {
+      "id": "inputs",
+      "heading": "What you choose",
+      "body": [
+        "**The lattice** is the design: where the joints are, which of them are joined, where the supports sit. It is drawn rather than typed, and it is the only input on this page with no number attached to it.",
+        "**The section** is the one continuous design variable — one area for every bar. That is a deliberate restriction: a free area per bar turns this into an optimisation with a hundred variables and no way to see why an answer is better, while one area and a free topology is the version where a diagonal you add for a reason visibly helps.",
+        "**The material** — modulus, density, yield — is steel by default and worth changing only to see what each one does. The modulus moves the deflection and the buckling load and, in a statically determinate truss, not a single member force. The density moves the mass and nothing else. The yield strength moves the tension capacity and usually nothing at all, because compression is what fails.",
+        "**The loading** is the traffic along the deck, anything you drop on a joint, and a side load on the trusswork above the deck. All three are the mission's conditions rather than the solver's parameters, which is why they are in their own group: changing one is asking the same bridge a different question."
+      ]
+    },
+    {
+      "id": "fields",
+      "heading": "What to look at",
+      "body": [
+        "The picture is the lattice itself, each bar drawn as a ribbon and coloured by what it carries. **Utilisation** is the field the mission is decided on: anything reaching 1 has run out. **Axial force** is signed, so tension and compression read as opposite colours — follow the sign along the chords and you can watch the truss work, the bottom pulled and the top pushed, the diagonals alternating as they carry the shear out to the abutments.",
+        "**The bars are drawn at a display width, not their real diameter.** A 2200 mm² solid bar is 53 mm across; drawn to scale on a 24 m span it is under a pixel. The value is constant across a bar's width and along its length, because that is what the model says: one force, along the whole thing.",
+        "The **Deflected shape** layer draws where every joint actually went, magnified — a bridge that sags 12 mm over 24 m is, to scale, a straight line — and the magnification is printed with it. The **Worst member** layer marks the bar the mission is decided by."
+      ]
+    },
+    {
+      "id": "metrics",
+      "heading": "The numbers that answer it",
+      "body": [
+        "**Utilisation η** is the answer: the busiest bar's force over what that bar may carry. It is a maximum over the lattice rather than an average, because a structure fails where it is worst and nowhere else.",
+        "**Deflection over span δ/L** is the serviceability answer, in the form every code states it in — which is what makes a 24 m truss and a 40 m one comparable at all.",
+        "**Mass** is the budget. **Carried per kilogram** is the figure of merit that goes with it: the imposed load divided by the steel used, and the number that improves when a lattice gets cleverer rather than heavier. Self-weight is deliberately not in the numerator — a bridge is not paid to carry itself.",
+        "**Buckling margin** is Euler's critical load over the force actually carried, for the worst member in compression. It is absent, rather than large, when nothing is in compression: that is a statement about the lattice, not a missing number."
+      ]
+    },
+    {
+      "id": "verification",
+      "heading": "How it is checked",
+      "body": [
+        "Four residuals on every run, and they are independent of each other rather than four views of one calculation.",
+        "**The method of joints** re-derives the equilibrium at every free joint from the member forces and the geometry alone — no stiffness matrix and no displacements — so it is a genuinely separate statement that the answer stands up. **Force balance** and **moment balance** close the whole structure against the outside world, and the moment one catches what the force one cannot: a reaction of the right size in the wrong place.",
+        "**Energy two ways** reaches the same scalar by two routes that share no arithmetic — a sum over bars of N²L/2EA, and a sum over joints of ½ f·u. They are equal for a linear structure, and their difference is a check on the assembly rather than a restatement of the solve.",
+        "All four are at machine precision here, and they are supposed to be: this method does not approximate a continuum, so a residual of 10⁻³ would not be a coarse mesh, it would be a bug."
+      ]
+    },
+    {
+      "id": "limits",
+      "heading": "What this model cannot tell you",
+      "caution": true,
+      "body": [
+        "**Pinned joints.** Real joints are gusseted and welded, and they carry moment: a real truss is stiffer than this one, and its chords carry bending this model has no way to report. For a fully triangulated lattice the axial forces are within a few per cent, which is why the model is worth using at all; for one that is not triangulated, the joints are the only thing holding it up and this model refuses it rather than reporting it.",
+        "**Small displacements.** Equilibrium is written on the undeformed lattice, so the answer belongs to a bridge that has not moved. Past about a hundredth of the span, the geometry carrying the load is no longer the geometry it was computed on, and the page says so on the run.",
+        "**Euler buckling of a perfect solid bar.** Real members are imperfect and eccentrically loaded, and they go below the Euler load rather than at it; a design code handles this with a buckling curve, not a formula. The section shape is also fixed here at the conservative end — a tube of the same area buckles at a far higher load — and it is fixed rather than offered so that a compression member cannot be made safe by asserting a better section.",
+        "**One load case, applied slowly.** No dynamics, no fatigue, no moving load, no wind that changes with time, no temperature. A lorry crossing is modelled by asking the question again with the load somewhere else — which the Load tool makes cheap, and which is a genuinely useful thing to do.",
+        "**Two dimensions, one truss.** A real bridge is two trusses with a deck between them, braced against each other; the out-of-plane behaviour is not in this model, and the side load on this page is carried in the plane rather than by the bracing that would really take it."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The bridge — Spoon Physics</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A structures exercise: build a truss across a gorge, load it at the joints or along the deck, and carry the traffic within a mass budget without buckling a member — with computed forces, engineering metrics and a verification residual on every run.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/shared/lab.css">
+<!-- Two packages, not three. This experiment's geometry is a *network* — joints and bars —
+     and `<fs-geometry-2d>` edits a `domain2d` outline, which is a different kind of thing
+     with different physics behind it. The lattice editor is the page's own SVG, layered in
+     the workspace exactly where the airfoil layers the widget, and it is hidden outside Build
+     mode for the same reason: a drag must never be both a pan and a reshaping. See
+     docs/architecture-decisions.md, ADR-009 and ADR-019. -->
+<script type="importmap">
+{
+  "imports": {
+    "@fenix-spoon/client": "/vendor/fenix-spoon/client/index.js",
+    "@fenix-spoon/viewer": "/vendor/fenix-spoon/viewer/index.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="header"></div>
+
+<!-- The page is one path, in this order: mission, configure, run, explore, check, keep,
+     understand. Every section below is one of those steps — the arrangement
+     docs/architecture-decisions.md ADR-017 sets out. -->
+<main class="bench">
+
+  <!-- ------------------------------------------------------------------ 1. Mission -->
+  <header class="mission" id="mission">
+    <div class="mission__head">
+      <p class="mission__eyebrow">Exercise 4 · statics of a pin-jointed lattice</p>
+      <h1>The bridge</h1>
+    </div>
+    <div class="mission__challenge panel panel--mission" aria-labelledby="challenge-heading">
+      <h2 id="challenge-heading" class="panel__title">The mission</h2>
+      <div id="challenge"></div>
+    </div>
+  </header>
+
+  <p id="widgets-missing" class="notice notice--warn" hidden>
+    The browser widgets have not been built. Run
+    <code>./scripts/fetch-widgets.sh</code> and reload the page.
+  </p>
+  <p id="maintenance" class="notice notice--warn" hidden></p>
+
+  <!-- ------------------------------------------- 2. Configure · 3. Run · 4. Explore -->
+  <div class="bench__layout">
+
+    <!-- The workspace is the instrument: it takes most of the width, it owns its own tools,
+         and every tool it cannot offer says why rather than disappearing. -->
+    <section class="workspace" id="workspace" aria-labelledby="workspace-heading">
+      <h2 id="workspace-heading" class="visually-hidden">Workspace</h2>
+
+      <div class="workspace__toolbar" role="toolbar" aria-label="Visualisation tools"></div>
+
+      <!-- The build tools, next to the mode buttons that switch them on rather than under the
+           stage: they act on what is *in* the workspace, and they are disabled with a reason
+           outside Build mode by the same rule every other tool on this page follows. -->
+      <div class="builder__tools" id="build-tools" role="toolbar" aria-label="Build tools"></div>
+
+      <!-- The frame is fixed and the stage scrolls inside it, so the colour scale stays put
+           while the field is panned. -->
+      <div class="workspace__frame">
+        <div class="workspace__stage" id="stage" aria-label="The lattice and what it carries. Drag to pan, plus and minus to zoom.">
+          <div class="workspace__zoom">
+            <fs-viewer id="viewer" field="utilisation" colormap="plasma" colorbar="off"></fs-viewer>
+            <!-- Annotations in domain coordinates, drawn by the page over the field. Aligned
+                 exactly because the viewer's colorbar is off, so its plot area is this box. -->
+            <svg class="workspace__overlay" id="overlay" preserveAspectRatio="none" aria-hidden="true"></svg>
+            <!-- The lattice editor. A plain element rather than a widget, and hidden outside
+                 Build mode: `workspace.js` takes whatever is handed to it as `editor`, hides
+                 it in every other mode and reads `bounds` off it, which is what keeps the
+                 annotation layer aligned before the first solve. -->
+            <div class="builder" id="editor" hidden>
+              <svg class="builder__stage" id="builder" preserveAspectRatio="none"
+                   role="application" tabindex="0"
+                   aria-label="Bridge builder. Add joints and bars, place supports and loads.">
+                <g id="builder-site"></g>
+                <g id="builder-lattice"></g>
+                <g id="builder-marks"></g>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="workspace__scale" id="scale" aria-hidden="true"></div>
+      </div>
+
+      <div class="workspace__readout" id="readout" hidden></div>
+      <p class="field__hint" id="build-hint"></p>
+
+      <div class="workspace__field">
+        <label class="workspace__fieldpick" for="field">
+          <span>Field</span>
+          <select id="field" aria-label="Field shown"></select>
+        </label>
+        <p class="field__hint" id="field-hint"></p>
+      </div>
+    </section>
+
+    <!-- 2. Configure. Design is the lattice and the section it is built from; Conditions is
+         what the bridge is asked to carry. Together they are the contract's §5. -->
+    <form class="controls" id="controls" aria-labelledby="controls-heading" onsubmit="return false">
+      <h2 id="controls-heading" class="panel__title">Configure</h2>
+
+      <section class="group" aria-labelledby="design-heading">
+        <h3 id="design-heading">Design</h3>
+        <p class="field__hint">
+          Press <strong>Build</strong> above the site to lay out the lattice: add joints, join
+          them with bars, and put supports where the ground can take a reaction.
+        </p>
+        <div class="button-row">
+          <label class="workspace__fieldpick" for="preset">
+            <span>Start from</span>
+            <select id="preset" aria-label="Starting lattice"></select>
+          </label>
+        </div>
+        <div class="button-row">
+          <button id="undo" type="button" disabled>Undo</button>
+          <button id="reset" type="button">Reset lattice</button>
+        </div>
+        <div id="design-params"></div>
+        <p class="field__hint" id="lattice-note"></p>
+      </section>
+
+      <section class="group" aria-labelledby="conditions-heading">
+        <h3 id="conditions-heading">Conditions</h3>
+        <div id="load-controls"></div>
+        <div id="condition-params"></div>
+        <button type="button" class="disclose" id="derived-toggle" aria-expanded="false" aria-controls="derived-wrap">
+          What follows from these
+        </button>
+        <div id="derived-wrap" hidden>
+          <dl class="stats stats--derived" id="derived"></dl>
+        </div>
+      </section>
+
+      <!-- Closed on arrival, and shorter here than on any other page in the lab. That is the
+           physics rather than an omission, and the note inside says so. -->
+      <details class="group group--advanced" id="advanced">
+        <summary><span>Advanced</span><span class="group__note">presentation</span></summary>
+        <div class="group__body">
+          <p class="field__hint">
+            There is no mesh size here, no tolerance and no iteration count, so there is no
+            convergence study either. A pin-jointed lattice <em>is</em> its own discretisation:
+            one element per bar, solved once. The only setting left is how wide the bars are
+            drawn.
+          </p>
+          <div id="numerical"></div>
+          <p class="field__hint" id="solver-hint"></p>
+          <select id="solver" aria-label="Solver" hidden></select>
+        </div>
+      </details>
+    </form>
+  </div>
+
+  <!-- 3. Run. One bar, always reachable, carrying every action that changes state. -->
+  <div class="actionbar" id="actionbar">
+    <div class="actionbar__status">
+      <span class="status-dot" id="dot" data-state="idle"></span>
+      <span id="status" role="status">Checking what this server can do…</span>
+      <progress id="progress" value="0" max="1" hidden></progress>
+    </div>
+    <div class="actionbar__actions">
+      <button id="run" class="primary" type="button" disabled>Run</button>
+      <button id="cancel" type="button" hidden>Cancel</button>
+      <button id="keep" type="button" disabled>Keep result</button>
+      <button id="compare-jump" type="button" hidden>Compare</button>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------------ 5. Check. Hidden until run. -->
+  <div class="results" id="results" hidden>
+
+    <section class="panel panel--answer" aria-labelledby="answer-heading">
+      <h2 id="answer-heading" class="panel__title">The answer</h2>
+      <div class="kpis" id="kpis"></div>
+      <details class="subpanel">
+        <summary>Every reported quantity</summary>
+        <div id="metrics"></div>
+      </details>
+      <p class="field__hint">
+        No bending moment and no joint stress: every joint here is a frictionless pin, so a bar
+        carries force along itself and nothing else. A real gusset carries some moment, which
+        stiffens the truss and puts bending into the chords — a different model, and not this
+        one.
+      </p>
+    </section>
+
+    <section class="panel" aria-labelledby="trust-heading">
+      <h2 id="trust-heading" class="panel__title">How far to trust it</h2>
+      <div id="verification"></div>
+      <div id="validity"></div>
+      <details class="subpanel">
+        <summary>What the solve cost</summary>
+        <dl class="stats" id="stats"></dl>
+        <p class="artifacts" id="artifacts"></p>
+      </details>
+    </section>
+
+    <section class="panel panel--wide" aria-labelledby="members-heading">
+      <h2 id="members-heading" class="panel__title">Member by member</h2>
+      <div class="sweep-layout">
+        <div id="force-curve" class="plot"></div>
+        <div id="member-table" class="table-scroll"></div>
+      </div>
+      <p class="field__hint" id="members-note"></p>
+    </section>
+
+  </div>
+
+  <!-- ------------------------------------------------------------ 6. Keep and compare -->
+  <section class="panel panel--runs" id="runs-panel" aria-labelledby="runs-heading">
+    <h2 id="runs-heading" class="panel__title">Kept runs</h2>
+    <p class="field__hint" id="runs-note"></p>
+    <div id="runs-table" class="table-scroll"></div>
+    <div class="button-row">
+      <button id="export-csv" type="button" disabled>Export CSV</button>
+      <button id="export-json" type="button" disabled>Export JSON</button>
+      <button id="clear-runs" type="button" disabled>Delete all</button>
+    </div>
+    <div id="compare" class="table-scroll"></div>
+  </section>
+
+  <!-- ------------------------------------------------------- 7. Understand the model -->
+  <section class="lesson" aria-labelledby="lesson-heading">
+    <h2 id="lesson-heading" class="panel__title">Understand the model</h2>
+    <p class="field__hint">
+      Everything the exercise rests on, in the order it matters. Nothing here has been
+      shortened — it has been moved out of the way of the experiment.
+    </p>
+    <div class="lesson__blocks" id="lesson"></div>
+  </section>
+
+  <p class="disclaimer">
+    <strong>Note.</strong>
+    The simulations are demonstrative and educational. They are not a substitute for
+    professional engineering verification.
+  </p>
+
+</main>
+
+<div id="footer"></div>
+
+<script type="module" src="/experiments/truss/app.js"></script>
+<script type="module">
+// If the widget bundles are missing, the module above throws on its first bare import and
+// the page would just sit there. Custom elements upgrade synchronously once defined, so
+// one microtask is enough to tell the difference.
+queueMicrotask(() => {
+  if (!customElements.get('fs-viewer')) {
+    document.getElementById('widgets-missing').hidden = false;
+  }
+});
+</script>
+
+</body>
+</html>

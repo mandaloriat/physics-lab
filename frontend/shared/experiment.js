@@ -280,10 +280,15 @@ export function buildShapeControls(container, controls, state, onChange) {
  *
  * Returns `null` when the solve failed or was cancelled; the status line already says which.
  *
+ * `conditions` is an inline load case (protocol 1.9): boundary name to the scalars in force
+ * there. Passed straight through and **omitted when empty**, which is not tidiness — a
+ * capability that declares no condition keys refuses a load case rather than ignoring one, so
+ * sending `{}` from a page that has none would turn every solve into a 422.
+ *
  * @param {{dom: object, solver: string, geometry: object, params: object,
- *   onJob?: (job: object) => void}} request
+ *   conditions?: object, onJob?: (job: object) => void}} request
  */
-export async function runSolve({ dom, solver, geometry, params, onJob }) {
+export async function runSolve({ dom, solver, geometry, params, conditions, onJob }) {
   const setStatus = (text, state) => setStatusOn(dom, text, state);
 
   dom.run.disabled = true;
@@ -293,7 +298,12 @@ export async function runSolve({ dom, solver, geometry, params, onJob }) {
   setStatus('Submitting…', 'running');
 
   try {
-    const job = await client.submit({ solver, geometry, params });
+    const job = await client.submit({
+      solver,
+      geometry,
+      params,
+      ...(conditions && Object.keys(conditions).length ? { conditions } : {}),
+    });
     onJob?.(job);
 
     const result = await job.wait((event) => {

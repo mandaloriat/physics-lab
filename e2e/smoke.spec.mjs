@@ -35,13 +35,12 @@ test('the homepage leads with the problems, and shows a real field for each', as
   // The educational disclaimer is a requirement, not decoration.
   await expect(page.locator('.disclaimer')).toContainText('not a substitute for');
 
-  // Both available experiments are reachable from the homepage.
-  await expect(
-    page.locator('.card--available a[href="/experiments/airfoil/"]').first(),
-  ).toBeVisible();
-  await expect(
-    page.locator('.card--available a[href="/experiments/solenoid/"]').first(),
-  ).toBeVisible();
+  // Every available experiment is reachable from the homepage.
+  for (const experiment of ['airfoil', 'solenoid', 'truss']) {
+    await expect(
+      page.locator(`.card--available a[href="/experiments/${experiment}/"]`).first(),
+    ).toBeVisible();
+  }
   // What is still planned must read as planned, not as a broken link.
   await expect(page.locator('.card--planned')).toHaveCount(1);
   await expect(page.locator('.card--planned a')).toHaveCount(0);
@@ -49,8 +48,10 @@ test('the homepage leads with the problems, and shows a real field for each', as
   // Every card carries a stated quantity and a concrete invitation, not a paragraph of prose.
   await expect(page.locator('.card--available .card__facts').first()).toContainText('800 N/m');
   await expect(page.locator('.card--available .card__facts').nth(1)).toContainText('4.5 mWb/m');
+  await expect(page.locator('.card--available .card__facts').nth(2)).toContainText('2400 kg');
   await expect(page.getByRole('link', { name: /Design an airfoil/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /Design a magnetic circuit/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Build a bridge/ })).toBeVisible();
 
   // The thumbnails are real solves committed by scripts/make-thumbnails.py, so they must
   // actually load — a broken one is a card that says nothing at all.
@@ -60,7 +61,7 @@ test('the homepage leads with the problems, and shows a real field for each', as
       loaded: img.complete && img.naturalWidth > 0,
     })),
   );
-  expect(shots.length).toBe(3);
+  expect(shots.length).toBe(4);
   for (const shot of shots) {
     expect(shot.src).toMatch(/^\/assets\/thumbnails\//);
     expect(shot.loaded).toBe(true);
@@ -153,7 +154,21 @@ test('a server without FEniCSx is fully usable and says so', async ({ page }) =>
   await expect(page.locator('#run')).toBeEnabled();
 });
 
-for (const experiment of ['airfoil', 'solenoid']) {
+/**
+ * Every experiment page, and the control each one offers that needs no server.
+ *
+ * The selector differs because the pages differ, and that is the point of listing it rather
+ * than looking for one class on all three: the airfoil and the magnetics page configure a
+ * shape with sliders, and the bridge configures a *lattice*, whose only slider-shaped inputs
+ * are the loads it is asked to carry.
+ */
+const OFFLINE_CONTROL = {
+  airfoil: '#shape-controls input',
+  solenoid: '#shape-controls input',
+  truss: '#load-controls input',
+};
+
+for (const [experiment, control] of Object.entries(OFFLINE_CONTROL)) {
   test(`the ${experiment} page shows a banner instead of a Run button in maintenance`, async ({
     page,
   }) => {
@@ -176,7 +191,7 @@ for (const experiment of ['airfoil', 'solenoid']) {
     // Everything that does not need the server still works: the problem, the geometry, the
     // didactics, and any runs already kept.
     await expect(page.locator('.lesson__block').first()).toBeVisible();
-    await expect(page.locator('#shape-controls input').first()).toBeEnabled();
+    await expect(page.locator(control).first()).toBeEnabled();
   });
 }
 
@@ -550,7 +565,7 @@ test('no slider combination can build a geometry the protocol would refuse', asy
   }
 });
 
-for (const experiment of ['airfoil', 'solenoid']) {
+for (const experiment of ['airfoil', 'solenoid', 'truss']) {
   test(`the ${experiment} page offers no Run button until it knows it can solve`, async ({
     page,
   }) => {

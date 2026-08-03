@@ -15,7 +15,7 @@ FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
 
 #: Every experiment's directory. A page added here without its assets being reachable is the
 #: failure this module exists to catch.
-EXPERIMENTS = ["airfoil", "solenoid"]
+EXPERIMENTS = ["airfoil", "solenoid", "truss"]
 
 PAGES = ["/", *(f"/experiments/{name}/" for name in EXPERIMENTS)]
 
@@ -115,7 +115,7 @@ def test_the_homepage_shows_a_real_field_for_every_experiment(client):
     """
     body = client.get("/").text
     sources = re.findall(r'src="(/assets/thumbnails/[^"]+)"', body)
-    assert len(sources) == 3, "each experiment card needs its own field thumbnail"
+    assert len(sources) == 4, "each experiment card needs its own field thumbnail"
     for source in sources:
         response = client.get(source)
         assert response.status_code == 200, f"{source} is on the homepage but not served"
@@ -124,6 +124,7 @@ def test_the_homepage_shows_a_real_field_for_every_experiment(client):
     # And a concrete invitation rather than "open the experiment".
     assert "Design an airfoil" in body
     assert "Design a magnetic circuit" in body
+    assert "Build a bridge" in body
 
 
 def test_the_solenoid_page_renders_the_field_and_draws_its_own_cross_section(client):
@@ -278,3 +279,44 @@ def test_no_hardcoded_host_in_the_front_end():
         for match in re.finditer(r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)[:/\w.-]*", text):
             offenders.append(f"{path.relative_to(FRONTEND)}: {match.group(0)}")
     assert not offenders, "hardcoded local URLs in the front-end: " + ", ".join(offenders)
+
+
+#: Which capability answers each exercise's mission.
+#:
+#: Written here rather than derived, because deriving it would mean parsing the page's
+#: JavaScript to check the page — and a test that reads its subject's source to decide what to
+#: assert can only ever agree with it.
+MISSION_SOLVER = {
+    "airfoil": "lab.airfoil_panel2d",
+    "solenoid": "lab.magnetics2d",
+    "truss": "lab.truss2d",
+}
+
+
+@pytest.mark.parametrize("name", EXPERIMENTS)
+def test_every_challenge_target_names_a_metric_its_solver_declares(client, name):
+    """A mission can only be met if the numbers it is set on are numbers that get reported.
+
+    The failure this catches is quiet and permanent: a target naming a metric no solver
+    publishes renders as "this run does not report it" on every run forever, and reads as a
+    page that is merely unlucky. Both halves are declarations — `challenge.targets` in
+    `content.json` and `Solver.metrics` in the adapter — so they can simply be compared, which
+    is cheaper than the browser test that would otherwise find it.
+    """
+    from fenixspoon.solvers.registry import get_solver
+
+    import physics_lab.solvers  # noqa: F401  - registers lab.* by import
+
+    declared = {spec.name for spec in get_solver(MISSION_SOLVER[name]).metrics}
+    challenge = client.get(f"/experiments/{name}/content.json").json()["challenge"]
+
+    targeted = {target["metric"] for target in challenge["targets"]}
+    assert targeted <= declared, f"{name} targets metrics its solver does not declare"
+
+    # The verification gate is the same kind of claim about the same kind of key, and it is not
+    # a metric — it names a residual in the report, so it is checked for presence rather than
+    # against the metric list.
+    required = challenge.get("requires_verified")
+    if required:
+        assert required["metric"].endswith(("_rel", "_residual"))
+        assert required["below"] > 0

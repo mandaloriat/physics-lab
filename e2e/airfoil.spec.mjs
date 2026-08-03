@@ -464,24 +464,40 @@ test('a tool the result cannot support is disabled with a readable reason', asyn
   expect(submissions).toEqual([]);
 });
 
-test('locking the colour scale is refused with the upstream reason, not silently missing', async ({
-  page,
-}) => {
+test('the colour scale can be locked, and says so while it is', async ({ page }) => {
   await ready(page);
   await solve(page);
 
-  // The pinned `<fs-viewer>` computes its range from the data and exposes only a getter, so a
-  // locked scale would put a range on the legend that the canvas does not use. The control is
-  // present and disabled, and its reason names the gap — the day upstream adds a settable
-  // range, `viewerCapabilities` detects it and this assertion is the one that changes.
+  // This test used to assert the opposite. The pinned viewer computed its range from the data
+  // and exposed only a getter, so the tool was present, disabled, and carried the reason —
+  // and `viewerCapabilities` probes for the *property* rather than checking a version, so the
+  // pin bump that added the setter turned the tool on with nothing else changing. This is the
+  // assertion that was always going to be the one that moved.
   const lock = page.locator('[data-tool=lock-scale]');
   await expect(lock).toBeVisible();
-  await expect(lock).toBeDisabled();
-  await expect(lock).toHaveAttribute('title', /colour range|color range/i);
+  await expect(lock).toBeEnabled();
 
-  // What does work is that the scale is drawn at all, with the range the field really has.
   await expect(page.locator('#scale .scale__bar')).toBeVisible();
   await expect(page.locator('#scale .scale__ticks li')).not.toHaveCount(0);
+
+  const floating = await page.locator('#scale .scale__caption').textContent();
+  expect(floating).not.toContain('fixed');
+
+  await lock.click();
+  await expect(lock).toHaveAttribute('aria-pressed', 'true');
+  // A bar whose numbers no longer move with the field must say so, or a run that did not
+  // change is indistinguishable from a scale that did not follow it.
+  await expect(page.locator('#scale .scale__caption')).toContainText('fixed');
+
+  // A second solve at a different incidence is then drawn on the first one's scale, which is
+  // the whole reason to lock it: the two pictures become comparable by eye.
+  const pinned = await page.locator('#scale .scale__ticks li').first().textContent();
+  await setParam(page, 'alpha_deg', 8);
+  await solve(page);
+  await expect(page.locator('#scale .scale__ticks li').first()).toHaveText(pinned);
+
+  await lock.click();
+  await expect(page.locator('#scale .scale__caption')).not.toContainText('fixed');
 });
 
 test('the centre of pressure is drawn on the field, not only tabulated', async ({ page }) => {

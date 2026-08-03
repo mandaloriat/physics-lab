@@ -29,11 +29,17 @@ Everything — pages, experiment content, code and documentation — is in Engli
 
 | Experiment | Physics | Status |
 |---|---|---|
-| **Airfoil design** | Ideal flow with a Kutta condition, by a panel method: hit a lift target under a pitching-moment constraint | **Available** — the first *exercise* |
-| **The magnetic circuit** — *magnetostatics* | Vector potential for an out-of-plane current, on a grid fitted to the iron: carry a required flux on an ampere-turn budget without leaking it | **Available** — the second *exercise* |
+| **Airfoil design** | Ideal flow with a Kutta condition, by a panel method: hit a lift target under a pitching-moment constraint | **Available** — the first page built to the *exercise* contract |
+| **The magnetic circuit** — *magnetostatics* | Vector potential for an out-of-plane current, on a grid fitted to the iron: carry a required flux on an ampere-turn budget without leaking it | **Available** — the second |
+| **The bridge** — *statics* | A pin-jointed lattice by the direct stiffness method: build a truss across a gorge and carry the traffic on a steel budget, without buckling a member | **Available** — the third, and the one you draw |
 | **Heat sink conduction and convection** | Conduction in a finned body with convective surfaces | Planned |
 
-The two experiments deliberately exercise different halves of the protocol. The airfoil
+Each page also numbers *itself* — "Exercise 1", "Exercise 3", "Exercise 4" — and that number is its
+row in [the contract's list of exercises](docs/exercise-contract.md#7-the-exercises), not the order
+the pages were built in. The two differ because the list has rows nobody has built yet: the bridge
+is Exercise 4 there and the third one built here.
+
+The three experiments deliberately exercise different halves of the protocol. The airfoil
 sends `domain2d` — one polygon cut out of a rectangle, edited by dragging control points.
 The magnetic circuit sends `regions2d`, a filled domain whose *material* varies by region, so
 there is no outline to drag and the controls are physical dimensions instead; see
@@ -42,16 +48,27 @@ That difference reaches all the way into the parameter panels: on the magnetics 
 physics travels in the geometry, so *every* solver parameter is numerical and the contract's
 "physical inputs" group is the cross-section itself.
 
+The bridge exercises the half neither of them touches — **named boundaries and load cases**
+(protocol 1.8 and 1.9) — and finds the edge of the geometry schema doing it. A truss is a
+*network*: joints and bars. That is neither of the two geometry kinds and not a near miss
+either, so the site travels as `regions2d` with a name for every place a condition can attach
+to, the lattice travels as a parameter, and what the bridge is asked to carry travels as a
+load case. The gap is recorded as a finding rather than papered over:
+[ADR-019](docs/architecture-decisions.md#adr-019--the-bridge-carries-its-lattice-in-params-because-the-protocol-has-no-network-geometry).
+
 The remaining experiment has its preview solver upstream already; what it needs is the
 didactic work. The homepage lists it as planned rather than pretending otherwise.
 
-Two of the lab's solvers are its own, in `physics_lab/solvers/`, and in both cases the reason
+Three of the lab's solvers are its own, in `physics_lab/solvers/`, and in each case the reason
 was physics a metric needed rather than a wish to demonstrate the adapter contract: upstream's
 potential-flow adapters impose no Kutta condition, so their lift is exactly zero
-([ADR-014](docs/architecture-decisions.md#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first)),
-and upstream's magnetostatics adapter rasterises the iron/air interface onto a uniform grid, so
+([ADR-014](docs/architecture-decisions.md#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first));
+upstream's magnetostatics adapter rasterises the iron/air interface onto a uniform grid, so
 a 20.000 mm core comes out 20.339 mm wide at one resolution and 20.084 mm at another
-([ADR-018](docs/architecture-decisions.md#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force)).
+([ADR-018](docs/architecture-decisions.md#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force));
+and upstream's elasticity adapters solve a *continuum*, which has no members to report a force
+in — a truss is a graph, not a body meshed finely
+([ADR-019](docs/architecture-decisions.md#adr-019--the-bridge-carries-its-lattice-in-params-because-the-protocol-has-no-network-geometry)).
 
 ### Exercises, not demonstrations
 
@@ -77,6 +94,13 @@ engineering metrics, verification, saved result.
   of converging; and there is no gap force, because a symmetric bar core feels exactly zero, so
   the challenge is set in flux instead
   ([ADR-018](docs/architecture-decisions.md#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force)).
+- The third, and the first the visitor *draws*:
+  **[docs/exercises/truss.md](docs/exercises/truss.md)**. Lay out joints and bars across a
+  gorge, put the supports where the ground can take them, and find out which member gives way
+  — almost never the one you expect, because a slender bar buckles at a fraction of the force
+  that would yield it. It is also the exercise that found the edge of the geometry schema: a
+  bar network is neither of the two kinds the protocol has
+  ([ADR-019](docs/architecture-decisions.md#adr-019--the-bridge-carries-its-lattice-in-params-because-the-protocol-has-no-network-geometry)).
 
 ### A page is a bench
 
@@ -138,12 +162,14 @@ subclassed:
 
 ```
 physics_lab/          the app: main.py, settings.py
-  solvers/              the airfoil panel method: panel, geometry, analytic, exercise, adapter
+  solvers/              the airfoil panel method, the magnetics finite volumes and the truss
+                        stiffness method — each as method, exercise and adapter
 frontend/             static site — no build step for the lab's own code
   index.html            homepage
   assets/thumbnails/    one real solve per experiment, made by scripts/make-thumbnails.py
   experiments/airfoil/  the wind-tunnel exercise (index.html, app.js, content.json)
   experiments/solenoid/ the magnetics experiment, same three files
+  experiments/truss/    the bridge exercise, same three files, plus its own lattice editor
   shared/               lab.css, api.js, components.js, experiment.js (the page shell),
                         workspace.js (the field and its tools), exercise.js, curve.js,
                         runs.js, atmosphere.js (the exercise contract)
@@ -195,7 +221,7 @@ The FEniCSx solvers register only where dolfinx imports, which means the full im
 docker compose \
   --env-file .env \
   -f compose.yaml -f compose.override.yaml \
-  build --build-arg FENIX_SPOON_IMAGE=ghcr.io/mandaloriat/fenix-spoon:sha-988ad64
+  build --build-arg FENIX_SPOON_IMAGE=ghcr.io/mandaloriat/fenix-spoon:sha-4e7c296
 docker compose up -d
 ```
 
@@ -400,9 +426,9 @@ pytest && npx playwright test
 
 | What | Value |
 |---|---|
-| Fenix Spoon commit | `988ad64b8cd25f94e52b985bf2d2456230a9eed3` |
-| FEniCSx base image | `ghcr.io/mandaloriat/fenix-spoon:sha-988ad64` — digest `sha256:9066f98076339d58f62d20da68ea917139d0430b364f598de6df92b7811eb6f0` |
-| Mock-only base image | `ghcr.io/mandaloriat/fenix-spoon:sha-988ad64-slim` — digest `sha256:99230d7e91929bc3179a2da6895843e157708b16c0fe80ef17f7e442880e65fd` |
+| Fenix Spoon commit | `4e7c296a7d351575194e25a1d4ebc1c703a6e08f` |
+| FEniCSx base image | `ghcr.io/mandaloriat/fenix-spoon:sha-4e7c296` — digest `sha256:08213ca65c5249d792837cbca82d5e0d6ba1fec2a036afec0192fddf2f7bedeb` |
+| Mock-only base image | `ghcr.io/mandaloriat/fenix-spoon:sha-4e7c296-slim` — digest `sha256:8189808c5797c61596d79a89f01857128ed2fa2b7b5d3ab141acaf36a37d5208` |
 | dolfinx | v0.11.0 |
 
 Upstream has published **no release and no git tag**, so a commit SHA is the strongest pin

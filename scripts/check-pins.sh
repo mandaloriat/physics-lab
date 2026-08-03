@@ -28,7 +28,7 @@ good() { echo "  ok: $1"; }
 
 # --- the full SHA, wherever it appears
 for file in Dockerfile scripts/fetch-widgets.sh physics_lab/settings.py compose.yaml \
-            compose.production.yaml .env.example; do
+            compose.production.yaml compose.host-caddy.yaml .env.example; do
   [ -f "$file" ] || continue
   # Word-bounded, so a 64-character image digest is not mistaken for a commit: no
   # 40-character window inside one has a word boundary at both ends.
@@ -43,7 +43,15 @@ for file in Dockerfile scripts/fetch-widgets.sh physics_lab/settings.py compose.
 done
 
 # --- the image tags, which encode the short SHA
-for file in Dockerfile compose.yaml compose.override.yaml compose.production.yaml .env.example; do
+#
+# `.github/workflows/ci.yml` is in this list and not in the one above, and the distinction is
+# the point: it names an image tag and no commit, so requiring a 40-character SHA of it would
+# fail every run. It was left out of both lists until a bump updated seven files and not it,
+# and CI built the new widgets onto the old runtime — the exact failure this script exists to
+# make loud, missed because the file was not read. `compose.host-caddy.yaml` was in the same
+# position and is now in both.
+for file in Dockerfile compose.yaml compose.override.yaml compose.production.yaml \
+            compose.host-caddy.yaml .github/workflows/ci.yml .env.example; do
   [ -f "$file" ] || continue
   tags=$(grep -oE 'ghcr\.io/mandaloriat/fenix-spoon:[A-Za-z0-9._-]+' "$file" | sort -u || true)
   [ -z "$tags" ] && continue

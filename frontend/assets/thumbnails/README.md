@@ -8,4 +8,4 @@ out of the vendored viewer. Do not edit them by hand — re-run the script:
 ./scripts/make-thumbnails.py
 ```
 
-Present: `airfoil.png`, `solenoid.png`, `heatsink.png`.
+Present: `airfoil.png`, `solenoid.png`, `truss.png`, `heatsink.png`.
