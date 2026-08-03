@@ -37,7 +37,7 @@ def test_homepage_names_the_experiments_and_carries_the_disclaimer(client):
     # without a way in has not shipped.
     for name in EXPERIMENTS:
         assert f"/experiments/{name}/" in body
-    assert "Magnetics lab" in body
+    assert "The magnetic circuit" in body
     # What is still planned is listed honestly rather than linked to nothing.
     assert "In preparation" in body
     assert "Heat sink" in body
@@ -123,7 +123,7 @@ def test_the_homepage_shows_a_real_field_for_every_experiment(client):
 
     # And a concrete invitation rather than "open the experiment".
     assert "Design an airfoil" in body
-    assert "Build an electromagnet" in body
+    assert "Design a magnetic circuit" in body
 
 
 def test_the_solenoid_page_renders_the_field_and_draws_its_own_cross_section(client):

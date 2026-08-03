@@ -1,105 +1,197 @@
-# Exercise 3 — Electromagnet gap (specification in progress)
+# Exercise 3 — The magnetic circuit
 
-**Status:** *not built.* The page at `frontend/experiments/solenoid/` is a **demonstration** and
-says so on itself. It has the exercise shell — workspace, toolbar, progressive controls, folded
-didactics — and none of the exercise, because an exercise needs metrics and this document is
-where the metrics have to be settled first.
-**Implements (eventually):** [the exercise contract](../exercise-contract.md).
-**Contract row:** *Electromagnet gap*, [§7](../exercise-contract.md#7-the-five-exercises).
-
----
-
-## 0. Why this page is not an exercise yet
-
-The contract's §1 is explicit: a section that does not apply is **absent**, not invented. An
-exercise is a quantitative target under constraints, and a target has to be set in a metric.
-The magnetics page currently reports the field and what the solve cost, and that is everything
-it can stand behind.
-
-It would be easy, and wrong, to ship a target now. Every candidate metric below has a
-definition that is unambiguous in three dimensions and *needs a decision* in a
-two-dimensional slice, and a page that printed "core flux 3.2 mWb" without having made that
-decision would be inventing a number the model does not produce. The airfoil exercise refused
-to print a lift coefficient until the model had a Kutta condition
-([ADR-014](../architecture-decisions.md#adr-014--the-airfoil-exercise-ships-ideal-flow-with-a-kutta-condition-first));
-this is the same refusal.
-
-What the redesign did instead: brought the page into the same shell, marked the extension
-points, and wrote this down.
+**Status:** *built.* `lab.magnetics2d` computes and checks every metric this document's §1
+asked for, and the page at `frontend/experiments/solenoid/` is an exercise: a challenge with
+three targets, headline tiles, a metrics table, five verification residuals, per-run validity,
+the mid-plane curves, the measurement surfaces as annotation layers, and a run table. §6 lists
+what is left, which is the C-core and the force that needs it.
+**Implements:** [the exercise contract](../exercise-contract.md).
+**Contract row:** *Electromagnet gap*, [§7](../exercise-contract.md#7-the-five-exercises) —
+and see §5 below, which is why that row's challenge has changed.
+**Decision record:** [ADR-018](../architecture-decisions.md#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force).
 
 ---
 
-## 1. The metrics an exercise here would need
+## 0. What changed, and why this document was rewritten
 
-Each row states the quantity, the definition that would have to be verified, and what makes it
-non-obvious in 2-D. **None of these is implemented, and none should be until its row is
-resolved.**
+The previous version of this file was a refusal. It said that every metric a magnetic design
+is judged on has a definition that is unambiguous in three dimensions and *needs a decision*
+in a two-dimensional slice, that none had been made, and that a page printing "core flux
+3.2 mWb" without having made them would be inventing a number the model does not produce.
 
-| Metric | Symbol | Unit | Definition to verify | What is not yet settled |
+That was the right call and it has now been discharged: the decisions are made, they are
+below with the measurements behind them, and a solver computes them. One of them came out the
+opposite way from what §1 predicted, which is recorded here rather than quietly corrected —
+it is the most useful thing in the document.
+
+---
+
+## 1. The metrics, as settled
+
+Each row states what is reported, the definition that was verified, and what the decision
+turned on. Every one is in `report.json` on every run.
+
+| Metric | Symbol | Unit | Definition | What was decided |
 |---|---|---|---|---|
-| Core flux | Φ′ | Wb/m | ∫ **B**·**n** d*s* across the core's mid-plane, per unit depth | The 2-D solve is per unit depth, so this is a flux *per metre*, not a flux. With *A<sub>z</sub>* = 0 on the outer boundary, Φ′ between two points equals *A<sub>z</sub>*(1) − *A<sub>z</sub>*(2) exactly — which is a clean definition and needs checking against a direct integration of **B** on the discrete field. |
-| Mean flux density in the core | *B̄* | T | Φ′ divided by the core's width | Trivial once Φ′ is settled, and only meaningful if the flux is confined to the core, which is exactly what the exercise would be about. |
-| Peak flux density | *B*<sub>max</sub> | T | max \|**B**\| over the iron | Already computed upstream as the declared metric `b_max` — but over the **whole domain**, including the winding corners, where the mock solver's staircased regions produce a grid artefact rather than a physical peak. Restricting it to the core, and showing that the restricted value converges, is the work. |
-| Leakage ratio | — | 1 | 1 − (flux through the core mid-plane) / (flux through the winding's own aperture) | Needs a stated pair of surfaces. Two reasonable choices differ by ~10 % on the default geometry, so the definition must be fixed *and drawn on the diagram* before a number is shown. |
-| Ampere-turns | *NI*′ | A | ∫ *J<sub>z</sub>* d*A* over one winding | The one metric that is already exact and needs no solve at all — the page computes it in the browser today for its own caption. It becomes a *reported* metric the moment the others do, not before, because a metrics table with one entry teaches that the rest are unavailable rather than unbuilt. |
-| Stored magnetic energy | *W*′ | J/m | ½ ∫ **B**·**H** d*A* over the domain | Depends on the truncation: *A<sub>z</sub>* = 0 at the boundary confines the field, so the integral is over the *window* and not over space. It converges as the window grows, and the exercise would have to report that convergence rather than a single number. This is the one that most needs a study, and it is the one a gap-force exercise ultimately rests on. |
-| Gap force | *F*′ | N/m | −∂*W*′/∂*g* at constant current | Requires two solves at neighbouring gaps, i.e. the study object the contract's §5 describes and upstream's [#48](https://github.com/mandaloriat/fenix-spoon/issues/48) provides. The contract's §7 row for this exercise is *"produce a required gap force at minimum current"*, so this is the metric the challenge would be set in — and it is the furthest from being available. |
+| Core flux | Φ′ | Wb/m | The drop in *A<sub>z</sub>* across the core's mid-plane, taken between the core's own two faces | Per unit *depth*, because a 2-D slice has no length. Computed twice — once from the potential, once by integrating the reconstructed **B** along the same surface — and the gap is a reported residual. |
+| Mean flux density | *B̄* | T | Φ′ divided by the core's width | Trivial once Φ′ is settled, and it is the number a magnetic circuit is sized against. |
+| Worst section | *B*<sub>sec</sub> | T | Flux density averaged across a section of the core, maximised over every section along it | **The saturation number**, and not a peak. See §2 — this is the row where the specification was wrong. |
+| Leakage ratio | — | 1 | 1 − Φ′<sub>core</sub> / Φ′<sub>bundle</sub>, where the bundle runs between the two points on the mid-plane at which *B<sub>y</sub>* changes sign | §3. Neither of the two candidate surfaces the old version weighed; a third that is stationary in its own placement. |
+| Ampere-turns | *NI*′ | A | ∫ *J<sub>z</sub>* d*A* over the positive winding | Exact, and needs no solve — as the old version said. It is reported now because the rest are. |
+| Stored energy | *W*′ | J/m | ½ ∫ **B**·**H** d*A* over the window | Reported *with* the share of itself that lies against the outer boundary, which is the number that says whether the window is big enough for it (§4). |
+| Permeance | Φ′/*NI*′ | H/m | Core flux per ampere-turn | The magnetic circuit's own figure of merit: multiply by turns squared and by depth to get an inductance. |
+| Peak flux density | — | T | — | **Withheld.** §2. |
+| Gap force | — | N/m | — | **Withheld.** §5. |
 
-### The verification each would need
+## 2. The peak that does not converge
 
-Per [the contract §3](../exercise-contract.md#3-verification-is-a-number), an exercise ships at
-least one check reported as a number. The two available here:
+The old §1 said this about the peak flux density: it is *"already computed upstream as the
+declared metric `b_max` — but over the whole domain, including the winding corners, where the
+mock solver's staircased regions produce a grid artefact rather than a physical peak.
+Restricting it to the core, and showing that the restricted value converges, is the work."*
 
-- **Magnetic-circuit estimate.** ℛ = Σ *l*/(*μA*) around the core-and-air loop gives Φ′ in
-  closed form for a long, thin, high-permeability core. Report the relative difference. It is a
-  *band* rather than an equality — the estimate ignores fringing entirely — and the tolerance
-  has to be stated asymmetrically, the way the airfoil's thin-airfoil comparison is
-  ([airfoil.md §8.3](airfoil.md)).
-- **Energy balance.** ½∫**B**·**H** d*A* computed from the field against ½∫**A**·**J** d*A*
-  computed from the sources. The two are equal for a linear medium and share the solution but
-  not the arithmetic, which is the same structure as the airfoil's circulation-versus-pressure
-  check and the reason that one is the headline residual there.
+The restriction was made and the value does not converge. On a grid fitted to the interfaces,
+with no staircase anywhere, the peak inside the iron reads:
 
-### The validity warnings it would need
+| Cell size | Peak in the iron | Worst section |
+|---|---|---|
+| *h* | 0.148 T | 0.12852 T |
+| *h*/2 | 0.185 T | 0.12831 T |
+| *h*/4 | 0.230 T | 0.12821 T |
+| *h*/8 | 0.290 T | 0.12818 T |
 
-- **Saturation.** Above roughly 1.5 T for common steels a linear μᵣ stops describing iron. The
-  page says this in prose today; an exercise has to say it *per run*, naming the threshold and
-  the consequence, and must block the challenge when it fires.
-- **Window truncation.** *A<sub>z</sub>* = 0 confines the flux. If a stated fraction of the
-  energy lies near the boundary, the window is too small for the number being reported.
-- **Non-linearity of the source.** Doubling the current density doubles every field exactly;
-  that is a property of the model and not of iron, and an exercise that asks for a force at a
-  given current has to say so where the current is set.
+The peak climbs by a steady factor of about 1.25 per halving of the cell. That is not a
+discretisation error being resolved away; it is a corner singularity of the *exact* solution,
+and a finer mesh simply gets closer to it. The staircase was never the reason.
 
----
+Nor can restricting the search to the iron help, and the reason is the reverse of what the
+specification assumed. Tangential **H** is continuous across the iron's surface, so **B** just
+inside the corner is *μ*<sub>r</sub> times **B** just outside it: the peak flux density in this
+model is *always* in the iron, whatever the geometry. There is nowhere to move the restriction
+to.
 
-## 2. What already exists, and what the shell is waiting on
+So the pointwise peak is withheld — named in the report's `withheld` list, so its absence is a
+statement — and the saturation warning is read from the worst *section*, which is an integral
+of the field rather than a sample of it. The singularity has no weight in an integral, and the
+section average settles to four figures over the same refinements. It is also the physically
+right question: iron saturates when a whole section of it runs out of flux-carrying capacity,
+not when one corner does.
+
+`test_the_section_average_converges_where_the_pointwise_peak_does_not` asserts both halves,
+deliberately. If the peak ever starts converging, the stated reason for withholding it has
+gone away and the test should fail.
+
+## 3. Where the leakage is measured against
+
+The old §1: *"Needs a stated pair of surfaces. Two reasonable choices differ by ~10 % on the
+default geometry, so the definition must be fixed and drawn on the diagram before a number is
+shown."*
+
+Both were right about the ambiguity and both are avoidable. Walk along the mid-plane and watch
+*A<sub>z</sub>*: it falls while the flux is crossing upward, turns over where *B<sub>y</sub>*
+changes sign, and rises back to zero at the wall. The flux between its maximum and its minimum
+is therefore the entire bundle crossing that plane in one direction, and the surface it is
+measured over ends exactly where the integrand vanishes — so moving the surface changes the
+answer at *second* order, where a surface placed anywhere else changes it at first.
+
+That is why this definition does not have to be defended and the other two do. The number it
+produces is also stable where the quantity it is a share of is not: widening the window from
+60 mm to 480 mm moves the core flux by 27 % and the leakage ratio by 2 % (1.72 % to 1.68 %).
+
+Both ends of the bundle are in the report as `validity.bundle_x`, so the page can draw them on
+the diagram — which the old version asked for and was right to.
+
+## 4. Validity, per run
+
+Every warning names the threshold crossed and the consequence.
+
+- **Saturation.** The worst section past the material's saturation flux density. Read from the
+  core region's own `b_sat` material key when it declares one — a ferrite saturates near 0.4 T
+  and a cobalt-iron near 2.3 T — and 1.5 T otherwise. The protocol's material dict is an open
+  bag of scalars precisely so a solver can read one more key, and a solver that does not know
+  it ignores it.
+- **Window truncation.** The share of the stored energy lying in the outer twentieth of the
+  window, warned above 1 %. Calibrated rather than guessed, on the default cross-section:
+
+  | Half-window | Energy against the wall | Core flux | Cells |
+  |---|---|---|---|
+  | 60 mm | 7.55 % | −2.567 mWb/m | 10 379 |
+  | 90 mm | 4.11 % | −3.055 mWb/m | 11 639 |
+  | 120 mm | 2.53 % | −3.250 mWb/m | 12 519 |
+  | 180 mm | 1.22 % | −3.398 mWb/m | 13 899 |
+  | **240 mm** | **0.72 %** | **−3.452 mWb/m** | **14 859** |
+  | 480 mm | 0.19 % | −3.505 mWb/m | 16 875 |
+
+  At 0.7 % the flux is within 1.5 % of its value in a window twice as large; at 7.6 % it is
+  27 % adrift. The page sizes its window at **eight times the magnet's half-extent** — the
+  bolded row for the default cross-section — which clears the threshold in every configuration
+  the sliders can reach.
+
+  Read the last column too, because it is why this was affordable at all. Widening the window
+  eightfold costs **43 % more cells**, not sixty-four times as many, and that is two decisions
+  in `magnetics.py` rather than good luck: the cell count is set *across the regions* rather
+  than across the window, and the cells grow geometrically out in the air. Without the second,
+  the 240 mm window would be 413 445 cells instead of 14 859 — twice the public server's whole
+  budget for one solve.
+- **A wire rather than a coil.** A net current out of the plane has a field that falls off as
+  1/*r* instead of closing, and the *A<sub>z</sub>* = 0 boundary is then doing the work the far
+  field should.
+- **A region that is not a rectangle.** Still solved; the material boundary is staircased onto
+  the cells rather than falling on them, and any number read near it inherits that.
+- **An unfinished solve.** The linear residual against the tolerance asked for. This is the
+  failure mode a fixed-iteration solver cannot report at all, which is half the reason the
+  exercise has a solver of its own.
+
+## 5. The gap force, and why the challenge changed
+
+The contract's §7 sets this exercise's challenge as *"produce a required gap force at minimum
+current"*. This cross-section cannot pose that problem, and the reason is not numerical: a
+straight bar core between two opposed windings is symmetric, so the net force on it is exactly
+zero. Any number reported for it would be rounding error dressed as an answer.
+
+A gap force needs two things this increment has neither of: a **C-core and an armature**, so
+that there is a working gap to pull across, and — to obtain it by differencing the stored
+energy at neighbouring gaps — the **study object** upstream's
+[#48](https://github.com/mandaloriat/fenix-spoon/issues/48) provides. (Maxwell stress on a
+contour would give the force from a single solve, and it would still give zero here, because
+zero is the right answer for a symmetric body.)
+
+So the challenge this exercise poses is the one this cross-section genuinely does pose, and
+the one a transformer or actuator designer meets first:
+
+> Reach a required flux density in the core using the fewest ampere-turns, without saturating
+> the iron and without letting the leakage take over.
+
+Every metric it needs is computed and verified. The contract's §7 row is revised to match, and
+[ADR-018](../architecture-decisions.md#adr-018--the-magnetics-exercise-gets-its-own-solver-and-its-challenge-is-not-a-gap-force)
+records why rather than letting the table quietly change.
+
+## 6. What remains
 
 | Piece | State |
 |---|---|
-| Geometry, controls, cross-section diagram | built, and unchanged by the redesign |
-| Workspace, toolbar, probe, zoom, export, region overlay | built (shared with the airfoil) |
-| Solver filter by declared `physics` | built — this is what stopped a heat-sink solver appearing in the magnetics menu |
-| `Keep result` button | present and **disabled**, with its reason, in the action bar |
-| Metrics table, verification panel, validity panel, challenge banner | shared code exists (`shared/exercise.js`) and is not wired here |
-| Result panel | reports the cost of the solve only, plus a sentence saying why there is no more |
+| `lab.magnetics2d`: interface-fitted graded grid, metrics, five verification residuals, six validity warnings, `report.json` | **built** — `physics_lab/solvers/magnetics.py`, `solenoid.py`, `magnetics2d.py` |
+| Proof it is right: manufactured solution across a permeability jump, second-order convergence on a uniform *and* a graded grid, Ampère's law, energy balance, linearity, symmetry | **built** — `tests/test_magnetics_method.py`, `tests/test_magnetics_solver.py` |
+| A window sized from the magnet, and a grid that makes it affordable | **built** — §4, and `WINDOW_RATIO` in the page's `app.js` |
+| `content.json` with a `challenge`, and the `METRICS` / `KPIS` / `CHECKS` tables the shared renderers read | **built** — the same data structures the airfoil supplies |
+| The mid-plane curves through `shared/curve.js`; the flux surface, the bundle edges and the Ampère contour as annotation layers | **built** — every reported number has its surface drawable |
+| `Keep result`, the run row, compare and export | **built** — `shared/runs.js`, as the airfoil uses it |
+| Gap force, and the C-core cross-section that would make it meaningful | **not built**, §5 |
+| A study group — none of the metrics needs one, and the page says so rather than leaving an empty panel | **not applicable**, §5 |
 
-The shell is deliberately complete and the physics deliberately absent, so that building the
-exercise is a matter of supplying `content.json` with a `challenge`, a `METRICS` table and a
-`CHECKS` table — the same three data structures the airfoil supplies — plus a solver that
-returns them.
+## 7. Where the numbers come from
 
-## 3. Where the numbers would have to come from
-
-Same answer as the airfoil, and for the same reason: protocol 1.2's envelope has nowhere to put
-a computed metric, so a lab solver returns the field, restricts `stats` to cost, and writes a
-declared `report.json`
+Same answer as the airfoil, and for the same reason: protocol 1.2's envelope has nowhere to
+put a computed metric, so a lab solver returns the field, restricts `stats` to cost, and writes
+a declared `report.json`
 ([contract §6](../exercise-contract.md#6-what-a-solver-has-to-return-on-protocol-12),
 [ADR-015](../architecture-decisions.md#adr-015--the-run-table-lives-in-the-browser-and-fenix-spoon-owns-the-record)).
 
-That has a consequence worth stating: the metrics above cannot be computed in the browser from
-what `mock.magnetostatics2d` returns. A line integral of **B** across the core's mid-plane could
-be approximated from the sampled grid, and it would be wrong in exactly the place it matters —
-at the iron/air interface, which the mock solver staircases. The honest route is a lab adapter
-(`lab.magnetics2d`) that integrates on its own discretisation and reports the result, the way
-`lab.airfoil_panel2d` does. That is the next increment, and §1 is its acceptance criteria.
+The old version of this document predicted that these metrics could not be computed in the
+browser from what `mock.magnetostatics2d` returns, because a line integral of **B** across the
+core's mid-plane would be wrong in exactly the place it matters — at the iron/air interface,
+which the mock staircases. That was right, and it turned out to understate the case: the mock
+never sees the core at its drawn width at all (20.339 mm, then 20.168, then 20.084 for a 20.000
+mm core), and at high resolution it exhausts its iteration ceiling and returns a flux 26 %
+adrift with no residual to say so. The honest route was a lab adapter that integrates on its
+own discretisation, and that is what was built.

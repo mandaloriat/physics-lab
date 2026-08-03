@@ -1,22 +1,32 @@
 """Lab-specific solver adapters.
 
-One adapter lives here so far: the airfoil exercise's panel method. It is registered by
-importing it, and importing this package is wired into ``physics_lab.main`` before the app is
-created, so it appears in ``GET /api/v1/solvers``, in the capability catalogue and in the
-front-end's solver picker with no further wiring. The worker needs the same import — see
-``physics_lab.worker``, which is why arq is pointed at that module rather than at
-``fenixspoon.worker.WorkerSettings`` directly.
+Two adapters live here: the airfoil exercise's panel method and the magnetics exercise's
+finite-volume magnetostatics. Each is registered by importing it, and importing this package is
+wired into ``physics_lab.main`` before the app is created, so they appear in
+``GET /api/v1/solvers``, in the capability catalogue and in the front-end's solver picker with
+no further wiring. The worker needs the same import — see ``physics_lab.worker``, which is why
+arq is pointed at that module rather than at ``fenixspoon.worker.WorkerSettings`` directly.
 
 Why a solver of the lab's own, when the point of the first release was to write none
 -------------------------------------------------------------------------------------
 
-Because the exercise needs physics Fenix Spoon does not have. Upstream's potential-flow
-adapters impose no Kutta condition, so their circulation is zero and their integrated lift is
-exactly zero at every incidence — which is fine for showing how a body deflects a stream, and
-useless for an exercise whose target is a lift. See ADR-014, and the upstream issue that
-records the gap: https://github.com/mandaloriat/fenix-spoon/issues/68.
+Because each exercise needs physics Fenix Spoon does not have, and in both cases it is the
+*metric* that needs it rather than the picture:
 
-The airfoil adapter is deliberately split so that only the last file knows about the protocol:
+* Upstream's potential-flow adapters impose no Kutta condition, so their circulation is zero
+  and their integrated lift is exactly zero at every incidence — fine for showing how a body
+  deflects a stream, useless for an exercise whose target is a lift. See ADR-014, and the
+  upstream issue that records the gap:
+  https://github.com/mandaloriat/fenix-spoon/issues/68.
+* Upstream's ``mock.magnetostatics2d`` rasterises the material onto a uniform grid, so an
+  iron/air interface is a staircase whose steps move with the resolution: a 20.000 mm core
+  comes out 20.339 mm wide at one resolution and 20.084 mm at another, and its fixed Jacobi
+  sweep count reports no residual to say when it stopped short. Fine for a picture of where
+  the flux goes, not for a number. See ADR-018.
+
+Both adapters are split the same way, so that only the last file in each list knows about the
+protocol — which is what lets the physics be tested against a closed form, without a job, a
+server or an envelope:
 
 * ``panel.py`` — the Hess-Smith method. Arrays in, arrays out, no Fenix Spoon import.
 * ``airfoil_geometry.py`` — NACA profiles, and reading chord, incidence and section out of an
@@ -24,6 +34,10 @@ The airfoil adapter is deliberately split so that only the last file knows about
 * ``analytic.py`` — the closed-form solutions the answer is checked against.
 * ``airfoil.py`` — the exercise: coefficients, sweeps, verification residuals, validity.
 * ``airfoil_panel2d.py`` — the ``Solver`` adapter, and nothing else.
+
+* ``magnetics.py`` — the finite-volume method on an interface-fitted grid. Arrays only.
+* ``solenoid.py`` — the exercise: flux, leakage, saturation, residuals, validity.
+* ``magnetics2d.py`` — the ``Solver`` adapter, and nothing else.
 
 Adding another
 --------------
@@ -50,10 +64,10 @@ let the adapter be absent rather than the server be broken. The catalogue is wha
 so "not installed" is a complete and honest answer. The panel method needs nothing but NumPy,
 which is why the airfoil exercise works on the slim image too.
 
-Planned, in rough order: the structural bracket, the electromagnet, the heat sink, acoustics —
-each an exercise page plus, where Fenix Spoon has no solver for it, an adapter here.
+Planned, in rough order: the structural bracket, the heat sink, acoustics — each an exercise
+page plus, where Fenix Spoon has no solver for it, an adapter here.
 """
 
-from . import airfoil_panel2d  # noqa: F401  - importing registers the adapter
+from . import airfoil_panel2d, magnetics2d  # noqa: F401  - importing registers them
 
-__all__: list[str] = ["airfoil_panel2d"]
+__all__: list[str] = ["airfoil_panel2d", "magnetics2d"]

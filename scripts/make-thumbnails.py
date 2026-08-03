@@ -121,6 +121,33 @@ def render(values: np.ndarray, shape, mask, colormap: str, symmetric: bool) -> n
     return np.flipud(rgb)
 
 
+def crop(result, half: float):
+    """Keep the part of a `grid2d` result within `half` of the origin, and nothing else.
+
+    The window a solve needs and the frame a picture wants are different sizes, and the honest
+    way to have both is to solve the first and show part of it. Returns a new result rather
+    than mutating: the caller may want the whole field too.
+    """
+    ny, nx = result.data["shape"]
+    xmin, ymin, xmax, ymax = result.data["bounds"]
+    x = np.linspace(xmin, xmax, nx)
+    y = np.linspace(ymin, ymax, ny)
+    keep_x = np.nonzero(np.abs(x) <= half)[0]
+    keep_y = np.nonzero(np.abs(y) <= half)[0]
+    take = np.ix_(keep_y, keep_x)
+
+    data = dict(result.data)
+    data["shape"] = [len(keep_y), len(keep_x)]
+    data["bounds"] = [x[keep_x[0]], y[keep_y[0]], x[keep_x[-1]], y[keep_y[-1]]]
+    data["fields"] = {
+        name: np.asarray(values, dtype=float).reshape(ny, nx)[take].ravel().tolist()
+        for name, values in result.data["fields"].items()
+    }
+    if result.data.get("mask") is not None:
+        data["mask"] = np.asarray(result.data["mask"]).reshape(ny, nx)[take].ravel().tolist()
+    return result.model_copy(update={"data": data})
+
+
 # -------------------------------------------------------------------------------- the solves
 
 
@@ -203,7 +230,14 @@ def airfoil() -> None:
 
 
 def solenoid() -> None:
-    """The default cross-section of the magnetics page, at its default excitation."""
+    """The default cross-section of the magnetics page, at its default excitation.
+
+    Solved by `lab.magnetics2d` in the window the page actually submits — eight times the
+    magnet's half-extent — and then *cropped* to the magnet before it is coloured. The crop is
+    a framing choice and the solve is not: a card showing the whole 480 mm window would show a
+    speck, and a card solved in a 120 mm window would be showing a different magnet from the
+    one the page computes, whose flux is a quarter lower.
+    """
 
     def rect(x0, y0, x1, y1):
         return {
@@ -211,17 +245,18 @@ def solenoid() -> None:
             "points": [[x0, y0], [x1, y0], [x1, y1], [x0, y1]],
         }
 
+    window = 8 * 0.030  # WINDOW_RATIO x the magnet's half-extent, as the page sizes it
     result = solve(
-        "mock.magnetostatics2d",
+        "lab.magnetics2d",
         {
             "type": "regions2d",
-            "bounds": [-0.06, -0.06, 0.06, 0.06],
+            "bounds": [-window, -window, window, window],
             "background": {"mu_r": 1.0},
             "regions": [
                 {
                     "name": "core",
                     "shape": rect(-0.010, -0.030, 0.010, 0.030),
-                    "material": {"mu_r": 1000.0},
+                    "material": {"mu_r": 1000.0, "b_sat": 1.5},
                 },
                 {
                     "name": "winding_left",
@@ -235,8 +270,12 @@ def solenoid() -> None:
                 },
             ],
         },
-        {"resolution": WIDTH // 2, "iterations": 1200},
+        {"cells_across": 80, "convergence_check": False, "resolution": 512},
     )
+    # 96 mm keeps the magnet the subject and still shows the flux closing through air,
+    # and it is as wide as the sampling allows: the raster is capped at 512 across the
+    # whole window, so a tighter crop would be upscaling more than it is showing.
+    result = crop(result, 0.096)
     write_png(
         OUT / "solenoid.png",
         render(
