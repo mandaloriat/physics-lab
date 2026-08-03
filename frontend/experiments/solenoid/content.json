@@ -30,7 +30,8 @@
     "requires_verified": {
       "metric": "energy_balance_rel",
       "below": 0.02
-    }
+    },
+    "next_step": "a different cross-section on a different ampere-turn budget"
   },
   "sections": [
     {

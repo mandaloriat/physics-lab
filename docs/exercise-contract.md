@@ -75,7 +75,8 @@ say *target met* or *not met* instead of leaving the visitor to compare two numb
       { "metric": "c_m_c4", "comparator": "<", "value": 0.08, "unit": "1", "absolute": true }
     ],
     "requires_valid": true,
-    "requires_verified": { "metric": "cl_consistency_rel", "below": 0.02 }
+    "requires_verified": { "metric": "cl_consistency_rel", "below": 0.02 },
+    "next_step": "a different profile at a different incidence"
   }
 }
 ```
@@ -93,6 +94,12 @@ Three rules make this honest rather than a game:
 `absolute: true` compares the magnitude, and it has to be asked for. Inferring it from the
 comparator is how `|C_m| < 0.08` silently becomes `C_m < 0.08`, which every nose-down profile
 passes however large its moment — a bug this contract had until a real run walked into it.
+
+`next_step` names the second route to the same target in the exercise's own terms — it is the
+one clause of the met-target banner that cannot be shared, because "a different profile at a
+different incidence" is nonsense advice on a magnetic circuit. The renderer holds no exercise
+vocabulary of its own: an exercise that omits the field gets the banner one clause shorter,
+never another exercise's wording.
 
 A target's verdict is about its own number, and whether the *run* counts is a separate
 question answered once: a satisfied target still reads as satisfied on a disqualified run, and
