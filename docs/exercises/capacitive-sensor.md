@@ -2,8 +2,8 @@
 
 **Status:** *specified, not built.*
 **Implements:** [the exercise contract](../exercise-contract.md).
-**Contract row:** new. It is not one of the six rows in
-[§7](../exercise-contract.md#7-the-exercises), and it should be added there.
+**Contract row:** new. It is not one of the rows [§7](../exercise-contract.md#7-the-exercises)
+was written with, and it is added there by the same change that adds this page.
 **Sources:** the `P45` archive (`mandaloriat/P45`, `control/actuators.py`) and the thesis it
 came from — M. Andolfatto, *Accoppiamenti magnetici nell'analisi servoelastica di uno specchio
 adattivo*, Politecnico di Milano, 2015,
@@ -198,8 +198,9 @@ and published. That makes it a genuine external check rather than a self-consist
 ## 9. Save result
 
 The run row per [§5 of the contract](../exercise-contract.md#5-the-run-table). `geometry.source`
-is `parametric`; `physical` carries the four radii and gaps and the two perturbations;
-`numerics` carries mesh size and truncation distance.
+is `parametric`; `physical` carries the two electrode radii, the nominal gap, the chamfer
+width and height, the excitation voltage and the two perturbations; `numerics` carries mesh
+size and truncation distance.
 
 ---
 
