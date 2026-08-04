@@ -181,11 +181,12 @@ records why rather than letting the table quietly change.
 
 ## 7. Where the numbers come from
 
-Same answer as the airfoil, and for the same reason: protocol 1.2's envelope has nowhere to
-put a computed metric, so a lab solver returns the field, restricts `stats` to cost, and writes
-a declared `report.json`
-([contract §6](../exercise-contract.md#6-what-a-solver-has-to-return-on-protocol-12),
-[ADR-015](../architecture-decisions.md#adr-015--the-run-table-lives-in-the-browser-and-fenix-spoon-owns-the-record)).
+Same answer as the airfoil, and for the same reason: when this was written, protocol 1.2's
+envelope had nowhere to put a computed metric, so a lab solver returned the field, restricted
+`stats` to cost, and wrote a declared `report.json`. The pin is at 1.9 now and
+[contract §6](../exercise-contract.md#6-what-a-solver-has-to-return) describes the native
+fields instead; migrating this exercise onto them is separate work
+([ADR-015](../architecture-decisions.md#adr-015--the-run-table-lives-in-the-browser-and-fenix-spoon-owns-the-record)).
 
 The old version of this document predicted that these metrics could not be computed in the
 browser from what `mock.magnetostatics2d` returns, because a line integral of **B** across the

@@ -667,8 +667,10 @@ belongs above.
 
 ## 11. Result transport and the run row
 
-Per [the contract §6](../exercise-contract.md#6-what-a-solver-has-to-return-on-protocol-12),
-the solver writes an always-present `report.json` artifact:
+This exercise predates the envelope growing somewhere to put a metric. It writes an
+always-present `report.json` artifact, and migrating it onto the native fields
+[the contract §6](../exercise-contract.md#6-what-a-solver-has-to-return) now describes is
+separate work:
 
 ```jsonc
 {

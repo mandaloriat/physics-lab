@@ -230,26 +230,83 @@ The lab's job is the exercise; the toolkit's job is the record.
 
 ---
 
-## 6. What a solver has to return, on protocol 1.2
+## 6. What a solver has to return
 
-Today's `ResultEnvelope` carries `kind`, `data`, `stats: dict[str, float]` and `artifacts`.
-There is no field for computed metrics, none for a warning, and no result kind for a 1-D
-curve — so a *C<sub>p</sub>*(*x*/*c*) distribution, a modal frequency list or a convergence
-history has nowhere to go.
+The pin is at protocol **1.9**, and the envelope carries the answer. Every field this section
+used to route around is now a field, and the `report.json` workaround is retired for anything
+written from here.
 
-Until #46 lands, a lab solver returns:
+`ResultEnvelope`, as a client receives it:
 
-1. **the field**, as `grid2d` or `mesh2d`, exactly as now — this is what `<fs-viewer>` draws;
-2. **`stats`**, restricted to what the solve cost;
-3. **one always-written JSON artifact** (`report.json`) carrying the metrics, the surface
-   curves, the verification residuals and the warnings, declared via `ArtifactSpec` so it is
-   discoverable before submitting.
+| Field | Carries |
+|---|---|
+| `kind` | `grid2d`, `mesh2d` or `series1d` — a sweep whose answer *is* the curve is a result kind, not an artifact |
+| `data` | the field arrays; this is what `<fs-viewer>` draws |
+| `stats` | what the solve cost, and only that |
+| `metrics` | the engineering answer, declared before the run and filled after it |
+| `diagnostics` | `stats`, convergence, residual and warnings — this is where a validity warning lives |
+| `provenance` | solver version, environment fingerprint, `cache_key` and `cached` |
+| `series` | the curves the solve produced, beside the field rather than instead of it |
+| `artifacts` | files by reference, each optionally stamped with an instant `t` |
 
-The artifact is a workaround with two virtues: it is protocol-legal without inventing a
-private convention on top of `stats`, and its content is exactly the payload that becomes
-native `metrics` when #46 lands — at which point the page reads the envelope and the artifact
-becomes optional. Solvers also declare their metric names through `Solver.metrics` (#43), so
-a caller learns what a run will report before running it.
+A solver fills less than that. `SolverResult` — what `solve()` returns — carries `kind`,
+`data`, `stats`, `metrics`, `converged`, `residual`, `warnings` and `series`. The server folds
+convergence, residual and warnings into `diagnostics` and writes `provenance` itself, because
+neither the cache key nor the environment fingerprint is something a solver can know about
+itself.
+
+So a lab solver returns:
+
+1. **the field**, as `grid2d` or `mesh2d` — or `series1d` as the result *kind*, when the sweep
+   is the whole answer and there is no field to go with it;
+2. **`stats`**, still restricted to what the solve cost. `metrics` existing does not make
+   `stats` a second metrics bag; the separation is the point of having both;
+3. **`metrics`**, the engineering scalars, *declared* as `MetricSpec` on the class so a caller
+   learns what a run reports before submitting it, and returned by name;
+4. **`series`**, one `Series1DData` per curve, each with its own axis and traces;
+5. **`warnings`**, the validity prose, which reaches the client inside `diagnostics`;
+6. **artifacts only for what is genuinely a file** — a mesh, a frame, a full time history.
+
+### Two limits, checked rather than advised
+
+| Limit | Value | What it means for an exercise |
+|---|---|---|
+| `MAX_SERIES_POINTS` | 4096 | a curve is bounded by construction, so a 10⁵-point time history is an artifact and not a series |
+| `MAX_FRAMES` | 512 | the number of time-stamped artifacts one result may carry |
+
+### Frames are derived, never declared
+
+A transient result indexes its instants by stamping each artifact with `t`, and `frames_of()`
+builds the ordered index from the artifact list. There is no second list to keep in step, and
+a frame pointing at a file this result does not serve is unrepresentable rather than a bug to
+guard against.
+
+What the index does *not* do is carry the history: the field in the envelope is one instant,
+and a peak-over-time quantity is computed in the adapter and returned as a metric rather than
+declared as a reduction of a field.
+
+### The default answer omits the arrays
+
+A result is read at seven levels — `status`, `metrics`, `diagnostics`, `provenance`, `series`,
+`fields`, `artifacts` — and levels are a list on one request rather than seven round trips.
+The default omits `fields` **and** `series`, so a caller that asks for nothing gets an answer
+it can read, and the arrays are reached deliberately. A page that wants the picture asks for
+`fields`; a convergence script asks for `metrics` and stops.
+
+### What is left of `report.json`
+
+The workaround and the reasoning behind it are recorded in
+[ADR-015](architecture-decisions.md#adr-015--the-run-table-lives-in-the-browser-and-fenix-spoon-owns-the-record),
+which is a decision record and stays as written.
+
+The three built exercises — airfoil, solenoid, bridge — still write the artifact and their
+pages still read it. That is migration work rather than a contract question: each one is a
+solver that fills `metrics` and `series` natively plus a page that reads the envelope instead
+of fetching a second file, and it is worth doing one exercise at a time. **What a new solver
+should not do is add a fourth `report.json` to migrate.**
+
+The field lists above are read off the pinned checkout rather than off a changelog, and
+`scripts/check-pins.sh` is what keeps that pin honest.
 
 ---
 
