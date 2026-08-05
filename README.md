@@ -106,6 +106,14 @@ engineering metrics, verification, saved result.
   that would yield it. It is also the exercise that found the edge of the geometry schema: a
   bar network is neither of the two kinds the protocol has
   ([ADR-019](docs/architecture-decisions.md#adr-019--the-bridge-carries-its-lattice-in-params-because-the-protocol-has-no-network-geometry)).
+- **[docs/exercises/heat-sink.md](docs/exercises/heat-sink.md)** — specified, not built, and the
+  only one waiting on nothing: the physics, the geometry kind, three of its seven metrics and a
+  cross-validated second adapter are all upstream today. Writing it turned up the reason the
+  upstream demo is not yet a lesson. The solver takes the convection coefficient as a constant —
+  it says so, and excludes fin-to-fin interference by name — so with `h` fixed, thermal
+  resistance falls monotonically with fin count and the model claims more fins are always better.
+  The home page card asks *when do they stop?*, and the answer only exists once `h` is made a
+  function of the channel the fins leave between them.
 - Two more, **specified and not built**, both drawn from the `P45` archive and a 2015 thesis on
   the servoelastic analysis of an adaptive mirror:
   **[docs/exercises/capacitive-sensor.md](docs/exercises/capacitive-sensor.md)** — the position
