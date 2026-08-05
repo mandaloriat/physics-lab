@@ -255,7 +255,7 @@ export default {
         'Dissipate a given power below a maximum temperature, using less metal. How many fins actually help, and when do they stop?',
       target: 'T_max under a stated limit',
       status:
-        'the preview solver exists upstream — the field above is one of its solves. The lesson does not.',
+        'the solver is built and verified — conduction, convection taken from the channel between the fins, and radiation exchanged through it. The page that turns it into a lesson is next.',
     },
     disclaimerLabel: 'Note.',
     disclaimer:

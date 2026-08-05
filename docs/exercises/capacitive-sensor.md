@@ -266,9 +266,11 @@ workaround, following §6 of the exercise contract. That is stale: Fenix Spoon i
    `axisymmetric2d` is listed among the planned geometry kinds in the wire-protocol reference,
    and the roadmap deferred the axisymmetric A-φ formulation out of the magnetics work with
    the note that axisymmetry belongs with that dedicated kind. **This exercise is the case
-   that asks for it.** A caller has to be able to tell a meridian section from a plane slice.
-   The lab can ship against `domain2d` plus a local convention in the interim; it should not
-   do that twice.
+   that asks for it**, and it now does so on the record:
+   [fenix-spoon#100](https://github.com/mandaloriat/fenix-spoon/issues/100) carries this
+   exercise as the motivating case, with the deferred A-φ magnetostatics as the second
+   consumer. A caller has to be able to tell a meridian section from a plane slice. The lab can
+   ship against `domain2d` plus a local convention in the interim; it should not do that twice.
 2. **Nothing for the curves.** *C*(*z*) over a swept gap goes back as a `series1d` result
    when the sweep is the answer, or in the `series` list beside a field result when it
    accompanies one. Both exist ([#46](https://github.com/mandaloriat/fenix-spoon/issues/46),

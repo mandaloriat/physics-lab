@@ -106,6 +106,41 @@ engineering metrics, verification, saved result.
   that would yield it. It is also the exercise that found the edge of the geometry schema: a
   bar network is neither of the two kinds the protocol has
   ([ADR-019](docs/architecture-decisions.md#adr-019--the-bridge-carries-its-lattice-in-params-because-the-protocol-has-no-network-geometry)).
+- **[docs/exercises/heat-sink.md](docs/exercises/heat-sink.md)** — specified, not built, and the
+  only one waiting on nothing upstream. Writing it turned up two reasons the upstream demo is not
+  yet a lesson, and both are about the boundary rather than the solve. The convection coefficient
+  is a constant — the solver says so, and excludes fin-to-fin interference by name — so with `h`
+  fixed, thermal resistance falls monotonically with fin count and the model claims more fins are
+  always better; the home page card asks *when do they stop?* and the answer only exists once `h`
+  depends on the channel the fins leave between them. And radiation is switched off, which the
+  same solver warns is *"not negligible for a hot surface in still air"* — the nominal case
+  exactly. Putting it back gives the curve a second reason to turn, since fins packed close
+  radiate at each other instead of at the room, and it makes surface finish a design variable.
+
+  It also costs the exercise the property the first draft was proudest of. A radiative boundary
+  is physics upstream does not have, so the lab writes `lab.heatsink2d` after all — which is the
+  rule working rather than an exception to it.
+
+  The method is built and verified (`physics_lab/solvers/heatsink.py`), and it settled three
+  things the specification could only assert. The optimum fin count **is** interior — thermal
+  resistance falls to a minimum and then trebles — and it **disappears** the moment the
+  coefficient is pinned, which is the control case the tests keep. Radiation carries about half
+  the heat off an unfinned plate and only a seventh off the finned nominal, because the channels
+  have hidden the metal from the room; ignoring it still over-predicts the temperature rise by
+  12% at the optimum and 57% past it. And the two mechanisms turn out to **fight each other** —
+  fins added to help convection suppress radiation — so anodising is worth 36% of the rise on a
+  plate and 8% on a tightly finned sink. The first draft quoted the flattering number for both.
+- Two more, **specified and not built**, both drawn from the `P45` archive and a 2015 thesis on
+  the servoelastic analysis of an adaptive mirror:
+  **[docs/exercises/capacitive-sensor.md](docs/exercises/capacitive-sensor.md)** — the position
+  sensor whose calibration curve the mirror's controller runs on — and
+  **[docs/exercises/adaptive-mirror.md](docs/exercises/adaptive-mirror.md)**, the mirror itself.
+  Each is blocked on something the toolkit does not have, and on a *different* something, so the
+  two are independent: the sensor wants an axisymmetric geometry kind
+  ([fenix-spoon#100](https://github.com/mandaloriat/fenix-spoon/issues/100)), and the mirror wants
+  a plate element and an eigenvalue solve
+  (**[docs/proposals/mindlin-plate-and-modes.md](docs/proposals/mindlin-plate-and-modes.md)**,
+  which argues those are two asks with different owners rather than one).
 
 ### A page is a bench
 

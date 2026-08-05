@@ -334,7 +334,9 @@ Ordered by how much of the exercise is blocked on it.
 
 Both solvers are **lab adapters** — `lab.mirror_plate2d` for solve A, `lab.mirror_loop` for
 solve B — registered beside `lab.truss2d`, which already set the precedent that a lab solver
-need not be a continuum solve.
+need not be a continuum solve. One item below is the exception and is marked as such: the
+eigenvalue solve is a *question kind* rather than physics, and question kinds have been
+upstream's every time.
 
 1. **A Mindlin plate element.** The toolkit ships `dolfinx.elasticity2d`, which is plane
    continuum, not a plate, so the element is the lab's to write. A shear-deformable plate needs
@@ -342,15 +344,25 @@ need not be a continuum solve.
    and at 1.61 mm over a 163 mm annular width this plate is thin enough for locking to be the
    difference between the right modal frequencies and plausible wrong ones. **This is the
    exercise's real technical risk**, and the modal benchmark in §8 is what will catch it.
-2. **Point mass and point stiffness as parameters.** Forty-five 3×3 blocks are neither
+   [The business case](../proposals/mindlin-plate-and-modes.md) separates this from the item
+   below and proposes retiring the risk *before* the exercise is built around it: the element
+   and the eigen-check against the fifty published frequencies, and nothing downstream of them.
+2. **An eigenvalue solve.** Named separately from the element, because it is a different kind
+   of ask with a different owner. Nothing upstream solves an eigenproblem — every registered
+   adapter is a forward solve — while the protocol has described the *answer* since 1.5, where
+   `series1d`'s own documentation lists "a list of modal frequencies" among the curves it exists
+   for. The proposal above argues that gap is Fenix Spoon's rather than the lab's, and that the
+   contract's *Room modes* row is the second consumer that makes the case — which it now does on
+   the record, at [fenix-spoon#101](https://github.com/mandaloriat/fenix-spoon/issues/101).
+3. **Point mass and point stiffness as parameters.** Forty-five 3×3 blocks are neither
    geometry nor material. [ADR-019](../architecture-decisions.md#adr-019--the-bridge-carries-its-lattice-in-params-because-the-protocol-has-no-network-geometry)
    already set the precedent by carrying the truss lattice in `params`, and this is the same
    shape of problem.
-3. **Nothing for the curves or the time history.** `series1d`, the `series` list and `frames`
+4. **Nothing for the curves or the time history.** `series1d`, the `series` list and `frames`
    over time-stamped artifacts all landed (protocol 1.5 and 1.7;
    [#46](https://github.com/mandaloriat/fenix-spoon/issues/46) and #82, both closed). §6 says
    how this exercise uses them, including the one real limitation.
-4. **A declared dependency between solves — to be checked before it is assumed.** Solver B
+5. **A declared dependency between solves — to be checked before it is assumed.** Solver B
    needs solver A's artifact. `provenance.cache_key` and the workspace object store both
    landed after this spec was first drafted, and between them they may already express it. If
    they do, this is a documentation item. If they do not, it is worth an upstream issue before
