@@ -134,6 +134,15 @@ which at *T*<sub>m</sub> ≈ 328 K is about 8ε W/m²·K:
 | bare aluminium | ≈ 0.05 | 0.4 | negligible |
 | **black anodised** | ≈ 0.8 | **6.4** | **comparable — about half the heat** |
 
+**That table is for a surface that can see the room, and the built solver says so.** On an
+unfinned plate at ε = 0.8 the radiative fraction comes out at **0.46** — the "about half" above,
+confirmed. On the *nominal finned* sink it is **0.14**, because the channels are 5 mm wide and
+25 mm deep and the view factor from a flank to the room has collapsed to 0.09. Radiation has not
+become unimportant there: switching it off still over-predicts the temperature rise by **12%**
+at the optimum, by 26% at four fins and by 57% at eighteen. But the honest headline is that
+**adding fins suppresses radiation**, which is the point §2.2 is really making and is not
+visible from the coefficient table alone.
+
 **The air is transparent, and that is what makes this affordable.** Nitrogen and oxygen are
 homonuclear diatomics with no dipole moment, so they neither absorb nor emit in the infrared:
 air is a *non-participating* medium at these temperatures over these path lengths. There is
@@ -166,10 +175,13 @@ genuinely 2-D pays rather than costs.
    collapses with it. So there are now **two independent mechanisms** driving §10's curve back
    up, and they are not the same mechanism wearing two hats: one is the air failing to move, the
    other is the fins hiding each other from the room.
-2. **Surface finish becomes a design variable with real leverage.** Bare to anodised is a factor
-   of sixteen on ε and roughly doubles the total coefficient in still air. Past the point where
-   the channels choke, **anodising the sink buys more than adding fins to it** — which is the
-   most useful counterintuitive result this exercise has, and it does not exist without §2.2.
+2. **Surface finish becomes a design variable, and *how much* it is worth depends on the fins.**
+   Bare to anodised is a factor of sixteen on ε. On an unfinned plate that is worth **36% off
+   the temperature rise**; on the tightly finned nominal sink, **8%** — because the fins have
+   hidden each other and there is less room left to radiate at. The two mechanisms interact
+   rather than adding up, and the page should show that rather than quote the flattering number.
+   Past the optimum, anodising still beats adding fins — which by then make the sink *worse* —
+   but it beats them by single digits, not by a factor.
 
 **What this costs in the solve.** The radiative flux goes as *T*⁴, so the problem becomes
 mildly nonlinear and needs a Picard or Newton loop — a handful of iterations from a
@@ -304,10 +316,15 @@ goes away, turn radiation off and the other does. Run the sweep three times and 
 decomposed their own design problem — which is more than the optimum itself is worth.
 
 **The second result is the one worth remembering, and it only exists because of §2.2.** Take a
-sink past its optimum fin count and ask what to do next. Adding fins now makes it worse.
-Anodising it — a factor of sixteen on ε, roughly doubling the total coefficient in still air —
-makes it substantially better, and costs no metal at all. *The finish can be worth more than the
-geometry*, and almost nobody expects that before they see the two curves crossing.
+sink past its optimum fin count and ask what to do next. Adding fins now makes it *worse*.
+Anodising it makes it better and costs no metal at all — so past the optimum the finish is the
+only lever left, which almost nobody expects.
+
+**And the built solver sharpened that lesson into a better one.** The finish is worth 36% of the
+temperature rise on an unfinned plate and 8% on the tightly finned sink, because the fins that
+were added to help convection have simultaneously hidden the surface from the room. *The two
+mechanisms are not independent, and improving one degrades the other* — which is a more useful
+thing to have learned than either curve alone, and it is what the three overlaid sweeps show.
 
 ---
 

@@ -114,13 +114,22 @@ engineering metrics, verification, saved result.
   always better; the home page card asks *when do they stop?* and the answer only exists once `h`
   depends on the channel the fins leave between them. And radiation is switched off, which the
   same solver warns is *"not negligible for a hot surface in still air"* — the nominal case
-  exactly. Anodised, it carries about half the heat. Putting it back gives the curve a second
-  reason to turn, since fins packed close radiate at each other instead of at the room, and it
-  makes surface finish a design variable that past a certain point beats adding metal.
+  exactly. Putting it back gives the curve a second reason to turn, since fins packed close
+  radiate at each other instead of at the room, and it makes surface finish a design variable.
 
   It also costs the exercise the property the first draft was proudest of. A radiative boundary
   is physics upstream does not have, so the lab writes `lab.heatsink2d` after all — which is the
   rule working rather than an exception to it.
+
+  The method is built and verified (`physics_lab/solvers/heatsink.py`), and it settled three
+  things the specification could only assert. The optimum fin count **is** interior — thermal
+  resistance falls to a minimum and then trebles — and it **disappears** the moment the
+  coefficient is pinned, which is the control case the tests keep. Radiation carries about half
+  the heat off an unfinned plate and only a seventh off the finned nominal, because the channels
+  have hidden the metal from the room; ignoring it still over-predicts the temperature rise by
+  12% at the optimum and 57% past it. And the two mechanisms turn out to **fight each other** —
+  fins added to help convection suppress radiation — so anodising is worth 36% of the rise on a
+  plate and 8% on a tightly finned sink. The first draft quoted the flattering number for both.
 - Two more, **specified and not built**, both drawn from the `P45` archive and a 2015 thesis on
   the servoelastic analysis of an adaptive mirror:
   **[docs/exercises/capacitive-sensor.md](docs/exercises/capacitive-sensor.md)** — the position
