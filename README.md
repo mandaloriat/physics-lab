@@ -107,13 +107,20 @@ engineering metrics, verification, saved result.
   bar network is neither of the two kinds the protocol has
   ([ADR-019](docs/architecture-decisions.md#adr-019--the-bridge-carries-its-lattice-in-params-because-the-protocol-has-no-network-geometry)).
 - **[docs/exercises/heat-sink.md](docs/exercises/heat-sink.md)** — specified, not built, and the
-  only one waiting on nothing: the physics, the geometry kind, three of its seven metrics and a
-  cross-validated second adapter are all upstream today. Writing it turned up the reason the
-  upstream demo is not yet a lesson. The solver takes the convection coefficient as a constant —
-  it says so, and excludes fin-to-fin interference by name — so with `h` fixed, thermal
-  resistance falls monotonically with fin count and the model claims more fins are always better.
-  The home page card asks *when do they stop?*, and the answer only exists once `h` is made a
-  function of the channel the fins leave between them.
+  only one waiting on nothing upstream. Writing it turned up two reasons the upstream demo is not
+  yet a lesson, and both are about the boundary rather than the solve. The convection coefficient
+  is a constant — the solver says so, and excludes fin-to-fin interference by name — so with `h`
+  fixed, thermal resistance falls monotonically with fin count and the model claims more fins are
+  always better; the home page card asks *when do they stop?* and the answer only exists once `h`
+  depends on the channel the fins leave between them. And radiation is switched off, which the
+  same solver warns is *"not negligible for a hot surface in still air"* — the nominal case
+  exactly. Anodised, it carries about half the heat. Putting it back gives the curve a second
+  reason to turn, since fins packed close radiate at each other instead of at the room, and it
+  makes surface finish a design variable that past a certain point beats adding metal.
+
+  It also costs the exercise the property the first draft was proudest of. A radiative boundary
+  is physics upstream does not have, so the lab writes `lab.heatsink2d` after all — which is the
+  rule working rather than an exception to it.
 - Two more, **specified and not built**, both drawn from the `P45` archive and a 2015 thesis on
   the servoelastic analysis of an adaptive mirror:
   **[docs/exercises/capacitive-sensor.md](docs/exercises/capacitive-sensor.md)** — the position
