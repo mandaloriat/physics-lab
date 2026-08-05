@@ -15,7 +15,7 @@ FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
 
 #: Every experiment's directory. A page added here without its assets being reachable is the
 #: failure this module exists to catch.
-EXPERIMENTS = ["airfoil", "solenoid", "truss"]
+EXPERIMENTS = ["airfoil", "solenoid", "truss", "heatsink"]
 
 PAGES = ["/", *(f"/experiments/{name}/" for name in EXPERIMENTS)]
 
@@ -44,9 +44,17 @@ def test_homepage_names_the_experiments_and_carries_the_disclaimer(client):
     for name in EXPERIMENTS:
         assert f"/experiments/{name}/" in body
     assert "The magnetic circuit" in body
-    # What is still planned is listed honestly rather than linked to nothing.
-    assert "In preparation" in body
     assert "Heat sink" in body
+    # What is still planned is listed honestly rather than linked to nothing — and *if* nothing
+    # is planned, the badge is simply absent. This used to assert the badge was present, which
+    # was a fact about the release that wrote it rather than about the page: the heat sink was
+    # the last card carrying it, and building that exercise made the assertion expire. What the
+    # page must never do is show a planned card that is also a link, and that is what is checked
+    # here instead.
+    planned = re.findall(r'<li class="card card--planned">.*?</li>', body)
+    for card in planned:
+        assert "In preparation" in card
+        assert "/experiments/" not in card
     # The tagline is the product's claim and is not negotiable wording (ADR-016).
     assert "Interactive problems. Computed fields. Checkable answers." in body
     assert "not a substitute for professional engineering verification" in body
@@ -360,6 +368,7 @@ MISSION_SOLVER = {
     "airfoil": "lab.airfoil_panel2d",
     "solenoid": "lab.magnetics2d",
     "truss": "lab.truss2d",
+    "heatsink": "lab.heatsink2d",
 }
 
 

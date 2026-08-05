@@ -1,0 +1,112 @@
+{
+  "id": "heatsink",
+  "title": "Il dissipatore",
+  "subtitle": "Conduzione stazionaria in un profilo estruso, con convezione e irraggiamento",
+  "intro": "Un componente di potenza avvitato a un dissipatore di alluminio estruso. Il calore si distribuisce nella base, sale lungo le alette e se ne va per due strade insieme — nell'aria che passa fra le alette, e come irraggiamento attraverso quell'aria fino alla stanza. Entrambe si indeboliscono man mano che le alette si infittiscono, ed è per questo che esiste un numero di alette migliore e non una direzione.",
+  "challenge": {
+    "statement": "Tieni un componente da 30 W sotto i 95 °C in aria ferma a 25 °C, usando non più di 170 g di alluminio sui 60 mm di estrusione. Poi rendi il dissipatore il migliore possibile: il punteggio è resistenza termica per massa, quindi il metallo speso deve guadagnarsi il posto. Le run che escono dal dominio di validità del modello non contano.",
+    "targets": [
+      {
+        "metric": "t_max",
+        "comparator": "<=",
+        "value": 95,
+        "unit": "degC"
+      },
+      {
+        "metric": "mass",
+        "comparator": "<=",
+        "value": 0.17,
+        "unit": "kg"
+      }
+    ],
+    "requires_valid": true,
+    "requires_verified": {
+      "metric": "energy_balance_rel",
+      "below": 0.01
+    },
+    "next_step": "lo stesso componente sotto una ventola, dove il numero di alette migliore non è lo stesso"
+  },
+  "sections": [
+    {
+      "id": "problem",
+      "heading": "Il problema",
+      "lead": "Portare 30 W fuori da un componente e dentro la stanza, senza cuocerlo e senza un blocco di metallo.",
+      "body": [
+        "La resistenza termica è il numero con cui un dissipatore si vende: quanto ti costa in aumento di temperatura per ogni watt che ci fai passare. Un dissipatore da 2 K/W sotto un componente da 30 W sta 60 K sopra l'aria che lo circonda. Più bassa è meglio, e più bassa si può sempre comprare — con più metallo, più alette, alette più alte. Quindi la resistenza da sola non è un problema di progetto, è un problema di spesa. Qui il punteggio è resistenza **per massa**, che lo rimette al suo posto.",
+        "La difficoltà vera è che le due leve ovvie si combattono a vicenda, e nessuna delle due si comporta come ci si aspetta."
+      ]
+    },
+    {
+      "id": "model",
+      "heading": "Cosa viene risolto",
+      "lead": "Conduzione stazionaria sulla sezione, e tutto il resto sul suo bordo.",
+      "body": [
+        "Dentro il metallo il problema è ordinario: `div(k grad T) = 0`, risolto ai volumi finiti su una griglia le cui linee cadono esattamente su ogni bordo di aletta, così l'interfaccia metallo-aria è esatta invece che una scalinata che si sposta quando raffini.",
+        "**Qui il modello bidimensionale è esatto, non un compromesso.** Ogni altro esercizio di questo laboratorio sostiene che una sezione risponde abbastanza bene alla domanda. Un'estrusione si ripete davvero lungo la sua lunghezza, quindi non c'è nessuna terza dimensione di conduzione che si stia trascurando — la sezione **è** il problema, e i risultati sono per unità di profondità, poi scalati per la lunghezza dell'estrusione. L'unica cosa che si assume è che il componente scaldi la base in modo uniforme lungo quella lunghezza.",
+        "Ciò che fa l'esercizio non è la conduzione. È quello che succede sulla superficie esposta, e le superfici sono due."
+      ]
+    },
+    {
+      "id": "convection",
+      "heading": "Perché il coefficiente non è una costante",
+      "lead": "L'aria deve passare fra le alette, e un numero fisso non può saperlo.",
+      "body": [
+        "La convezione da una superficie si scrive di solito `q = h (T − T∞)` con `h` un numero da tabella. Prendilo alla lettera qui e il modello diventa inutile in un modo preciso e silenzioso: l'area cresce col numero di alette, `h` non cambia mai, quindi la resistenza termica scende all'infinito. **Il modello ti dice che più alette sono sempre meglio, fino ad alette di spessore zero.** Non è un'imprecisione sottile, è l'opposto della risposta.",
+        "Quindi `h` viene calcolato dal canale che le alette lasciano fra loro, con la relazione composita di Bar-Cohen e Rohsenow per lastre verticali parallele. Stringi il canale e l'aria non riesce più a passarci; `h` crolla più in fretta di quanto cresca l'area aggiunta. Aprilo del tutto e ogni parete smette di sapere che l'altra esiste, e la relazione tende al risultato della lastra isolata invece di salire senza limite.",
+        "*Il fluido però non viene risolto.* Qui non c'è nessun campo di velocità e nessuna struttura di galleggiamento — sarebbe un problema di Navier-Stokes accoppiato da minuti a soluzione, e questa pagina deve percorrere venti configurazioni. La correlazione non è un surrogato di quello: è il modo in cui i dissipatori si dimensionano davvero, e la fluidodinamica computazionale è ciò che lo verifica dopo. Quello che la pagina ti deve in cambio è onestà sul campo di validità, quindi ogni run dichiara quale correlazione ha usato e dice quando un parametro è uscito dalla banda su cui era stata tarata."
+      ]
+    },
+    {
+      "id": "radiation",
+      "heading": "La seconda strada del calore, e perché si nasconde",
+      "lead": "Da una piastra liscia porta via circa metà del calore. Da un dissipatore alettato, un settimo — e il motivo è la parte interessante.",
+      "body": [
+        "Una superficie anodizzata nera vicino ai 100 °C irraggia più o meno quanto l'aria ferma le sottrae per convezione. Togli l'irraggiamento e il caso nominale sovrastima l'aumento di temperatura di un decimo, e di oltre la metà quando le alette sono fitte.",
+        "**L'aria non c'entra nulla.** Azoto e ossigeno non hanno momento di dipolo, quindi nell'infrarosso non assorbono né emettono: il dissipatore irraggia *attraverso* l'aria, non verso di essa. È questo che rende l'irraggiamento sostenibile qui — non c'è niente da risolvere nel fluido, e tutto vive sul bordo. Ogni canale è trattato come una cavità fatta di due fianchi d'aletta, la striscia di base fra loro, e una superficie nera fittizia sulla bocca che sta per la stanza. Lo scambio fra loro usa fattori di vista **esatti** in due dimensioni, con la costruzione delle corde incrociate di Hottel — nessun ray tracing, nessun errore di campionamento da far convergere.",
+        "E poi il meccanismo che conta. Man mano che il canale si stringe, il fianco di un'aletta smette di vedere la stanza e comincia a vedere *l'altra aletta*, quasi alla propria temperatura. Il fattore di vista verso la stanza crolla, e con lui la perdita per irraggiamento. Quindi le alette che avevi aggiunto per aiutare la convezione hanno soffocato l'irraggiamento — ed è per questo che la pagina riporta il fattore di vista verso la stanza come un numero da guardare, e non solo la sua conseguenza."
+      ]
+    },
+    {
+      "id": "finish",
+      "heading": "La finitura è una variabile di progetto",
+      "lead": "Sedici volte l'emissività, senza un grammo di metallo — ma quanto valga dipende dalle alette.",
+      "body": [
+        "L'alluminio grezzo ha un'emissività intorno a 0,05 ed è quasi invisibile all'irraggiamento. L'anodizzazione nera la porta a circa 0,8, non costa nulla in massa, ed è un passaggio di processo invece che una forma.",
+        "Vale il **36 %** dell'aumento di temperatura su una piastra senza alette e circa l'**8 %** sul dissipatore alettato nominale. Non perché lì l'emissività conti meno, ma perché le alette hanno nascosto la superficie alla stanza. I due meccanismi interagiscono invece di sommarsi, e la lezione utile è proprio quella: superato il numero ottimale di alette, aggiungere metallo peggiora il dissipatore e la finitura resta l'unica leva."
+      ]
+    },
+    {
+      "id": "conditions",
+      "heading": "Condizioni al contorno",
+      "lead": "Dove entra il calore, da dove esce, e cosa si assume sul montaggio.",
+      "body": [
+        "Il componente entra come flusso imposto sulla propria impronta, sotto la base. Il resto della faccia inferiore è adiabatico per default, assumendo che il dissipatore sia montato a contatto — una scelta che la pagina espone, perché lasciarla libera è un dissipatore diverso e i due differiscono più di quanto ci si aspetti.",
+        "Ogni faccia esposta porta la somma delle due strade: `h (T − T∞)` con `h` dal canale, più il flusso radiativo netto della cavità. La mezza cella di conduzione fra il centro cella e la sua superficie sta in serie con il film, cosa trascurabile per l'alluminio e non trascurabile per un cattivo conduttore.",
+        "Siccome il coefficiente radiativo va come il cubo della temperatura, il problema è non lineare e si risolve iterando fino a un punto fisso, sotto-rilassato. Ogni run dichiara quante passate ci sono volute invece di nasconderlo."
+      ]
+    },
+    {
+      "id": "verification",
+      "heading": "Quanto fidarsi",
+      "lead": "Quattro controlli, e due non hanno bisogno di nessuna soluzione di riferimento.",
+      "body": [
+        "**Le identità sui fattori di vista sono le più economiche e le più forti.** Tutto ciò che lascia una superficie deve atterrare da qualche parte, quindi le righe della matrice di scambio sommano a uno; e la reciprocità lega ogni coppia attraverso le rispettive lunghezze. Entrambe valgono a precisione macchina per una cavità chiusa e convessa. Una matrice che ne viola una è sbagliata, punto — nessuna tolleranza su cui discutere, nessun dato di riferimento da credere. Si calcolano a ogni run.",
+        "**Il bilancio energetico** confronta quello che il componente ha immesso con convezione più irraggiamento in uscita, integrati su tutto il bordo esposto. Chiude a circa una parte su diecimila. Anche una perdita nei fattori di vista emergerebbe qui, perché l'irraggiamento disperso in una cavità mal formata esce da questo numero.",
+        "Fuori dalla pagina, il metodo è verificato anche contro la teoria monodimensionale delle alette, contro i limiti esatti di irraggiamento fra lastre parallele e da superficie singola, e contro il caso a piastra nuda dove il canale sparisce del tutto. Proprio quest'ultimo ha trovato un bug vero: una correlazione di canale con luce nulla riportava raffreddamento zero."
+      ]
+    },
+    {
+      "id": "limits",
+      "heading": "Cosa questo modello non rappresenta",
+      "lead": "Dichiarato, non scoperto per caso.",
+      "body": [
+        "**Nessun transitorio.** Ogni temperatura qui è l'equilibrio a cui il componente si assesta, raggiunto dopo un tempo che questo modello non sa dirti. Dimensionare per un ciclo di lavoro è un altro problema.",
+        "**Nessun campo di moto.** Niente velocità, niente pennacchio di galleggiamento, nessuna interferenza fra aletta e aletta oltre a quella che porta la correlazione, e nessun modo per la correlazione di sapere che le è stata chiesta una geometria su cui nessuno l'ha tarata.",
+        "**Nessuna resistenza di diffusione.** Si assume che il componente scaldi la base in modo uniforme lungo l'estrusione. Un componente piccolo su una base larga non lo fa, ed è la naturale seconda versione di questa pagina.",
+        "**Superfici grigie e diffuse.** Una sola emissività a tutte le lunghezze d'onda e a tutti gli angoli, senza dipendenza dalla temperatura né dallo spessore dell'anodizzazione — che in pratica varia più di quanto suggerisca un numero solo.",
+        "I coefficienti delle correlazioni e i valori di emissività vogliono ancora una fonte citabile e non una ricordata. Ciò che non dipende dall'averli azzeccati è la *forma* della risposta: che entrambe le strade del calore si indeboliscono quando il canale si stringe, e che quindi un ottimo esiste."
+      ],
+      "caution": true
+    }
+  ]
+}

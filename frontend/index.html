@@ -120,21 +120,23 @@
         </div>
       </li>
 
-      <li class="card card--planned">
-        <span class="card__shot card__shot--planned" aria-hidden="true">
+      <li class="card card--available">
+        <a class="card__shot" href="/experiments/heatsink/" tabindex="-1" aria-hidden="true">
           <img src="/assets/thumbnails/heatsink.png" alt="" width="480" height="320" loading="lazy">
-        </span>
+        </a>
         <div class="card__body">
-          <span class="badge badge--planned" data-i18n="home.badgePlanned">In preparation</span>
-          <h3 data-i18n="home.heatsink.name">Heat sink</h3>
+          <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
+          <h3><a href="/experiments/heatsink/" data-i18n="home.heatsink.name">Heat sink</a></h3>
           <p class="card__problem" data-i18n="home.heatsink.problem">
             Dissipate a given power below a maximum temperature, using less metal. How many fins
             actually help, and when do they stop?
           </p>
           <dl class="card__facts">
-            <div><dt data-i18n="home.wouldTarget">Would target</dt><dd class="num" data-i18n="home.heatsink.target">T_max under a stated limit</dd></div>
-            <div><dt data-i18n="home.status">Status</dt><dd data-i18n="home.heatsink.status">the solver is built and verified — conduction, convection taken from the channel between the fins, and radiation exchanged through it. The page that turns it into a lesson is next.</dd></div>
+            <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.heatsink.target">T_max &lt; 95 °C on &#8804; 170 g</dd></div>
+            <div><dt data-i18n="home.youSet">You set</dt><dd data-i18n="home.heatsink.youSet">fin count, height and thickness, the base, the finish, the cooling</dd></div>
+            <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.heatsink.checked">an energy balance over both heat paths, and view-factor identities that hold exactly</dd></div>
           </dl>
+          <p class="card__foot"><a class="cta" href="/experiments/heatsink/" data-i18n="home.heatsink.cta">Cool a device →</a></p>
         </div>
       </li>
 

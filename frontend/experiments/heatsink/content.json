@@ -1,0 +1,112 @@
+{
+  "id": "heatsink",
+  "title": "The heat sink",
+  "subtitle": "Steady conduction in an extruded profile, with convection and radiation",
+  "intro": "A power device bolted to an extruded aluminium sink. Heat spreads through the base, climbs the fins, and leaves by two paths at once — into the air that moves between the fins, and as radiation through that air to the room. Both weaken as the fins are packed closer together, which is why there is a best number of fins rather than a direction.",
+  "challenge": {
+    "statement": "Keep a 30 W device below 95 °C in still air at 25 °C, using no more than 170 g of aluminium over the 60 mm extrusion. Then make the sink as good as it can be: the score is thermal resistance times mass, so metal spent has to earn its place. Runs that leave the model's domain of validity do not count.",
+    "targets": [
+      {
+        "metric": "t_max",
+        "comparator": "<=",
+        "value": 95,
+        "unit": "degC"
+      },
+      {
+        "metric": "mass",
+        "comparator": "<=",
+        "value": 0.17,
+        "unit": "kg"
+      }
+    ],
+    "requires_valid": true,
+    "requires_verified": {
+      "metric": "energy_balance_rel",
+      "below": 0.01
+    },
+    "next_step": "the same device under a fan, where the best fin count is not the same one"
+  },
+  "sections": [
+    {
+      "id": "problem",
+      "heading": "The problem",
+      "lead": "Get 30 W off a device and into the room, without cooking it and without a lump of metal.",
+      "body": [
+        "Thermal resistance is the number a heat sink is sold by: the temperature rise it costs you per watt you put through it. A sink of 2 K/W under a 30 W device sits 60 K above the air around it. Lower is better and lower is always buyable — with more metal, more fins, taller fins. So resistance alone is not a design problem, it is a shopping problem. The score here is resistance **times mass**, which turns it back into one.",
+        "The honest difficulty is that the two obvious levers fight each other, and neither fights the way most people expect."
+      ]
+    },
+    {
+      "id": "model",
+      "heading": "What is solved",
+      "lead": "Steady conduction on the cross-section, and everything else on its boundary.",
+      "body": [
+        "Inside the metal the problem is ordinary: `div(k grad T) = 0`, solved by finite volumes on a grid whose lines land exactly on every fin edge, so the metal-air interface is exact rather than a staircase that moves when you refine.",
+        "**The two-dimensional model here is exact, not a compromise.** Every other exercise in this lab argues that a slice answers the question well enough. An extrusion genuinely repeats along its length, so there is no third dimension of conduction being neglected — the cross-section *is* the problem, and results are per unit depth then scaled by the extrusion length. The one thing it does assume is that the device warms the base evenly along that length.",
+        "What makes the exercise is not the conduction. It is what happens on the exposed surface, and there are two of them."
+      ]
+    },
+    {
+      "id": "convection",
+      "heading": "Why the coefficient is not a constant",
+      "lead": "The air has to fit between the fins, and a fixed number cannot know that.",
+      "body": [
+        "Convection off a surface is usually written `q = h (T − T∞)` with `h` a number you look up. Take that literally here and the model becomes useless in a specific and quiet way: fin area grows with fin count, `h` never changes, so thermal resistance falls for ever. **The model tells you that more fins are always better, right down to fins of zero thickness.** That is not a subtle inaccuracy, it is the opposite of the answer.",
+        "So `h` is computed from the channel the fins leave between them, by the Bar-Cohen and Rohsenow composite relation for vertical parallel plates. Narrow the channel and buoyant air can no longer move through it; `h` collapses faster than the added area grows. Open it right up and each wall stops knowing the other is there, and the relation tends to the isolated-plate result rather than climbing without limit.",
+        "*The fluid itself is still not solved.* There is no velocity field here and no buoyancy pattern — that would be a coupled Navier-Stokes problem costing minutes a run, and this page needs to sweep twenty configurations. The correlation is not a stand-in for that: it is how sinks are actually sized, and computational fluid dynamics is what verifies it afterwards. What the page owes you in exchange is honesty about range, so every run names the correlation it used and says when a parameter has left the band it was fitted over."
+      ]
+    },
+    {
+      "id": "radiation",
+      "heading": "The second heat path, and why it hides",
+      "lead": "Off a bare plate it carries about half the heat. Off a finned sink, a seventh — and the reason is the interesting part.",
+      "body": [
+        "A black-anodised surface near 100 °C radiates about as strongly as still air convects from it. Leave radiation out and the nominal case over-predicts the temperature rise by a tenth, and by more than half once the fins are packed.",
+        "**The air plays no part in this.** Nitrogen and oxygen have no dipole moment, so they neither absorb nor emit in the infrared: the sink radiates *through* the air, not to it. That is what makes radiation affordable here — there is nothing to solve in the fluid, and the whole of it lives on the boundary. Each channel is treated as an enclosure of two fin flanks, the strip of base between them, and a fictitious black surface across the mouth standing for the room. The exchange between them uses view factors that are **exact** in two dimensions, by Hottel's crossed-strings construction — no ray tracing, no sampling error to converge.",
+        "And then the mechanism that matters. As the channel narrows, a fin flank stops seeing the room and starts seeing *the other fin*, at nearly its own temperature. The view factor to the room collapses, and the radiative loss collapses with it. So the fins you added to help convection have quietly suppressed radiation — which is why the page reports the view factor to the room as a number you can watch, rather than only its consequence."
+      ]
+    },
+    {
+      "id": "finish",
+      "heading": "The finish is a design variable",
+      "lead": "Sixteen-fold on emissivity, for no metal at all — but how much it is worth depends on the fins.",
+      "body": [
+        "Mill-finish aluminium has an emissivity near 0.05 and is nearly invisible to radiation. Black anodising takes it to about 0.8, costs nothing in mass, and is a process step rather than a shape.",
+        "It is worth **36 %** of the temperature rise on an unfinned plate and about **8 %** on the tightly finned nominal sink. Not because emissivity matters less there, but because the fins have hidden the surface from the room. The two mechanisms interact rather than adding up, and the useful lesson is that one: past the optimum fin count, adding metal makes the sink *worse* and the finish is the only lever left."
+      ]
+    },
+    {
+      "id": "conditions",
+      "heading": "Boundary conditions",
+      "lead": "Where the heat enters, where it leaves, and what is assumed about the mounting.",
+      "body": [
+        "The device enters as a prescribed flux over its footprint on the underside of the base. The rest of the underside is adiabatic by default, on the assumption the sink is mounted flush against something — a choice the page exposes, because leaving it open is a different sink and the two differ more than people expect.",
+        "Every exposed face carries the sum of both paths: `h (T − T∞)` with `h` from the channel, plus the net radiative flux from the enclosure. The half-cell of conduction between a cell centre and its surface sits in series with the film, which is negligible for aluminium and is not for a poor conductor.",
+        "Because the radiative coefficient goes as the cube of temperature, the whole thing is nonlinear and is solved by iterating to a fixed point, under-relaxed. Every run reports how many passes it took rather than hiding it."
+      ]
+    },
+    {
+      "id": "verification",
+      "heading": "How far to trust it",
+      "lead": "Four checks, and two of them need no reference solution at all.",
+      "body": [
+        "**The view-factor identities are the cheapest and strongest.** Everything leaving a surface must land somewhere, so the rows of the exchange matrix sum to one; and reciprocity ties each pair together through their lengths. Both hold at machine precision for a closed convex enclosure. A matrix failing either is wrong outright — no tolerance to argue about, no reference data to trust. They are computed on every run.",
+        "**The energy balance** compares what the device put in against convection plus radiation out, integrated over the whole exposed boundary. It closes to about one part in ten thousand. A view-factor leak would surface here too, since radiation lost into a badly formed enclosure leaves through this number.",
+        "Away from the page, the method is also checked against one-dimensional fin theory, against the exact parallel-plate and single-surface radiation limits, and against the bare-plate case where the channel disappears entirely. That last one found a real bug: a channel correlation handed a zero gap reported no cooling at all."
+      ]
+    },
+    {
+      "id": "limits",
+      "heading": "What this does not model",
+      "lead": "Stated rather than discovered.",
+      "body": [
+        "**No transient.** Every temperature here is the equilibrium the device settles at, reached after a time this model cannot tell you. Sizing for a duty cycle is a different problem.",
+        "**No flow field.** No velocity, no buoyancy plume, no fin-to-fin interference beyond what the correlation carries, and no way for the correlation to know it has been asked about a geometry nobody fitted it over.",
+        "**No spreading resistance.** The device is assumed to warm the base evenly along the extrusion. A small device on a wide base does not, and that is the natural second version of this page.",
+        "**Grey and diffuse surfaces.** One emissivity at all wavelengths and all angles, with no dependence on temperature or on how thick the anodising is — which in practice varies more than a single number suggests.",
+        "The correlation coefficients and the emissivity values still want a citable source rather than a remembered one. What does not depend on getting them exactly right is the *shape* of the answer: that both heat paths weaken as the channel narrows, and that an optimum therefore exists."
+      ],
+      "caution": true
+    }
+  ]
+}
