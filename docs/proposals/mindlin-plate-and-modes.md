@@ -156,11 +156,14 @@ twice in `P45`. It is not where the risk is, and it is not what this proposal is
 
 ## 6. What is being asked for
 
-1. **Open an issue upstream for the modal solve**, on the pattern of
-   [#100](https://github.com/mandaloriat/fenix-spoon/issues/100): the capability first, the
-   protocol change second, with the room-modes row and the mirror as the two consumers, and the
-   `series.py` table and the `static` assumption as the evidence that the toolkit has already
-   half-agreed.
+1. ~~**Open an issue upstream for the modal solve**~~ — **done**:
+   [fenix-spoon#101](https://github.com/mandaloriat/fenix-spoon/issues/101), on the pattern of
+   [#100](https://github.com/mandaloriat/fenix-spoon/issues/100). It carries the room-modes row
+   and the mirror as the two consumers, the `series.py` table and the `static` assumption as the
+   evidence that the toolkit has already half-agreed, and it keeps the plate element explicitly
+   out of scope. It also names the two things that bite in the solve itself: a *generalised*
+   eigenproblem, and free-free structures — the mirror's singular **K** and its three zero modes
+   are a correctness check, not a nuisance to be filtered away.
 2. **Approve the plate spike in the lab** — the element and the eigen-check against the fifty
    frequencies, and nothing downstream of them.
 3. **Defer the ownership question on the element** until the spike passes, then offer it

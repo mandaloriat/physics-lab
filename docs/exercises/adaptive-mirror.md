@@ -352,7 +352,8 @@ upstream's every time.
    adapter is a forward solve — while the protocol has described the *answer* since 1.5, where
    `series1d`'s own documentation lists "a list of modal frequencies" among the curves it exists
    for. The proposal above argues that gap is Fenix Spoon's rather than the lab's, and that the
-   contract's *Room modes* row is the second consumer that makes the case.
+   contract's *Room modes* row is the second consumer that makes the case — which it now does on
+   the record, at [fenix-spoon#101](https://github.com/mandaloriat/fenix-spoon/issues/101).
 3. **Point mass and point stiffness as parameters.** Forty-five 3×3 blocks are neither
    geometry nor material. [ADR-019](../architecture-decisions.md#adr-019--the-bridge-carries-its-lattice-in-params-because-the-protocol-has-no-network-geometry)
    already set the precedent by carrying the truss lattice in `params`, and this is the same
