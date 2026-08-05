@@ -81,6 +81,11 @@ probably needs none: it is a continuum problem, and upstream's elasticity adapte
 asks for.
 """
 
-from . import airfoil_panel2d, magnetics2d, truss2d  # noqa: F401  - importing registers them
+from . import (  # noqa: F401  - importing registers them
+    airfoil_panel2d,
+    heatsink2d,
+    magnetics2d,
+    truss2d,
+)
 
-__all__: list[str] = ["airfoil_panel2d", "magnetics2d", "truss2d"]
+__all__: list[str] = ["airfoil_panel2d", "heatsink2d", "magnetics2d", "truss2d"]
