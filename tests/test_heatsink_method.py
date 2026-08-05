@@ -13,7 +13,11 @@ has stopped teaching what it claims to teach even if every temperature is still 
 import numpy as np
 import pytest
 
-from physics_lab.solvers.correlations import isolated_plate, natural_convection
+from physics_lab.solvers.correlations import (
+    forced_convection,
+    isolated_plate,
+    natural_convection,
+)
 from physics_lab.solvers.heatsink import (
     KELVIN,
     SIGMA,
@@ -288,6 +292,48 @@ class TestCorrelations:
         one configuration the solver could not do.
         """
         assert natural_convection(0.0, 0.025, 50.0, 298.15).value > 1.0
+
+    def test_forced_mode_still_cools_a_sink_with_no_channel(self):
+        """The same trap as the natural-convection case, in the other branch.
+
+        A duct correlation handed a zero gap returns ``h = 0``, and ``solve`` applies one
+        coefficient to *every* exposed face — so a single-finned sink in forced mode would have
+        had convection switched off across the whole of it, leaving radiation alone to hold the
+        temperature down. The natural-convection branch was fixed when the bare-plate limiting
+        case exposed it; this branch had no limiting case pointing at it and kept the bug.
+        Blowing air at a flat plate cools it, and now it says so.
+        """
+        assert forced_convection(0.0, 0.060, 2.0, 50.0, 298.15).value > 5.0
+
+    def test_a_forced_run_with_one_fin_is_physical(self):
+        """The end-to-end form of the check above, since the unit test alone would not have
+        caught the coefficient being wired to the wrong length."""
+        conditions = Conditions(mode="forced", face_velocity=2.0)
+        one_fin = solve(Profile(fin_count=1), conditions, COARSE)
+        assert one_fin.residuals["energy_balance"] < 1e-3
+        # Forced air over a plate beats still air over the same plate, comfortably.
+        still = solve(Profile(fin_count=1), Conditions(), COARSE)
+        assert one_fin.metrics["t_rise_k"] < still.metrics["t_rise_k"]
+
+    def test_the_forced_flow_length_is_the_depth_not_the_fin_height(self):
+        """Two different lengths in two different directions, and the solve must pick the right
+        one: buoyancy climbs the fins, a fan pushes along the extrusion axis.
+
+        Changing the depth must therefore move the forced coefficient and leave the natural one
+        alone. Nothing else in the geometry distinguishes the two, so this is the assertion that
+        would fail if the arguments were ever swapped back.
+        """
+        shallow = solve(
+            Profile(), Conditions(mode="forced", face_velocity=2.0, depth=0.030), COARSE
+        )
+        deep = solve(
+            Profile(), Conditions(mode="forced", face_velocity=2.0, depth=0.120), COARSE
+        )
+        assert shallow.metrics["h_convective_w_m2k"] != pytest.approx(
+            deep.metrics["h_convective_w_m2k"], rel=1e-3
+        )
+        # A longer duct is a thicker boundary layer, so the coefficient falls.
+        assert deep.metrics["h_convective_w_m2k"] < shallow.metrics["h_convective_w_m2k"]
 
     def test_out_of_range_is_reported_rather_than_extrapolated(self):
         hot_and_wide = natural_convection(0.05, 0.025, 300.0, 298.15)

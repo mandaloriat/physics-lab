@@ -45,18 +45,19 @@ from dataclasses import dataclass
 
 import numpy as np
 
-#: Distances below this (metres) are treated as a shared endpoint rather than a gap. Two
-#: surfaces meeting at a corner — a fin flank and the base strip it stands on — have endpoints
-#: that coincide to round-off, and the intersection test must not be decided by that noise.
-_TOUCH = 1e-12
+#: Surfaces shorter than this (metres) are treated as degenerate and exchange nothing. The one
+#: case that produces them is a channel of zero width — a sink whose fins have closed the gap —
+#: where the enclosure still gets built but has no mouth left to speak of. Dividing by such a
+#: length would return noise scaled by 1e12 rather than the zero the geometry means.
+_MIN_LENGTH = 1e-12
 
 
 @dataclass(frozen=True)
 class Surface:
     """One straight boundary element, with the emissivity of the face it belongs to.
 
-    Endpoint order carries no meaning: :func:`view_factor` decides the crossed pairing from the
-    geometry, so a caller may list the ends either way round.
+    Endpoint order carries no meaning: :func:`view_factor` picks the crossed pairing by string
+    length, so a caller may list the ends either way round.
     """
 
     x1: float
@@ -87,7 +88,7 @@ def view_factor(a: Surface, b: Surface) -> float:
     guarantees. See the module docstring.
     """
     length_a = a.length
-    if length_a <= _TOUCH or b.length <= _TOUCH:
+    if length_a <= _MIN_LENGTH or b.length <= _MIN_LENGTH:
         return 0.0
 
     a1, a2 = (a.x1, a.y1), (a.x2, a.y2)

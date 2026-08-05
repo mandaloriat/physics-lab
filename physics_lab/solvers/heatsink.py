@@ -508,9 +508,12 @@ def solve(
                 conditions.h_override, "override", True, "pinned by the visitor"
             )
         elif conditions.mode == "forced":
+            # The flow length is the extrusion depth, not the fin height: a fan pushes air
+            # along the axis while buoyancy climbs the fins, and the natural-convection branch
+            # below is right to use the other one.
             coefficient = forced_convection(
                 profile.channel_width,
-                profile.fin_height,
+                conditions.depth,
                 conditions.face_velocity,
                 excess,
                 ambient_k,

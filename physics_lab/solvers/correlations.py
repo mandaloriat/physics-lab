@@ -174,14 +174,53 @@ def natural_convection(
     )
 
 
+def flat_plate_forced(
+    flow_length: float,
+    face_velocity: float,
+    surface_excess_k: float,
+    ambient_k: float,
+) -> Coefficient:
+    """External laminar flow over a flat plate: ``Nu_L = 0.664 Re_L^(1/2) Pr^(1/3)``.
+
+    The forced-convection counterpart to :func:`isolated_plate`, and it exists for the same
+    reason: **a sink with no channel is still being blown on.** Handing a duct correlation a zero
+    gap returns ``h = 0``, and because :mod:`physics_lab.solvers.heatsink` applies one
+    coefficient to every exposed face, that would switch convection off across the whole sink
+    and report temperatures with nothing but radiation to hold them down. A single-finned sink
+    in forced mode is a perfectly ordinary thing to ask the page for.
+    """
+    if flow_length <= 0.0 or face_velocity <= 0.0:
+        return Coefficient(0.0, "blasius-plate", False, "no flow")
+
+    air = air_at(ambient_k + 0.5 * max(surface_excess_k, 0.0))
+    reynolds = face_velocity * flow_length / air.kinematic_viscosity
+    nusselt = 0.664 * np.sqrt(reynolds) * air.prandtl ** (1.0 / 3.0)
+
+    valid = reynolds < 5.0e5
+    return Coefficient(
+        value=float(nusselt * air.conductivity / flow_length),
+        correlation="blasius-plate",
+        valid=valid,
+        note=""
+        if valid
+        else f"plate Reynolds number {reynolds:.3g} is past laminar-turbulent transition",
+    )
+
+
 def forced_convection(
     channel_width: float,
-    fin_height: float,
+    flow_length: float,
     face_velocity: float,
     surface_excess_k: float,
     ambient_k: float,
 ) -> Coefficient:
     """Flow forced along the channel, as a duct between parallel plates.
+
+    ``flow_length`` is the distance the air travels *along* the channel, which for an extrusion
+    with a fan behind it is the extrusion **depth** — not the fin height. The two are different
+    lengths in different directions and the distinction is not cosmetic: buoyancy climbs the
+    fins, so :func:`natural_convection` is right to use the fin height, while a fan pushes along
+    the axis. Passing the wrong one gives a plausible coefficient for a problem nobody posed.
 
     Fully developed laminar flow between two isothermal plates gives ``Nu = 7.54`` on the
     hydraulic diameter ``D_h = 2s``, and the entrance region is richer than that, so the
@@ -195,17 +234,22 @@ def forced_convection(
     forced convection, which is the second half of §10's result and the reason the page offers
     both modes rather than one.
     """
-    if channel_width <= 0.0 or fin_height <= 0.0:
-        return Coefficient(0.0, "laminar-duct", False, "no channel: fins touch")
+    if flow_length <= 0.0:
+        return Coefficient(0.0, "laminar-duct", False, "no flow path")
     if face_velocity <= 0.0:
         return Coefficient(0.0, "laminar-duct", False, "no flow")
+    if channel_width <= 0.0:
+        # No channel at all: one fin, or fins thick enough to close the gap. The exposed
+        # surfaces are still in the airstream, so this is external flow over a plate rather
+        # than nothing at all.
+        return flat_plate_forced(flow_length, face_velocity, surface_excess_k, ambient_k)
 
     film_k = ambient_k + 0.5 * max(surface_excess_k, 0.0)
     air = air_at(film_k)
 
     hydraulic_diameter = 2.0 * channel_width
     reynolds = face_velocity * hydraulic_diameter / air.kinematic_viscosity
-    graetz = (hydraulic_diameter / fin_height) * reynolds * air.prandtl
+    graetz = (hydraulic_diameter / flow_length) * reynolds * air.prandtl
 
     nusselt = 7.54 + (0.03 * graetz) / (1.0 + 0.016 * graetz ** (2.0 / 3.0))
 
