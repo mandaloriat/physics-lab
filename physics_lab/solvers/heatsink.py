@@ -221,7 +221,7 @@ def _edges(must_have: list[float], target: float) -> np.ndarray:
     """
     anchors = sorted(set(round(v, 12) for v in must_have))
     lines: list[float] = []
-    for left, right in zip(anchors[:-1], anchors[1:]):
+    for left, right in zip(anchors[:-1], anchors[1:], strict=True):
         span = right - left
         count = max(1, int(np.ceil(span / target)))
         lines.extend(left + span * i / count for i in range(count))
@@ -352,7 +352,7 @@ def _mouth_surfaces(
     top = profile.total_height
     return [
         Surface(a, top, b, top, emissivity=1.0, name="mouth")
-        for a, b in zip(inside[:-1], inside[1:])
+        for a, b in zip(inside[:-1], inside[1:], strict=True)
         if b - a > 1e-12
     ]
 
@@ -498,7 +498,8 @@ def solve(
     passes = 0
     cg_iterations = 0
 
-    for passes in range(1, numerics.max_passes + 1):
+    for pass_index in range(1, numerics.max_passes + 1):
+        passes = pass_index
         wall_k = np.array([temperature_k[f.row, f.col] for f in convective], dtype=float)
         excess = float(np.mean(wall_k)) - ambient_k
 
@@ -526,7 +527,7 @@ def solve(
                     [temperature_k[f.row, f.col] for f in enclosure.faces], dtype=float
                 )
                 flux = enclosure.net_flux(walls, ambient_k)
-                for face, q, t_wall in zip(enclosure.faces, flux, walls):
+                for face, q, t_wall in zip(enclosure.faces, flux, walls, strict=True):
                     radiative_h[id(face)] = q / max(t_wall - ambient_k, _MIN_EXCESS_K)
             for face in convective:
                 if face.kind == "open":
@@ -619,13 +620,13 @@ def _assemble(
     view_area = 0.0
 
     radiative_flux: dict[int, float] = {}
-    for index, enclosure in enclosures.items():
+    for enclosure in enclosures.values():
         walls = np.array(
             [temperature_k[f.row, f.col] for f in enclosure.faces], dtype=float
         )
         flux = enclosure.net_flux(walls, ambient_k)
         views = enclosure.view_to_room()
-        for face, q, view in zip(enclosure.faces, flux, views):
+        for face, q, view in zip(enclosure.faces, flux, views, strict=True):
             radiative_flux[id(face)] = q
             view_weighted += view * face.area
             view_area += face.area

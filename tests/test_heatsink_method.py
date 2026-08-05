@@ -89,8 +89,12 @@ class TestAgainstFinTheory:
         geometry. Driving the fins tall and thin separates the two: the analytic efficiency
         falls a long way, and the solve has to follow it down.
         """
-        stubby = solve(Profile(fin_count=6, fin_height=0.010, fin_thickness=0.003), Conditions(), COARSE)
-        lanky = solve(Profile(fin_count=6, fin_height=0.060, fin_thickness=0.0006), Conditions(), COARSE)
+        stubby = solve(
+            Profile(fin_count=6, fin_height=0.010, fin_thickness=0.003), Conditions(), COARSE
+        )
+        lanky = solve(
+            Profile(fin_count=6, fin_height=0.060, fin_thickness=0.0006), Conditions(), COARSE
+        )
         assert lanky.metrics["fin_efficiency"] < stubby.metrics["fin_efficiency"]
         assert lanky.metrics["fin_efficiency"] < 0.95
 
