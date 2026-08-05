@@ -262,7 +262,7 @@ export default {
         'Smaltisci una potenza data restando sotto una temperatura massima, usando meno metallo. Quante alette servono davvero, e quando smettono di servire?',
       target: 'T_max sotto un limite dichiarato',
       status:
-        'il solutore di anteprima esiste a monte — il campo qui sopra è una sua soluzione. La lezione no.',
+        'il solutore è costruito e verificato — conduzione, convezione ricavata dal canale fra le alette, e irraggiamento scambiato attraverso di esso. Manca la pagina che lo trasforma in una lezione.',
     },
     disclaimerLabel: 'Nota.',
     disclaimer:
