@@ -106,6 +106,17 @@ engineering metrics, verification, saved result.
   that would yield it. It is also the exercise that found the edge of the geometry schema: a
   bar network is neither of the two kinds the protocol has
   ([ADR-019](docs/architecture-decisions.md#adr-019--the-bridge-carries-its-lattice-in-params-because-the-protocol-has-no-network-geometry)).
+- Two more, **specified and not built**, both drawn from the `P45` archive and a 2015 thesis on
+  the servoelastic analysis of an adaptive mirror:
+  **[docs/exercises/capacitive-sensor.md](docs/exercises/capacitive-sensor.md)** — the position
+  sensor whose calibration curve the mirror's controller runs on — and
+  **[docs/exercises/adaptive-mirror.md](docs/exercises/adaptive-mirror.md)**, the mirror itself.
+  Each is blocked on something the toolkit does not have, and on a *different* something, so the
+  two are independent: the sensor wants an axisymmetric geometry kind
+  ([fenix-spoon#100](https://github.com/mandaloriat/fenix-spoon/issues/100)), and the mirror wants
+  a plate element and an eigenvalue solve
+  (**[docs/proposals/mindlin-plate-and-modes.md](docs/proposals/mindlin-plate-and-modes.md)**,
+  which argues those are two asks with different owners rather than one).
 
 ### A page is a bench
 
