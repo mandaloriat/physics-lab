@@ -226,6 +226,9 @@ export default {
     checkedBy: 'Checked by',
     status: 'Status',
     airfoil: {
+      /* Labels inside the guided path's diagrams. Here rather than in `figures.js` so the i18n
+       checker can see them: a hardcoded English string inside an SVG is invisible to every
+       test that only loads a page, and shipped once already. */
       name: 'Airfoil design',
       /* The heading of the card, because it is the thing a visitor can want the answer to
          without already knowing the subject. The subject goes underneath, in `topic`. */
@@ -366,6 +369,29 @@ export default {
   /* --------------------------------------------------------------------------- the airfoil */
 
   airfoil: {
+    /* Labels inside the guided path's diagrams. Here rather than in `figures.js` so the i18n
+       checker can see them: a hardcoded English string inside an SVG is invisible to every test
+       that only loads a page, and shipped once already.
+
+       Kept short on purpose. These name the parts; which digit is which is the chapter's job,
+       one paragraph away. The first draft spelled it out on the drawing too — "2 % camber —
+       the first digit" — and the Italian, a third longer, ran straight out of the viewBox on a
+       phone. A label that has to fit two languages inside a fixed box says one thing. */
+    figures: {
+      flowAria: 'A wing section with the air flowing around it',
+      sliceAria: 'A slice taken through a wing, leaving a section',
+      nacaAria: 'The parts a NACA four-digit number names',
+      faster: 'faster · lower pressure',
+      slower: 'slower · higher pressure',
+      oneSlice: 'one slice',
+      perMetre: 'and everything is per metre of span',
+      chord: 'the chord',
+      firstDigit: '2 % camber',
+      secondDigit: '40 % back',
+      lastTwo: '12 % thick',
+      nose: 'nose',
+      tail: 'tail',
+    },
     title: 'Airfoil design — Spoon Physics',
     description:
       'An airfoil design exercise: hit a lift target under a pitching-moment constraint, with computed fields, engineering metrics and a verification residual on every run.',

@@ -7,6 +7,11 @@
  * is about to be handed. There is no illustration asset in this repository and this is how it
  * stays that way.
  *
+ * The labels are translated like everything else a visitor reads (ADR-020) and live in the
+ * string catalogue rather than here, so `scripts/check-i18n.mjs` can see them — hardcoded
+ * English inside a drawing is exactly the kind of leak that checker exists to catch, and it
+ * shipped in the first draft of this file.
+ *
  * Every figure is `aria-hidden` at the call site, because each one illustrates a paragraph
  * sitting directly beside it — a screen reader that announced both would say the same thing
  * twice. Colours come from the stylesheet's tokens rather than being written in here, so dark
@@ -14,6 +19,7 @@
  * they say which thing a line *is*, which is the rule the overlay palette already follows.
  */
 
+import { t } from '/shared/i18n.js';
 import { svgNode } from '/shared/workspace.js';
 import { meanLine, outline, stations, surfacePoint } from './naca.js';
 
@@ -107,7 +113,7 @@ function text(x, y, content, className, size = 0.055, anchor = 'middle') {
  * so the two never disagree about anything but the frame they are drawn in.
  */
 export function drawFlowFigure(host) {
-  const svg = frame(host, '-0.35 -0.44 1.85 0.88', 'A wing section with the air flowing around it');
+  const svg = frame(host, '-0.35 -0.44 1.85 0.88', t('airfoil.figures.flowAria'));
   const shape = { ...SUBJECT, m: 0.03 };
   /** Angle of attack for the picture, radians. */
   const ALPHA = 0.13;
@@ -151,8 +157,8 @@ export function drawFlowFigure(host) {
 
   // Faster above, slower below — as words, because an arrow labelled "faster" is a claim the
   // reader can check against the streamline spacing right beside it.
-  svg.append(text(0.42, -0.33, 'faster · lower pressure', 'figure__note figure__note--low'));
-  svg.append(text(0.42, 0.39, 'slower · higher pressure', 'figure__note figure__note--high'));
+  svg.append(text(0.42, -0.33, t('airfoil.figures.faster'), 'figure__note figure__note--low'));
+  svg.append(text(0.42, 0.39, t('airfoil.figures.slower'), 'figure__note figure__note--high'));
   return svg;
 }
 
@@ -160,7 +166,7 @@ export function drawFlowFigure(host) {
 
 /** A wing in perspective, the plane that cuts it, and the outline that falls out. */
 export function drawSliceFigure(host) {
-  const svg = frame(host, '0 0 2.4 1.0', 'A slice taken through a wing, leaving a section');
+  const svg = frame(host, '0 0 2.4 1.0', t('airfoil.figures.sliceAria'));
 
   // A wing, in the crudest possible perspective: two chords joined at the tips.
   const root = [
@@ -184,7 +190,7 @@ export function drawSliceFigure(host) {
   // The cutting plane, and where it lands.
   svg.append(
     path('M0.28,0.86 L0.66,0.06 L0.78,0.06 L0.4,0.86 Z', 'figure__plane'),
-    text(0.53, 0.97, 'one slice', 'figure__note'),
+    text(0.53, 0.97, t('airfoil.figures.oneSlice'), 'figure__note'),
   );
 
   // The section it leaves, drawn from the formula rather than sketched.
@@ -192,7 +198,7 @@ export function drawSliceFigure(host) {
   group.append(sectionPath(SUBJECT));
   group.append(path('M0,0 L1,0', 'figure__chord'));
   svg.append(group);
-  svg.append(text(1.78, 0.72, 'and everything is per metre of span', 'figure__note'));
+  svg.append(text(1.78, 0.72, t('airfoil.figures.perMetre'), 'figure__note'));
   svg.append(
     svgNode('path', {
       d: 'M0.86,0.46 L1.2,0.46',
@@ -216,7 +222,7 @@ export function drawSliceFigure(host) {
  * sitting under the nose pointing at nothing.
  */
 export function drawNacaFigure(host) {
-  const svg = frame(host, '-0.16 -0.4 1.36 0.86', 'The parts a NACA four-digit number names');
+  const svg = frame(host, '-0.16 -0.4 1.36 0.86', t('airfoil.figures.nacaAria'));
   const shape = SUBJECT;
   const SIZE = 0.052;
   /** Where the four-digit thickness distribution peaks — always 30 % of the chord. */
@@ -226,7 +232,7 @@ export function drawNacaFigure(host) {
 
   // The chord: nose to tail in a straight line, and what every percentage is a fraction of.
   svg.append(path('M0,0 L1,0', 'figure__chord'));
-  svg.append(text(0.68, 0.075, 'the chord', 'figure__note', SIZE * 0.92));
+  svg.append(text(0.68, 0.075, t('airfoil.figures.chord'), 'figure__note', SIZE * 0.92));
 
   // The mean line, from the same function the solver's geometry reader recovers from an outline.
   svg.append(
@@ -242,7 +248,7 @@ export function drawNacaFigure(host) {
   const peakY = -meanLine(shape.p, shape.m, shape.p).y;
   svg.append(
     path(`M${shape.p},0.115 L${shape.p},${(peakY + 0.012).toFixed(4)}`, 'figure__tick'),
-    text(shape.p, 0.175, '40 % back — the second digit', 'figure__note', SIZE * 0.92),
+    text(shape.p, 0.175, t('airfoil.figures.secondDigit'), 'figure__note', SIZE * 0.92),
     path(
       `M${shape.p},${peakY.toFixed(4)} L${shape.p},-0.17 L${shape.p + 0.09},-0.17`,
       'figure__tick figure__tick--mean',
@@ -250,7 +256,7 @@ export function drawNacaFigure(host) {
     text(
       shape.p + 0.11,
       -0.152,
-      '2 % camber — the first digit',
+      t('airfoil.figures.firstDigit'),
       'figure__note figure__note--mean',
       SIZE,
       'start',
@@ -269,7 +275,7 @@ export function drawNacaFigure(host) {
     text(
       THICKEST + 0.02,
       -0.315,
-      '12 % thick — the last two',
+      t('airfoil.figures.lastTwo'),
       'figure__note figure__note--thick',
       SIZE,
       'middle',
@@ -277,8 +283,8 @@ export function drawNacaFigure(host) {
   );
 
   svg.append(
-    text(-0.02, 0.02, 'nose', 'figure__note', SIZE * 0.92, 'end'),
-    text(1.03, 0.02, 'tail', 'figure__note', SIZE * 0.92, 'start'),
+    text(-0.02, 0.02, t('airfoil.figures.nose'), 'figure__note', SIZE * 0.92, 'end'),
+    text(1.03, 0.02, t('airfoil.figures.tail'), 'figure__note', SIZE * 0.92, 'start'),
   );
   return svg;
 }

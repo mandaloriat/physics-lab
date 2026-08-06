@@ -363,6 +363,21 @@ export default {
   /* -------------------------------------------------------------------- il profilo alare */
 
   airfoil: {
+    figures: {
+      flowAria: 'Una sezione alare con l’aria che le scorre attorno',
+      sliceAria: 'Una fetta tagliata da un’ala, che lascia una sezione',
+      nacaAria: 'Le parti che un numero NACA a quattro cifre nomina',
+      faster: 'più veloce · pressione più bassa',
+      slower: 'più lenta · pressione più alta',
+      oneSlice: 'una fetta',
+      perMetre: 'e tutto è per metro di apertura',
+      chord: 'la corda',
+      firstDigit: '2 % di curvatura',
+      secondDigit: '40 % indietro',
+      lastTwo: '12 % di spessore',
+      nose: 'naso',
+      tail: 'coda',
+    },
     title: 'Progetto di un profilo alare — Spoon Physics',
     description:
       'Un esercizio di progetto di un profilo alare: centra un obiettivo di portanza sotto un vincolo sul momento di beccheggio, con campi calcolati, grandezze ingegneristiche e un residuo di verifica a ogni esecuzione.',
