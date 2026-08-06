@@ -972,6 +972,95 @@ can be automated; what cannot be is whether the Italian is any good.
 
 ---
 
+## ADR-021 — An exercise page opens with a lesson, and the lesson can be skipped
+
+**Decision.** An exercise page may open with a short **guided path**: a few chapters, one at a
+time, above the mission and below the title. Every chapter carries the same control in the same
+place — *Go to the simulator* — and taking it is remembered, so a returning visitor lands on the
+bench. The nine sections of the exercise contract are unchanged and the bench underneath is
+unchanged; what is added is a way in. Shared implementation: `frontend/shared/guide.js`, with
+each exercise's chapters in its own `content.json` and its diagrams in its own `figures.js`.
+
+**Why.** [ADR-017](#adr-017--an-experiment-page-is-a-bench-not-a-document) was right about the
+failure it fixed — 7,664 pixels of page, twelve controls each with a paragraph under it, three
+panels reading "Nothing computed yet", and the field at a ninth of the first screen. It arranged
+the page as one path and made the instrument the subject. What it did not settle is how somebody
+who has never met a wing section gets *in*. The bench answers "what do I do now?" for a reader
+who already knows what the page is about, and answers nothing at all for anybody else: the first
+thing the airfoil page said was *800 N/m of sectional lift, keeping |C_m,c/4| below 0.08*, which
+is a precise, correct sentence and a wall.
+
+That matters because of what this repository is for. The
+[Fenix Spoon](https://github.com/mandaloriat/fenix-spoon) demo already shows what the toolkit
+can do, and does it better, because that is its job. This repository is the **application**, and
+the README says so — *"what this repository contains is the teaching experience on top"*. A
+second showcase would be a duplicate; a lesson is the thing only this side can build.
+
+**The chapters are a path, not a gate.** No modal, no overlay, no focus trap, no scroll lock.
+The guide is a block *above* the instrument and the instrument is in the document the whole
+time, so a visitor who ignores it scrolls past. The skip control sits in the same position on
+every chapter, because one that moves is one that has to be found each time.
+
+**What is in a chapter is prose, and prose is content.** The chapters live in `content.json`
+and `content.it.json` beside the nine sections, so they are reviewed, corrected and translated
+without touching JavaScript, and `scripts/check-i18n.mjs` compares them across languages the way
+it already compares the sections. It gained two rules of its own there: a chapter's `figure`
+names a drawing function and its `presets` carry the incidences the buttons run, so both are
+behaviour rather than prose and a translation that changed either would change what the page
+*does*. (The same commit put `heatsink` back in that script's list of exercises, where it had
+been missing since the release that built it — the checker had been silent about two files
+nobody had told it to look at.)
+
+**The diagrams are generated, not drawn.** `frontend/experiments/airfoil/figures.js` builds its
+sections from `naca.js`, the four-digit formulae the solver is about to be handed, extracted
+from `app.js` for exactly this reason and proved point-for-point identical to what it replaced.
+A hand-tuned curve would be a picture of what somebody believed the formula does. This is the
+same argument that makes the homepage thumbnails real solves rather than illustrations, and it
+caught a real error immediately: the first flow diagram ran its streamlines straight *through*
+the section, which is the precise opposite of what the chapter beside it explains.
+
+**A preset is a click, so it may solve.** The last chapter offers six incidences, and each one
+sets the control and presses Run.
+[ADR-010](#adr-010--public-demo-limits-and-what-they-do-not-cover) forbids solving on load and
+on drag, at 100 jobs an hour shared by everyone; it does not forbid solving when a visitor asks,
+and a preset button is a visitor asking. Two rules follow. The preset writes to the `<input>`
+and lets the control's own handler carry the value into the parameter object, never writing to
+that object directly — the second would leave the field showing one angle while the solver
+received another, which is the failure `app.js` already carries a warning about. And while a
+solve is running the ladder is **disabled with its reason in the tooltip** rather than removed,
+which is ADR-017's rule for the workspace toolbar and is not a workspace rule but a lab rule.
+
+**Three defaults changed with it**, because the page is now something a visitor plays with.
+Streamlines are on from the first result — this page's question *is* how the air gets round the
+section, and a C_p field answers it only for somebody who can already read one. It is asked for
+per page rather than globally, because a solver that publishes no vector field cannot draw one
+and a global default of `true` would be a claim only one page can keep; the wish and the
+possibility stay separate flags, which is the distinction ADR-017 had to learn once already. And
+the panel count went 240 → 320 with the sampling grid 192 → 256, chosen by measuring rather than
+by taste: panels are nearly free (+0.19 s, no payload), while resolution is paid in **bytes**,
+since every grid point ships a speed, a C_p and two velocity components as JSON. 320 × 320 would
+have been 1.6 s and 3.9 MB per solve; 320 panels and 256 points is 1.0 s and 2.5 MB.
+
+**The site's identity gained a second colour, and a rule for it.** `lab.css` used to say "one
+accent colour" and was right while every page was an instrument. Now `--accent` is the
+instrument and `--spark` is the voice that explains: chapters, their numbering, their progress.
+A measured quantity is never violet and a chapter control is never blue, so the handover from
+the story to the bench is visible before it is read. One display face — Fraunces, variable,
+self-hosted because the Caddyfile's CSP says `font-src 'self'` — carries headings and card
+titles and nothing that labels or measures.
+
+**Cost, stated plainly.** A new visitor's first screen is no longer the instrument, which is
+the thing ADR-017 fought for; it is accepted only because the way out is one click, always in
+the same place, and remembered. The homepage cards fold their target and constraint behind a
+disclosure, so the quantities are one click further away than they were. There are now two
+places an exercise's prose lives — chapters and sections — and they overlap on purpose, for two
+different readers; keeping them from drifting is editorial work no script can do. And the guided
+path exists for one exercise out of four, so the other three currently open the way they always
+did. That is honest rather than tidy: their chapters are physics prose to be written, not
+scaffolding to be reused.
+
+---
+
 ## Deferred
 
 Not built, on purpose. Each would have been a plausible use of the kickstart's time; none

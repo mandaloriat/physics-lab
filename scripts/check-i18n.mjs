@@ -21,7 +21,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const FRONTEND = join(ROOT, 'frontend');
-const EXERCISES = ['airfoil', 'solenoid', 'truss'];
+/* Every exercise with a `content.json`. The heat sink was missing from this list from the
+   release that built it until ADR-021, so its two content files were the only ones in the lab
+   nothing compared — which is the failure mode a checker has: it is silent about what it was
+   never told to look at. Adding a page here is part of adding a page. */
+const EXERCISES = ['airfoil', 'solenoid', 'truss', 'heatsink'];
 
 const problems = [];
 const fail = (message) => problems.push(message);
@@ -152,17 +156,53 @@ for (const exercise of EXERCISES) {
   ) {
     fail(`${exercise}/content.it.json states a different verification gate`);
   }
+  const count = (entry) => (entry.body ?? entry.steps ?? []).length;
+
   for (const [index, section] of source.sections.entries()) {
     const other = translated.sections[index];
     if (Boolean(section.caution) !== Boolean(other.caution)) {
       fail(`${exercise}: section "${section.id}" is a caution in one language and not the other`);
     }
-    const count = (entry) => (entry.body ?? entry.steps ?? []).length;
     if (count(section) !== count(other)) {
       fail(
         `${exercise}: section "${section.id}" has ${count(section)} paragraphs in English and ` +
           `${count(other)} in Italian`,
       );
+    }
+  }
+
+  /* The guided path (ADR-021), under the same rule as the sections, plus one of its own.
+     A chapter's `figure` names a drawing function the page supplies, and its `presets` carry
+     the incidences the buttons run — both are behaviour rather than prose, so a translation
+     that changed either would change what the page *does*, which is exactly the failure this
+     file exists to catch. The notes beside the presets are prose and may differ freely. */
+  const guide = (content) => content.guide ?? [];
+  const chapters = (content) =>
+    guide(content)
+      .map((chapter) => chapter.id)
+      .join(',');
+  if (chapters(source) !== chapters(translated)) {
+    fail(`${exercise}/content.it.json has different guide chapters from content.json`);
+  }
+  for (const [index, chapter] of guide(source).entries()) {
+    const other = guide(translated)[index];
+    if (count(chapter) !== count(other)) {
+      fail(
+        `${exercise}: guide chapter "${chapter.id}" has ${count(chapter)} paragraphs in English ` +
+          `and ${count(other)} in Italian`,
+      );
+    }
+    if ((chapter.figure ?? null) !== (other.figure ?? null)) {
+      fail(`${exercise}: guide chapter "${chapter.id}" names a different figure per language`);
+    }
+    const alphas = (entry) => (entry.presets ?? []).map((preset) => preset.alpha).join(',');
+    if (alphas(chapter) !== alphas(other)) {
+      fail(`${exercise}: guide chapter "${chapter.id}" offers different presets per language`);
+    }
+    for (const preset of other.presets ?? []) {
+      if (!preset.note) {
+        fail(`${exercise}: guide chapter "${chapter.id}" has a preset with no note in Italian`);
+      }
     }
   }
 }

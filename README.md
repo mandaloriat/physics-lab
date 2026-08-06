@@ -84,6 +84,18 @@ numbers can be trusted. Every page has the same nine sections: problem, model, b
 conditions, initial conditions *only* where the problem is transient, physical inputs, fields,
 engineering metrics, verification, saved result.
 
+An exercise is still an exercise when it has a door. The airfoil page opens with a short
+**guided path** — how the air holds a wing up, why what you are looking at is a two-dimensional
+slice, what the four digits of a NACA number mean, and then six angles of attack to press — and
+every chapter carries the same *Go to the simulator* control, which is remembered so a second
+visit lands on the bench. It adds nothing to the nine sections and removes nothing from them; it
+exists because *"800 N/m of sectional lift, keeping |C_m,c/4| below 0.08"* is a precise, correct
+sentence and a wall for anybody who has never met a wing section. The Fenix Spoon demo already
+shows what the toolkit can do; the lesson is the thing only this side can build
+([ADR-021](docs/architecture-decisions.md#adr-021--an-exercise-page-opens-with-a-lesson-and-the-lesson-can-be-skipped)).
+The other three pages open the way they always did — their chapters are physics prose still to
+be written.
+
 - The contract every page implements: **[docs/exercise-contract.md](docs/exercise-contract.md)**
   ([ADR-013](docs/architecture-decisions.md#adr-013--the-pages-become-exercises-not-demonstrations)).
 - The first one, specified and built: **[docs/exercises/airfoil.md](docs/exercises/airfoil.md)**.

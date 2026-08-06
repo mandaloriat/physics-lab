@@ -305,6 +305,27 @@ export default {
 
   /* ---------------------------------------------------- markup shared by every bench page */
 
+  /* ------------------------------------------- the guided path an exercise page opens with */
+
+  guide: {
+    /* The heading of the whole block, for screen readers; the chapters carry the visible ones. */
+    heading: 'Before you start',
+    chapterOf: 'Chapter {n} of {total}',
+    goToChapter: 'Chapter {n}: {title}',
+    next: 'Next',
+    back: 'Back',
+    backWhy: 'This is the first chapter.',
+    /* Deliberately the same wording on the skip control and on the last chapter's button: they
+       do the same thing, and giving one of them a different name would suggest otherwise. */
+    skip: 'Go to the simulator →',
+    finish: 'Go to the simulator →',
+    reopen: 'Read the explanation again',
+    /* Why a preset cannot run at this instant. Never a missing button — ADR-017's rule. */
+    presetBusy: 'A solve is already running. It will be ready in a moment.',
+    presetNoSolver: 'This server has no solver for this exercise.',
+    presetPaused: 'New simulations are suspended for maintenance.',
+  },
+
   bench: {
     mission: 'The mission',
     widgetsMissing:

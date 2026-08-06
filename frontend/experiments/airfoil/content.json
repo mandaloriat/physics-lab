@@ -29,6 +29,55 @@
     },
     "next_step": "a different profile at a different incidence"
   },
+  "guide": [
+    {
+      "id": "lift",
+      "heading": "How the air holds a wing up",
+      "figure": "flow",
+      "body": [
+        "Put a flat hand out of a car window and tilt it. It lifts. Nothing about the hand changed — what changed is the way the air has to get around it, and that is the whole subject of this page.",
+        "Air arriving at a tilted shape cannot go through it, so it goes round. Over the top it has to speed up, and **where air speeds up, its pressure falls**. Underneath it slows down and presses harder. The shape is pushed from below more than from above, and that difference, added up over the whole surface, is the **lift**.",
+        "You may have been told that the air on top has further to travel and hurries to catch up with the air underneath. That story is **wrong**: the two parcels never meet again, and the one that went over the top arrives first. What actually decides the speed over the top is the **circulation** — a single number describing how much the flow as a whole turns around the section — and picking it correctly is the one thing the model on this page has to be told how to do."
+      ]
+    },
+    {
+      "id": "section",
+      "heading": "What you are looking at is a slice",
+      "figure": "slice",
+      "body": [
+        "A real wing is a three-dimensional object. It has a span, it has a tip, and at that tip the high pressure underneath leaks around to the low pressure on top and rolls up into a trailing vortex.",
+        "None of that is here. This page takes a **slice** through the wing, far from any tip, and studies the outline that slice leaves behind — the **section**. Everything reported is therefore **per metre of span**: the target is 800 newtons per metre, not 800 newtons.",
+        "That is also why there is no wingspan among the controls. A span would imply a model that has tips, downwash and induced drag, and this one has none of them. Not offering the input is more honest than offering it and quietly ignoring it."
+      ]
+    },
+    {
+      "id": "naca",
+      "heading": "What those four digits mean",
+      "figure": "naca",
+      "body": [
+        "A section is built from two things: a **mean line**, the curve running nose to tail exactly halfway between the upper and lower surfaces, and a **thickness** wrapped symmetrically around it. Choose those two and you have chosen the shape.",
+        "The NACA four-digit family names precisely that. In **NACA 2412**, the first digit is the greatest height of the mean line above the chord — **2 %** of the chord. The second is where along the chord that highest point sits, in tenths — **4**, so 40 % of the way back. The last two are the greatest thickness — **12 %** of the chord.",
+        "So a **0009** starts with a zero: no camber at all, a symmetric section, and no lift whatsoever at zero incidence. A **4412** is cambered twice as hard as the 2412, lifts more at the same angle, and charges for it in pitching moment — which is exactly the constraint this exercise is built around."
+      ]
+    },
+    {
+      "id": "play",
+      "heading": "Now tilt it yourself",
+      "body": [
+        "The **angle of attack** is the angle between the section and the air arriving at it. It is the fastest way to watch everything in the last three chapters happen at once.",
+        "Each button below sets that angle and computes the flow — a real solve on the server, not an animation, which is why it takes a moment. Watch three things while it lands: the streamlines crowding together over the upper surface, the blue suction that appears there, and the lift the page reports underneath.",
+        "The exercise asks for 800 newtons per metre. None of these six buttons gets there: the answer is between two of them, and finding it is the exercise."
+      ],
+      "presets": [
+        { "alpha": -2, "note": "almost nothing: 16 N/m" },
+        { "alpha": 0, "note": "still lifting: 253 N/m" },
+        { "alpha": 2, "note": "491 N/m" },
+        { "alpha": 4, "note": "728 N/m — close" },
+        { "alpha": 6, "note": "964 N/m — too far" },
+        { "alpha": 8, "note": "1199 N/m, and a fierce suction peak" }
+      ]
+    }
+  ],
   "sections": [
     {
       "id": "problem",

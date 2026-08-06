@@ -106,6 +106,11 @@ export function viewerCapabilities(viewer) {
  * @param {() => ([number, number, number, number]|null)} [spec.subject] the bounding box the
  *   fit action frames, in domain coordinates — the profile, the magnet, whatever the page is
  *   actually about
+ * @param {boolean} [spec.streamlines] start with streamlines on, for a page whose subject
+ *   *is* the flow. Per page rather than global on purpose: a solver that publishes no vector
+ *   field cannot draw one, so a global default of `true` would be a claim about every page
+ *   that only one of them can keep. Asking for them here is a wish, not a promise — the tool
+ *   still refuses, with its reason, until a result arrives that can support it.
  */
 export function createWorkspace(spec) {
   const { root, viewer, editor = null } = spec;
@@ -122,7 +127,16 @@ export function createWorkspace(spec) {
     zoom: 1,
     density: 24,
     vectors: false,
-    streamlines: false,
+    /**
+     * Whether the visitor wants streamlines — which is a different question from whether any
+     * can be drawn, and keeping the two apart is the whole trick. ADR-017 records the bug
+     * that came of conflating them: a layer asked for while unavailable stayed off after
+     * becoming available, because "turned off" and "impossible" were one flag. Here the wish
+     * lives in this field and the possibility lives in the tool's `available()`, so a page
+     * that opens asking for streamlines gets them the moment a result can support them, and a
+     * visitor who switches them off keeps them off across every solve after.
+     */
+    streamlines: spec.streamlines === true,
     /** Overlay layers the page declared, by id, and whether each is on. */
     layers: new Map(),
     pinned: null,

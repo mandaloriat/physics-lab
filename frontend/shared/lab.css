@@ -1803,6 +1803,346 @@ input:focus-visible {
   display: none;
 }
 
+/* -------------------------------------------------- the guided path (ADR-021)
+ *
+ * The lesson an exercise page opens with. Everything here is violet, and nothing outside here
+ * is: `--spark` marks the voice that explains, `--accent` marks the instrument, and the change
+ * of colour is how a visitor sees the handover from the story to the bench before reading a
+ * word of it. No measured quantity appears in this block, which is what makes that rule
+ * keepable.
+ */
+
+.guide {
+  margin: 1.25rem 0 1.5rem;
+}
+
+.guide--folded {
+  margin: 0.5rem 0 1rem;
+}
+
+.guide__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+
+.guide__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A dot is a jump to a chapter, so it is a button and not a decoration. 12 px is small for a
+   target, so the hit area is padded out around it rather than the dot being grown. */
+.guide__dot {
+  display: block;
+  width: 0.7rem;
+  height: 0.7rem;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  cursor: pointer;
+  box-sizing: content-box;
+}
+
+.guide__dot.is-done {
+  background: color-mix(in srgb, var(--spark) 45%, transparent);
+  border-color: transparent;
+}
+
+.guide__dot.is-current {
+  background: var(--spark);
+  border-color: transparent;
+  transform: scale(1.25);
+}
+
+.guide__count {
+  margin: 0;
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* The way out. Pushed to the far end of the bar so it is in the same place on every chapter —
+   a skip control a visitor has to look for each time is not a way out. */
+.guide__skip {
+  margin-left: auto;
+  border-color: color-mix(in srgb, var(--spark) 45%, var(--line-strong));
+  color: var(--spark-ink);
+  font-weight: 560;
+}
+
+.guide__skip:hover {
+  background: var(--spark-soft);
+}
+
+.guide__chapter {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--spark);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  padding: 1.15rem 1.35rem 1.25rem;
+}
+
+.guide__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+}
+
+.guide__number {
+  margin: 0;
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  color: color-mix(in srgb, var(--spark) 70%, transparent);
+}
+
+.guide__heading {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: clamp(1.2rem, 1rem + 0.8vw, 1.55rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Focused on every chapter change so a screen reader is told the content underneath was
+   replaced. Visible only when the focus came from the keyboard, so a mouse user never sees a
+   ring appear on a heading they did not click. */
+.guide__heading:focus {
+  outline: none;
+}
+
+/* The site header is sticky, so a heading scrolled to by `focus()` would land underneath it.
+   Its min-height is 58px; this clears that and a little air. */
+.guide__heading {
+  scroll-margin-top: 5rem;
+}
+
+.guide__heading:focus-visible {
+  outline: 2px solid var(--spark);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.guide__body {
+  max-width: var(--measure);
+}
+
+.guide__body p:last-child {
+  margin-bottom: 0;
+}
+
+.guide__figure {
+  margin: 0.9rem 0 1.1rem;
+  padding: 0.75rem;
+  background: var(--surface-sunken);
+  border-radius: var(--radius);
+}
+
+.guide__figure .figure {
+  display: block;
+  width: 100%;
+  max-height: 15rem;
+}
+
+.guide__nav {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+
+.guide__nav .primary {
+  background: var(--spark);
+  border-color: var(--spark);
+}
+
+.guide__nav .primary:hover {
+  background: var(--spark-ink);
+  border-color: var(--spark-ink);
+}
+
+/* The preset ladder. A value and a one-line consequence, because a row of bare angles asks a
+   visitor to guess what each one is for. A grid rather than a wrapping row: the notes differ
+   in length by three to one, and flex-wrapping them leaves a ragged 3-2-1 staircase that reads
+   as an accident. */
+.guide__presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr));
+  gap: 0.55rem;
+  margin: 1.1rem 0 0;
+}
+
+.guide__preset {
+  display: grid;
+  gap: 0.1rem;
+  justify-items: start;
+  align-content: start;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-color: color-mix(in srgb, var(--spark) 35%, var(--line-strong));
+}
+
+.guide__preset:hover:not(:disabled) {
+  background: var(--spark-soft);
+  border-color: var(--spark);
+}
+
+.guide__preset-value {
+  font-size: 1.05rem;
+  font-weight: 620;
+  color: var(--spark-ink);
+}
+
+.guide__preset:disabled .guide__preset-value {
+  color: inherit;
+}
+
+.guide__preset-note {
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+/* Folded: one line, and a way back into the chapters for anyone who wants them after all. */
+.guide__folded {
+  margin: 0;
+}
+
+.guide__reopen {
+  border-style: dashed;
+  color: var(--spark-ink);
+  font-size: 0.85rem;
+}
+
+.guide__reopen:hover {
+  background: var(--spark-soft);
+}
+
+/* ---- the chapter diagrams. Identity, never magnitude — the overlay palette's own rule. */
+
+.figure__section {
+  fill: var(--ink);
+  stroke: none;
+}
+
+.figure__section--open {
+  fill: color-mix(in srgb, var(--ink) 12%, transparent);
+  stroke: var(--ink);
+  stroke-width: 0.006;
+  vector-effect: non-scaling-stroke;
+}
+
+.figure__stream {
+  fill: none;
+  stroke: var(--overlay-streamline);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.55;
+}
+
+.figure__stream--near {
+  opacity: 1;
+  stroke-width: 1.8;
+}
+
+.figure__chord {
+  stroke: var(--overlay-chord);
+  stroke-width: 1.4;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+
+.figure__mean {
+  stroke: var(--spark);
+  stroke-width: 1.8;
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+
+.figure__tick {
+  stroke: var(--ink-soft);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+
+.figure__tick--thick {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.figure__tick--mean {
+  stroke: var(--spark);
+  stroke-dasharray: 3 3;
+}
+
+.figure__wing {
+  fill: color-mix(in srgb, var(--ink) 14%, transparent);
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.figure__wing-edge {
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+
+.figure__plane {
+  fill: color-mix(in srgb, var(--spark) 22%, transparent);
+  stroke: var(--spark);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.figure__arrow {
+  stroke: var(--ink-soft);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+
+.figure__arrowhead {
+  fill: var(--ink-soft);
+}
+
+/* Labels sit inside a `viewBox` measured in chord units, so their size is set per figure as
+   an attribute rather than here: these boxes differ in width by more than two to one, and one
+   CSS size renders as a caption in the widest and a headline in the narrowest. */
+.figure__note {
+  font-family: var(--font-text);
+  fill: var(--ink-soft);
+}
+
+.figure__note--low {
+  fill: var(--accent-ink);
+}
+
+.figure__note--high {
+  fill: var(--core);
+}
+
+.figure__note--mean {
+  fill: var(--spark-ink);
+}
+
+.figure__note--thick {
+  fill: var(--accent-ink);
+}
+
 /* ---------------------------------------------------------------- didactics */
 
 /* Understand the model: every word kept, folded away from the experiment.

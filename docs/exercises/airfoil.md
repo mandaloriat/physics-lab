@@ -398,9 +398,9 @@ class Params(BaseModel):
     sound_speed: float = Field(default=340.29, gt=0.0)
     kutta: Literal["enforced", "none"] = "enforced"
     # numerical
-    panels: int = Field(default=240, ge=40, le=400)   # see 7.1
+    panels: int = Field(default=320, ge=40, le=400)   # see 7.1
     trailing_edge: Literal["closed", "as_drawn"] = "closed"
-    resolution: int = Field(default=192, ge=16, le=512)   # sampling grid for the field
+    resolution: int = Field(default=256, ge=16, le=512)   # sampling grid for the field
     convergence_check: bool = True                        # also solve at 2N, report the delta
     # study
     sweep_from_deg: float | None = None
@@ -428,11 +428,24 @@ separately.
 ### 7.1 Panels
 
 *N* panels, cosine-clustered towards the leading edge and the trailing edge, resampled from
-the submitted outline. **Default 240**, chosen against the measured consistency residual of
+the submitted outline. **Default 320**, chosen against the measured consistency residual of
 §8.4 rather than by eye: at 160 panels that residual is 1.6 % against a 2 % tolerance, which
-leaves no room, and at 240 it is 1.0 % at the worst incidence and 0.5 % at the interesting
-ones. 40 is visibly coarse and 400 is past the point where anything moves. The *only* legitimate effect of this control is on the
-verification residuals, and the page says so where it is rendered.
+leaves no room. 40 is visibly coarse and 400 is past the point where anything moves. The *only*
+legitimate effect of this control is on the verification residuals, and the page says so where
+it is rendered.
+
+The default was 240 until [ADR-021](../architecture-decisions.md#adr-021--an-exercise-page-opens-with-a-lesson-and-the-lesson-can-be-skipped),
+and was raised because the page became something a visitor plays with rather than reads once.
+Measured on the page's own NACA 2412 outline, 240 → 320 costs **+0.19 s and no payload at all**
+— the influence matrix is (*N*+1)² of arithmetic and trivial beside the field sampling — and
+buys about a quarter off every residual:
+
+| | 240 panels | 320 panels |
+|---|---|---|
+| Lift two ways, 5.4° | 0.33 % | **0.25 %** |
+| Lift two ways, 12° | 0.22 % | **0.16 %** |
+| Panel convergence, 5.4° | 0.31 % | **0.24 %** |
+| d'Alembert, 5.4° | 1.2e−4 | **2.2e−5** |
 
 ### 7.2 Domain truncation (FEniCSx variant only)
 
@@ -556,7 +569,7 @@ twice:
 Report `cl_consistency_rel` = |Δ*C<sub>L</sub>*| / max(|*C<sub>L</sub>*|, 0.05). The two routes
 share the solution but not the arithmetic, so panelling error, a sign convention mistake or a
 misapplied Kutta condition breaks their agreement. Tolerance 2 %, and it is the residual the
-challenge gates on. Measured 0.5 % at the default 240 panels, falling by half for each
+challenge gates on. Measured 0.25 % at the default 320 panels, falling by half for each
 doubling — the pressure route is the first-order one, because it integrates a C_p that varies
 fastest exactly where the panels are shortest.
 
@@ -571,7 +584,7 @@ integral is a midpoint approximation to it. Their difference is reported too, as
 The chordwise component of the integrated pressure force must be zero. The residual
 `cd_pressure_spurious` is therefore **not a drag coefficient but an error bar** — and the page
 labels it that way, in the row where a visitor would otherwise look for drag. Tolerance 0.002;
-measured 1.6e−5 for a NACA 2412 at 5.4° and 240 panels.
+measured 2.2e−5 for a NACA 2412 at 5.4° and the default 320 panels.
 
 With `kutta: none` the lift is zero identically — it is not integrated at all, it is
 `-gamma * perimeter` with `gamma` fixed at zero — but the *pressure* residual for that model
@@ -586,7 +599,7 @@ non-lifting model is excluded from the challenge for this reason as well as for 
 
 With `convergence_check` on, the same geometry is also solved at 2*N* panels (cheap: one more
 factorisation) and `cl_convergence_delta` = |*C<sub>L</sub>*(2*N*) − *C<sub>L</sub>*(*N*)| is
-reported. Tolerance 0.5 %; measured 0.15 % for a NACA 2412 at 5.4° between 120 and 240 panels.
+reported. Tolerance 0.5 %; measured 0.24 % for a NACA 2412 at 5.4° between 320 and 640 panels.
 It is the weakest of the six on its own and the page says so — it shows the discretisation has
 settled, not that it settled on the truth.
 
@@ -715,8 +728,8 @@ each line names what is checked and against what.
 | 9 | Centre of pressure absent, not infinite, when *C<sub>N</sub>* → 0 | — | reported as `null` |
 | 10 | `kutta: none` gives zero lift at every incidence | 1e−12 | exact |
 | 11 | `kutta: none` trailing-edge peak deepens without limit, and the Kutta condition removes it | — | −13 → −141 |
-| 12 | Circulation-vs-pressure consistency, and that it *falls* with panel count | 2 % | 0.5 % at 240 |
-| 13 | Panel convergence, 240 → 480 | 0.5 % | 0.15 % |
+| 12 | Circulation-vs-pressure consistency, and that it *falls* with panel count | 2 % | 0.25 % at 320 |
+| 13 | Panel convergence, 320 → 640 | 0.5 % | 0.24 % |
 | 14 | *x<sub>ac</sub>*/*c* from a sweep | 0.02 of 0.25 | 0.262, *R*² 0.9997 |
 | 15 | A sweep equals the same angles solved one at a time | 1e−12 | identical, 10× faster |
 | 16 | The profile reads the same in any frame (rotated 30°, translated) | 1e−6 | passes |

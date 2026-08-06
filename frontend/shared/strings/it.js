@@ -308,6 +308,21 @@ export default {
 
   /* ----------------------------------------------------- il guscio comune alle pagine banco */
 
+  guide: {
+    heading: 'Prima di cominciare',
+    chapterOf: 'Capitolo {n} di {total}',
+    goToChapter: 'Capitolo {n}: {title}',
+    next: 'Avanti',
+    back: 'Indietro',
+    backWhy: 'Questo è il primo capitolo.',
+    skip: 'Vai al simulatore →',
+    finish: 'Vai al simulatore →',
+    reopen: 'Rileggi la spiegazione',
+    presetBusy: 'Un calcolo è già in corso. Fra un attimo è pronto.',
+    presetNoSolver: 'Questo server non ha un solutore per questo esercizio.',
+    presetPaused: 'Le nuove simulazioni sono sospese per manutenzione.',
+  },
+
   bench: {
     mission: 'La missione',
     widgetsMissing:
