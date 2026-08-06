@@ -553,13 +553,6 @@ async function run() {
 }
 
 /**
- * Tell the guided path whether its preset buttons may act, and why not when they may not.
- *
- * Called on both edges of a solve rather than only on the way in, because `run()` can leave
- * through its `catch` as easily as through its happy path and a preset left disabled after a
- * failed solve would be a dead control with a stale reason on it.
- */
-/**
  * Build the guided path, if this exercise's content file carries one.
  *
  * The chapters are prose and live in `content.json`; the drawings are code and live in
@@ -585,6 +578,13 @@ function mountGuide() {
   syncGuidePresets();
 }
 
+/**
+ * Tell the guided path whether its preset buttons may act, and why not when they may not.
+ *
+ * Called on both edges of a solve rather than only on the way in, because `run()` can leave
+ * through its `catch` as easily as through its happy path, and a preset left disabled after a
+ * failed solve would be a dead control with a stale reason on it.
+ */
 function syncGuidePresets() {
   if (!guide) return;
   if (running) guide.setPresetsAvailable({ ok: false, why: t('guide.presetBusy') });

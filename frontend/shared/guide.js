@@ -82,7 +82,6 @@ function remember(key, value) {
  * @param {(alpha: number) => void} [spec.onPreset] run this incidence
  * @param {() => void} [spec.onSkip] called when the visitor leaves for the instrument, so the
  *   page can scroll it into view — the guide does not know where the bench is
- * @param {string} [spec.presetUnit] what a preset value is measured in, for its label
  * @returns {{folded: boolean, setPresetsAvailable: (state: {ok: boolean, why?: string}) => void}}
  */
 export function createGuide(spec) {

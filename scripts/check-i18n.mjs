@@ -199,9 +199,20 @@ for (const exercise of EXERCISES) {
     if (alphas(chapter) !== alphas(other)) {
       fail(`${exercise}: guide chapter "${chapter.id}" offers different presets per language`);
     }
-    for (const preset of other.presets ?? []) {
-      if (!preset.note) {
-        fail(`${exercise}: guide chapter "${chapter.id}" has a preset with no note in Italian`);
+    /* Both languages, not just the translation. A preset's note is what tells a visitor what
+       that angle is *for*, and a missing one renders as nothing at all rather than as a
+       visible gap — `el` skips a `text: undefined`. English is the source, so an omission
+       there is the likelier one and was the one this loop did not look at. */
+    for (const [language, entry] of [
+      ['English', chapter],
+      ['Italian', other],
+    ]) {
+      for (const preset of entry.presets ?? []) {
+        if (!preset.note) {
+          fail(
+            `${exercise}: guide chapter "${chapter.id}" has a preset with no note in ${language}`,
+          );
+        }
       }
     }
   }

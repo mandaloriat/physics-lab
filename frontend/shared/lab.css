@@ -1828,18 +1828,28 @@ input:focus-visible {
   margin-bottom: 0.6rem;
 }
 
+/* The gap is 0.8rem so that the dots' *hit areas* — extended 0.4rem past each edge below —
+   meet rather than overlap. Overlapping targets are worse than small ones: the press lands on
+   whichever element happens to be on top, which is not the one under the finger. Measured,
+   they meet at exactly 0 px, except on either side of the current dot, which is scaled up by
+   a quarter and so reaches 1.6 px into its neighbour — a dot you are already on, stealing a
+   sliver from one you are not. */
 .guide__progress {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.8rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* A dot is a jump to a chapter, so it is a button and not a decoration. 12 px is small for a
-   target, so the hit area is padded out around it rather than the dot being grown. */
+/* A dot is a jump to a chapter, so it is a button and not a decoration — and 11 px is far too
+   small to press with a thumb. Padding cannot fix it, because the background paints the
+   padding box and the dot would simply become large. The hit area is therefore an invisible
+   `::after` that reaches 0.4rem past every edge: 11.2 px of dot plus 12.8 px of reach is a
+   24 px target, the minimum WCAG 2.5.8 asks for, while the thing you see stays a dot. */
 .guide__dot {
+  position: relative;
   display: block;
   width: 0.7rem;
   height: 0.7rem;
@@ -1849,6 +1859,13 @@ input:focus-visible {
   background: var(--surface-raised);
   cursor: pointer;
   box-sizing: content-box;
+}
+
+.guide__dot::after {
+  content: '';
+  position: absolute;
+  inset: -0.4rem;
+  border-radius: inherit;
 }
 
 .guide__dot.is-done {
