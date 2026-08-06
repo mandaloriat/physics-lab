@@ -312,6 +312,17 @@ The field lists above are read off the pinned checkout rather than off a changel
 
 ## 7. The exercises
 
+**The number a page shows is its row in this table.** The airfoil's eyebrow reads *Exercise 1*,
+the magnetic circuit's *Exercise 3*, the bridge's *Exercise 4* and the heat sink's *Exercise 5*
+— which is why the sequence has a gap at 2 rather than a page missing. Stated because it was not
+written down anywhere and had to be inferred from three pages agreeing, and because **the two
+`P45` specifications number themselves independently**: `capacitive-sensor.md` calls itself
+Exercise 5 and `adaptive-mirror.md` calls itself Exercise 6, while their rows here are 7 and 8.
+Those two numbers are a pair of cross-references between two documents that were drafted
+together, and they are left alone deliberately — renumbering them would touch a dozen citations
+to fix a collision that only exists if you assume one numbering governs both places. It does
+not. **This table governs what a page displays; nothing else does.**
+
 | Exercise | Challenge | Metrics | Verification | State |
 |---|---|---|---|---|
 | **Airfoil design** | Hit a target sectional lift by choosing profile and incidence | *C<sub>p</sub>*, *C<sub>L</sub>*, *C<sub>m</sub>*, centre of pressure, aerodynamic centre; *C<sub>D</sub>* and *L*/*D* only at model level 2 | Thin-airfoil theory, exact Kármán–Trefftz and cylinder solutions, circulation-vs-pressure consistency, panel convergence | **built**: [`exercises/airfoil.md`](exercises/airfoil.md) |

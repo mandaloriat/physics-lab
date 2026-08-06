@@ -253,9 +253,11 @@ export default {
       name: 'Heat sink',
       problem:
         'Dissipate a given power below a maximum temperature, using less metal. How many fins actually help, and when do they stop?',
-      target: 'T_max under a stated limit',
-      status:
-        'the solver is built and verified — conduction, convection taken from the channel between the fins, and radiation exchanged through it. The page that turns it into a lesson is next.',
+      target: 'T_max < 95 °C on ≤ 170 g',
+      youSet: 'fin count, height and thickness, the base, the finish, the cooling',
+      checked:
+        'an energy balance over both heat paths, and view-factor identities that hold exactly',
+      cta: 'Cool a device →',
     },
     disclaimerLabel: 'Note.',
     disclaimer:
@@ -883,6 +885,130 @@ export default {
       area: 'A m²',
       deck: 'deck kN/m',
       joint: 'joint check',
+    },
+  },
+  heatsink: {
+    title: 'The heat sink — Spoon Physics',
+    description:
+      'A thermal design exercise: keep a power device below its rating on a mass budget, with conduction, convection taken from the channel between the fins and radiation exchanged through it — and find the fin count where adding more starts making it worse.',
+    eyebrow: 'Exercise 5 · steady conduction with convection and radiation',
+    heading: 'The heat sink',
+    schematicTitle: 'Heat sink cross-section: a finned base with the device footprint underneath',
+    legendMetal: 'aluminium',
+    legendAir: 'air',
+    legendFootprint: 'device footprint',
+    resetGeometry: 'Reset geometry',
+    advancedNote: 'numerics, and two model switches',
+    switchesNote:
+      'The last two are different: they change the model rather than the error. Turning radiation off, or pinning the convection coefficient, is how you see what the simpler model would have told you — and every run that uses one says so.',
+    twoPaths:
+      'The radiative fraction and the view factor to the room are reported together on purpose. The first is how much radiation is worth here; the second is why. Pack the fins and watch both fall — the fins added to help convection have hidden the metal from the room.',
+    sweepHeading: 'Where the fins stop helping',
+    sweepLead:
+      'The same sink at every fin count, everything else held. Resistance falls while added surface wins, flattens, and climbs once the channels are too narrow for the air and the fins have started shading each other from the room.',
+    runSweep: 'Sweep the fin count',
+    sweepIdle: 'Nothing swept yet. One solve cannot show a turning point.',
+    sweepNote:
+      'Best at {best} fins — {value} K/W, against {worst} K/W at the crowded end. Both heat paths weaken as the channel narrows, and the curve turns where their loss overtakes the area gained.',
+    sweepEdge:
+      'The minimum sits at the edge of the range swept, so the turning point is outside it. Change the fin height or thickness and sweep again.',
+    shapeNote: 'Channel {channel} mm · about {mass} g of aluminium.',
+    shapeOverlap:
+      '{count} fins of this thickness do not fit across the 60 mm base — they would overlap. Thin the fins or use fewer.',
+    ready: 'Ready. Press Run.',
+    noSolver: 'No heat-sink solver is available on this server.',
+    noSolverHere: 'This server has no heat-sink solver, so nothing can be run here.',
+    maintenanceAlternative: 'the specification, which carries the model and every check in full',
+    design: {
+      finCount: 'Fins',
+      finCountTitle:
+        'How many fins across the base. The one control with a best value rather than a direction.',
+      finHeight: 'Fin height',
+      finHeightTitle:
+        'Taller fins add surface, and lose efficiency as the metal struggles to keep the tip as warm as the root.',
+      finThickness: 'Fin thickness',
+      finThicknessTitle:
+        'Thicker fins conduct better and are heavier, and they eat the channel the air has to pass through.',
+      baseThickness: 'Base thickness',
+      baseThicknessTitle:
+        'Spreads the device heat sideways before it reaches the fins. Cheap in resistance, expensive in mass.',
+      power: 'Device power',
+      powerTitle: 'What the device dissipates, spread evenly along the extrusion.',
+      ambient: 'Ambient',
+      ambientTitle: 'Air temperature, and the temperature of the room the sink radiates to.',
+      footprint: 'Device footprint',
+      footprintTitle:
+        'Contact width on the underside of the base. A smaller device concentrates the flux.',
+      finish: 'Surface finish',
+      finishHint:
+        'Sets the emissivity. Sixteen-fold from mill to black anodised, for no metal at all — but worth much less on a tightly finned sink, where the fins have hidden the surface from the room.',
+      cooling: 'Cooling',
+      coolingHint:
+        'Still air, or a fan along the extrusion. The best fin count is not the same one.',
+      velocity: 'Air speed',
+      velocityTitle: 'Face velocity along the channels.',
+      flush: 'Mounted flush',
+      flushHint:
+        'With the underside blocked by the mounting, it loses nothing. Unticked, the base cools from below as well.',
+    },
+    finish: {
+      mill: 'Mill finish (ε ≈ 0.05)',
+      clear_anodised: 'Clear anodised (ε ≈ 0.6)',
+      black_anodised: 'Black anodised (ε ≈ 0.8)',
+    },
+    cooling: {
+      natural: 'Natural convection',
+      forced: 'Forced — a fan',
+    },
+    derived: {
+      channel: 'Channel between fins',
+      area: 'Exposed surface',
+      mass: 'Aluminium',
+      flux: 'Flux under the device',
+    },
+    params: {
+      cellSize: 'Mesh cell',
+      radiation: 'Radiation on',
+      hOverride: 'Pin the coefficient',
+    },
+    metrics: {
+      tMax: 'Peak temperature',
+      tRise: 'Rise above ambient',
+      resistance: 'Thermal resistance',
+      mass: 'Mass',
+      score: 'Resistance × mass',
+      efficiency: 'Fin efficiency',
+      radiative: 'Radiative share',
+      viewFactor: 'View factor to room',
+      h: 'Convection coefficient',
+      flux: 'Peak conductive flux',
+    },
+    checks: {
+      energy: 'Energy balance',
+      energyTitle:
+        'What the device put in, against convection plus radiation out over the whole exposed boundary. Radiation lost into a badly formed enclosure would leave through this number too.',
+    },
+    fields: {
+      temperature: 'Temperature',
+      temperatureHint:
+        'The metal only. The air was never solved, and is masked out rather than drawn at some sentinel value.',
+      flux: 'Conductive flux',
+      fluxHint:
+        'k|grad T| inside the metal — where it crowds is where the metal is working, which is where a fin is worth thickening.',
+    },
+    fitProfile: 'Fit profile',
+    columns: {
+      profile: 'profile',
+      mass: 'mass kg',
+      radiative: 'rad. share',
+      energy: 'energy',
+    },
+    shapeLabel: '{fins} fins · {height} mm tall · {thickness} mm thick · {base} mm base',
+    plots: {
+      finCount: 'fins',
+      resistance: 'R_θ (K/W)',
+      radiative: 'radiative share',
+      best: 'best',
     },
   },
 };

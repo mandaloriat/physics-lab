@@ -37,6 +37,13 @@ const EXPERIMENTS = [
     script: { selector: '#lattice-note', text: 'nodi' },
     lesson: 'nodi cerniera',
   },
+  {
+    name: 'heatsink',
+    heading: /^Il dissipatore$/,
+    markup: { selector: '#sweep-heading', text: 'alette' },
+    script: { selector: '#shape-note', text: 'Canale' },
+    lesson: 'corde incrociate',
+  },
 ];
 
 test('the homepage reads in English until the switch is used', async ({ page }) => {
