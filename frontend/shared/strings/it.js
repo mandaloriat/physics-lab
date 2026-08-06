@@ -262,7 +262,8 @@ export default {
         'Smaltisci una potenza data restando sotto una temperatura massima, usando meno metallo. Quante alette servono davvero, e quando smettono di servire?',
       target: 'T_max < 95 °C con ≤ 170 g',
       youSet: 'numero, altezza e spessore delle alette, la base, la finitura, il raffreddamento',
-      checked: 'un bilancio energetico su entrambe le strade del calore, e identità sui fattori di vista che valgono esattamente',
+      checked:
+        'un bilancio energetico su entrambe le strade del calore, e identità sui fattori di vista che valgono esattamente',
       cta: 'Raffredda un componente →',
     },
     disclaimerLabel: 'Nota.',
@@ -912,56 +913,65 @@ export default {
       'Un esercizio di progetto termico: tieni un componente di potenza sotto la sua temperatura limite con un budget di massa, fra conduzione, convezione ricavata dal canale fra le alette e irraggiamento scambiato attraverso di esso — e trova il numero di alette oltre il quale aggiungerne peggiora le cose.',
     eyebrow: 'Esercizio 5 · conduzione stazionaria con convezione e irraggiamento',
     heading: 'Il dissipatore',
-    schematicTitle: 'Sezione del dissipatore: base alettata con sotto l\'impronta del componente',
+    schematicTitle: "Sezione del dissipatore: base alettata con sotto l'impronta del componente",
     legendMetal: 'alluminio',
     legendAir: 'aria',
     legendFootprint: 'impronta del componente',
     resetGeometry: 'Ripristina geometria',
     advancedNote: 'numerica, e due interruttori di modello',
     switchesNote:
-      'Gli ultimi due sono diversi: cambiano il modello, non l\'errore. Spegnere l\'irraggiamento, o fissare il coefficiente di convezione, serve a vedere cosa ti avrebbe detto il modello più semplice — e ogni run che li usa lo dichiara.',
+      "Gli ultimi due sono diversi: cambiano il modello, non l'errore. Spegnere l'irraggiamento, o fissare il coefficiente di convezione, serve a vedere cosa ti avrebbe detto il modello più semplice — e ogni run che li usa lo dichiara.",
     twoPaths:
-      'La quota radiativa e il fattore di vista verso la stanza sono riportati insieme di proposito. Il primo dice quanto vale qui l\'irraggiamento; il secondo dice perché. Infittisci le alette e guardali scendere entrambi: le alette aggiunte per aiutare la convezione hanno nascosto il metallo alla stanza.',
+      "La quota radiativa e il fattore di vista verso la stanza sono riportati insieme di proposito. Il primo dice quanto vale qui l'irraggiamento; il secondo dice perché. Infittisci le alette e guardali scendere entrambi: le alette aggiunte per aiutare la convezione hanno nascosto il metallo alla stanza.",
     sweepHeading: 'Dove le alette smettono di aiutare',
     sweepLead:
-      'Lo stesso dissipatore a ogni numero di alette, tenendo fermo tutto il resto. La resistenza scende finché la superficie aggiunta vince, si appiattisce, e risale quando i canali sono troppo stretti per l\'aria e le alette hanno cominciato a farsi ombra a vicenda.',
+      "Lo stesso dissipatore a ogni numero di alette, tenendo fermo tutto il resto. La resistenza scende finché la superficie aggiunta vince, si appiattisce, e risale quando i canali sono troppo stretti per l'aria e le alette hanno cominciato a farsi ombra a vicenda.",
     runSweep: 'Percorri il numero di alette',
-    sweepIdle: 'Ancora nessuna scansione. Una sola soluzione non può mostrare un punto di inversione.',
+    sweepIdle:
+      'Ancora nessuna scansione. Una sola soluzione non può mostrare un punto di inversione.',
     sweepNote:
-      'Migliore a {best} alette — {value} K/W, contro {worst} K/W all\'estremo affollato. Entrambe le strade del calore si indeboliscono quando il canale si stringe, e la curva gira dove la loro perdita supera l\'area guadagnata.',
+      "Migliore a {best} alette — {value} K/W, contro {worst} K/W all'estremo affollato. Entrambe le strade del calore si indeboliscono quando il canale si stringe, e la curva gira dove la loro perdita supera l'area guadagnata.",
     sweepEdge:
-      'Il minimo cade al bordo dell\'intervallo percorso, quindi il punto di inversione è fuori. Cambia altezza o spessore delle alette e riprova.',
+      "Il minimo cade al bordo dell'intervallo percorso, quindi il punto di inversione è fuori. Cambia altezza o spessore delle alette e riprova.",
     shapeNote: 'Canale {channel} mm · circa {mass} g di alluminio.',
     shapeOverlap:
       '{count} alette di questo spessore non ci stanno sui 60 mm di base — si sovrapporrebbero. Assottigliale o riducine il numero.',
     ready: 'Pronto. Premi Esegui.',
     noSolver: 'Su questo server non è disponibile nessun solutore per dissipatori.',
-    noSolverHere: 'Questo server non ha un solutore per dissipatori, quindi qui non si può eseguire nulla.',
+    noSolverHere:
+      'Questo server non ha un solutore per dissipatori, quindi qui non si può eseguire nulla.',
     maintenanceAlternative: 'la specifica, che riporta per intero il modello e ogni verifica',
     design: {
       finCount: 'Alette',
-      finCountTitle: 'Quante alette sulla base. L\'unico controllo che ha un valore migliore invece di una direzione.',
+      finCountTitle:
+        "Quante alette sulla base. L'unico controllo che ha un valore migliore invece di una direzione.",
       finHeight: 'Altezza aletta',
-      finHeightTitle: 'Alette più alte aggiungono superficie, e perdono efficienza quando il metallo fatica a tenere la punta calda quanto la radice.',
+      finHeightTitle:
+        'Alette più alte aggiungono superficie, e perdono efficienza quando il metallo fatica a tenere la punta calda quanto la radice.',
       finThickness: 'Spessore aletta',
-      finThicknessTitle: 'Alette più spesse conducono meglio e pesano di più, e mangiano il canale in cui deve passare l\'aria.',
+      finThicknessTitle:
+        "Alette più spesse conducono meglio e pesano di più, e mangiano il canale in cui deve passare l'aria.",
       baseThickness: 'Spessore base',
-      baseThicknessTitle: 'Distribuisce lateralmente il calore del componente prima che raggiunga le alette. Costa poco in resistenza e molto in massa.',
+      baseThicknessTitle:
+        'Distribuisce lateralmente il calore del componente prima che raggiunga le alette. Costa poco in resistenza e molto in massa.',
       power: 'Potenza del componente',
-      powerTitle: 'Quello che il componente dissipa, distribuito uniformemente lungo l\'estrusione.',
+      powerTitle: "Quello che il componente dissipa, distribuito uniformemente lungo l'estrusione.",
       ambient: 'Ambiente',
-      ambientTitle: 'Temperatura dell\'aria, e della stanza verso cui il dissipatore irraggia.',
+      ambientTitle: "Temperatura dell'aria, e della stanza verso cui il dissipatore irraggia.",
       footprint: 'Impronta del componente',
-      footprintTitle: 'Larghezza di contatto sotto la base. Un componente più piccolo concentra il flusso.',
+      footprintTitle:
+        'Larghezza di contatto sotto la base. Un componente più piccolo concentra il flusso.',
       finish: 'Finitura superficiale',
       finishHint:
-        'Fissa l\'emissività. Sedici volte dal grezzo all\'anodizzato nero, senza un grammo di metallo — ma vale molto meno su un dissipatore fitto, dove le alette hanno nascosto la superficie alla stanza.',
+        "Fissa l'emissività. Sedici volte dal grezzo all'anodizzato nero, senza un grammo di metallo — ma vale molto meno su un dissipatore fitto, dove le alette hanno nascosto la superficie alla stanza.",
       cooling: 'Raffreddamento',
-      coolingHint: 'Aria ferma, o una ventola lungo l\'estrusione. Il numero di alette migliore non è lo stesso.',
-      velocity: 'Velocità dell\'aria',
+      coolingHint:
+        "Aria ferma, o una ventola lungo l'estrusione. Il numero di alette migliore non è lo stesso.",
+      velocity: "Velocità dell'aria",
       velocityTitle: 'Velocità frontale lungo i canali.',
       flush: 'Montato a contatto',
-      flushHint: 'Con la faccia inferiore bloccata dal montaggio, non perde nulla da lì. Senza spunta, la base raffredda anche di sotto.',
+      flushHint:
+        'Con la faccia inferiore bloccata dal montaggio, non perde nulla da lì. Senza spunta, la base raffredda anche di sotto.',
     },
     finish: {
       mill: 'Grezzo di laminazione (ε ≈ 0,05)',
@@ -985,11 +995,11 @@ export default {
     },
     metrics: {
       tMax: 'Temperatura massima',
-      tRise: 'Salita sull\'ambiente',
+      tRise: "Salita sull'ambiente",
       resistance: 'Resistenza termica',
       mass: 'Massa',
       score: 'Resistenza × massa',
-      efficiency: 'Efficienza d\'aletta',
+      efficiency: "Efficienza d'aletta",
       radiative: 'Quota radiativa',
       viewFactor: 'Fattore di vista verso la stanza',
       h: 'Coefficiente di convezione',
@@ -998,13 +1008,15 @@ export default {
     checks: {
       energy: 'Bilancio energetico',
       energyTitle:
-        'Quello che il componente ha immesso, contro convezione più irraggiamento in uscita su tutto il bordo esposto. Anche l\'irraggiamento disperso in una cavità mal formata uscirebbe da questo numero.',
+        "Quello che il componente ha immesso, contro convezione più irraggiamento in uscita su tutto il bordo esposto. Anche l'irraggiamento disperso in una cavità mal formata uscirebbe da questo numero.",
     },
     fields: {
       temperature: 'Temperatura',
-      temperatureHint: 'Solo il metallo. L\'aria non è mai stata risolta, ed è mascherata invece che disegnata a un valore convenzionale.',
+      temperatureHint:
+        "Solo il metallo. L'aria non è mai stata risolta, ed è mascherata invece che disegnata a un valore convenzionale.",
       flux: 'Flusso conduttivo',
-      fluxHint: 'k|grad T| dentro il metallo — dove si infittisce è dove il metallo sta lavorando, ed è lì che conviene ispessire un\'aletta.',
+      fluxHint:
+        "k|grad T| dentro il metallo — dove si infittisce è dove il metallo sta lavorando, ed è lì che conviene ispessire un'aletta.",
     },
     fitProfile: 'Inquadra il profilo',
     columns: {

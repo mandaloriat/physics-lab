@@ -36,22 +36,26 @@ test('the homepage leads with the problems, and shows a real field for each', as
   await expect(page.locator('.disclaimer')).toContainText('not a substitute for');
 
   // Every available experiment is reachable from the homepage.
-  for (const experiment of ['airfoil', 'solenoid', 'truss']) {
+  for (const experiment of ['airfoil', 'solenoid', 'truss', 'heatsink']) {
     await expect(
       page.locator(`.card--available a[href="/experiments/${experiment}/"]`).first(),
     ).toBeVisible();
   }
-  // What is still planned must read as planned, not as a broken link.
-  await expect(page.locator('.card--planned')).toHaveCount(1);
+  // What is still planned must read as planned, not as a broken link. The count used to be
+  // pinned at one, which was a fact about the release that wrote it rather than about the
+  // page: the heat sink was the last planned card and building it made the assertion false.
+  // What must hold at any count, including none, is that a planned card is not a link.
   await expect(page.locator('.card--planned a')).toHaveCount(0);
 
   // Every card carries a stated quantity and a concrete invitation, not a paragraph of prose.
   await expect(page.locator('.card--available .card__facts').first()).toContainText('800 N/m');
   await expect(page.locator('.card--available .card__facts').nth(1)).toContainText('4.5 mWb/m');
   await expect(page.locator('.card--available .card__facts').nth(2)).toContainText('2400 kg');
+  await expect(page.locator('.card--available .card__facts').nth(3)).toContainText('170 g');
   await expect(page.getByRole('link', { name: /Design an airfoil/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /Design a magnetic circuit/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /Build a bridge/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Cool a device/ })).toBeVisible();
 
   // The thumbnails are real solves committed by scripts/make-thumbnails.py, so they must
   // actually load — a broken one is a card that says nothing at all.
@@ -565,7 +569,7 @@ test('no slider combination can build a geometry the protocol would refuse', asy
   }
 });
 
-for (const experiment of ['airfoil', 'solenoid', 'truss']) {
+for (const experiment of ['airfoil', 'solenoid', 'truss', 'heatsink']) {
   test(`the ${experiment} page offers no Run button until it knows it can solve`, async ({
     page,
   }) => {

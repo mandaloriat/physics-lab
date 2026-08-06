@@ -228,8 +228,7 @@ function buildChoiceControls(container) {
     'select',
     { id: 'choice-finish' },
     ...['mill', 'clear_anodised', 'black_anodised'].map(
-      (value) =>
-        new Option(t(`heatsink.finish.${value}`), value, false, choices.finish === value),
+      (value) => new Option(t(`heatsink.finish.${value}`), value, false, choices.finish === value),
     ),
   );
   finish.addEventListener('change', () => {
@@ -265,14 +264,22 @@ function buildChoiceControls(container) {
     el(
       'div',
       { class: 'field' },
-      el('label', { class: 'field__label', for: 'choice-finish' }, el('span', { text: t('heatsink.design.finish') })),
+      el(
+        'label',
+        { class: 'field__label', for: 'choice-finish' },
+        el('span', { text: t('heatsink.design.finish') }),
+      ),
       finish,
       el('span', { class: 'field__hint', text: t('heatsink.design.finishHint') }),
     ),
     el(
       'div',
       { class: 'field' },
-      el('label', { class: 'field__label', for: 'choice-cooling' }, el('span', { text: t('heatsink.design.cooling') })),
+      el(
+        'label',
+        { class: 'field__label', for: 'choice-cooling' },
+        el('span', { text: t('heatsink.design.cooling') }),
+      ),
       cooling,
       el('span', { class: 'field__hint', text: t('heatsink.design.coolingHint') }),
     ),
@@ -375,10 +382,20 @@ function currentParams(extra = {}) {
 /* ------------------------------------------------------------------ the schematic */
 
 /** Channel width in millimetres — the quantity the correlation is evaluated on. */
+/**
+ * The gap between two fins, in millimetres, and never a negative one.
+ *
+ * Ask for more fin than there is base and the arithmetic goes below zero, which is not a narrow
+ * channel — it is a profile that does not exist. Returning the raw number let it reach the
+ * derived readout and the schematic, so the page showed a channel of minus two millimetres and
+ * drew the line backwards while correctly telling the visitor the fins overlap. Two answers to
+ * the same question, one of them nonsense. `finsFit` is what callers ask when they need to know
+ * *whether* there is a channel; this returns how wide it is when there is one.
+ */
 function channelWidth() {
   const n = Math.round(shape.finCount);
   if (n < 2) return 0;
-  return (60 - n * shape.finThickness) / (n - 1);
+  return Math.max(0, (60 - n * shape.finThickness) / (n - 1));
 }
 
 function finsFit() {
@@ -407,9 +424,16 @@ function applyShape() {
   const half = shape.footprint / 2;
   setLine(dom.footprint, 30 - half, 0, 30 + half, 0);
   // The channel, drawn once between the first pair as the gap the air has to fit through.
-  if (n > 1) {
+  // Only when there is one: an overlapping profile has no gap to annotate.
+  if (n > 1 && finsFit()) {
     const left = shape.finThickness;
-    setLine(dom.channel, left, shape.baseThickness + shape.finHeight / 2, left + channelWidth(), shape.baseThickness + shape.finHeight / 2);
+    setLine(
+      dom.channel,
+      left,
+      shape.baseThickness + shape.finHeight / 2,
+      left + channelWidth(),
+      shape.baseThickness + shape.finHeight / 2,
+    );
     dom.channel.removeAttribute('hidden');
   } else {
     dom.channel.setAttribute('hidden', '');
@@ -418,7 +442,9 @@ function applyShape() {
   // The viewBox follows the profile, so a 5 mm fin and an 80 mm fin are both legible.
   const top = shape.baseThickness + shape.finHeight;
   dom.schematic.setAttribute('viewBox', `-4 ${(-top - 4).toFixed(1)} 68 ${(top + 8).toFixed(1)}`);
-  dom.schematic.querySelector('g').setAttribute('transform', `translate(0, ${(-top).toFixed(3)}) scale(1, -1)`);
+  dom.schematic
+    .querySelector('g')
+    .setAttribute('transform', `translate(0, ${(-top).toFixed(3)}) scale(1, -1)`);
 
   dom.shapeNote.textContent = finsFit()
     ? t('heatsink.shapeNote', {
@@ -447,16 +473,33 @@ function setLine(node, x1, y1, x2, y2) {
 /** Aluminium 6063, the adapter's default. Shown before a run so the budget is visible while
  *  the sliders move, rather than only after the solve has spent it. */
 function estimatedMass() {
-  const area = (60 * shape.baseThickness + Math.round(shape.finCount) * shape.finThickness * shape.finHeight) / 1e6;
+  const area =
+    (60 * shape.baseThickness + Math.round(shape.finCount) * shape.finThickness * shape.finHeight) /
+    1e6;
   return 2700 * area * 0.06;
 }
 
 function renderDerived() {
   dom.derived.replaceChildren(
-    ...entry(t('heatsink.derived.channel'), `${num(channelWidth(), { maximumFractionDigits: 2 })} mm`),
-    ...entry(t('heatsink.derived.area'), `${num(exposedArea() * 1e4, { maximumFractionDigits: 0 })} cm²`),
-    ...entry(t('heatsink.derived.mass'), `${num(estimatedMass() * 1000, { maximumFractionDigits: 0 })} g`),
-    ...entry(t('heatsink.derived.flux'), `${num(shape.power / (shape.footprint * 0.06 / 1000), { maximumFractionDigits: 0 })} W/m²`),
+    // An em dash rather than a number wherever the profile does not exist: a quantity with no
+    // value is said to have none, which is the same rule the run table follows for a metric the
+    // solver withheld.
+    ...entry(
+      t('heatsink.derived.channel'),
+      finsFit() ? `${num(channelWidth(), { maximumFractionDigits: 2 })} mm` : '—',
+    ),
+    ...entry(
+      t('heatsink.derived.area'),
+      `${num(exposedArea() * 1e4, { maximumFractionDigits: 0 })} cm²`,
+    ),
+    ...entry(
+      t('heatsink.derived.mass'),
+      `${num(estimatedMass() * 1000, { maximumFractionDigits: 0 })} g`,
+    ),
+    ...entry(
+      t('heatsink.derived.flux'),
+      `${num(shape.power / ((shape.footprint * 0.06) / 1000), { maximumFractionDigits: 0 })} W/m²`,
+    ),
   );
 }
 
@@ -521,8 +564,18 @@ const CHECKS = [
 ];
 
 const FIELD_VIEW = {
-  T: { label: t('heatsink.fields.temperature'), units: '°C', colormap: 'inferno', hint: t('heatsink.fields.temperatureHint') },
-  flux: { label: t('heatsink.fields.flux'), units: 'W/m²', colormap: 'viridis', hint: t('heatsink.fields.fluxHint') },
+  T: {
+    label: t('heatsink.fields.temperature'),
+    units: '°C',
+    colormap: 'inferno',
+    hint: t('heatsink.fields.temperatureHint'),
+  },
+  flux: {
+    label: t('heatsink.fields.flux'),
+    units: 'W/m²',
+    colormap: 'viridis',
+    hint: t('heatsink.fields.fluxHint'),
+  },
 };
 
 /* --------------------------------------------------------------------- the state */

@@ -54,7 +54,10 @@ def test_homepage_names_the_experiments_and_carries_the_disclaimer(client):
     planned = re.findall(r'<li class="card card--planned">.*?</li>', body)
     for card in planned:
         assert "In preparation" in card
-        assert "/experiments/" not in card
+        # No link at all, rather than no link to an experiment. A planned card pointing
+        # somewhere else is the same broken promise wearing a different href.
+        assert "<a" not in card
+        assert "href" not in card
     # The tagline is the product's claim and is not negotiable wording (ADR-016).
     assert "Interactive problems. Computed fields. Checkable answers." in body
     assert "not a substitute for professional engineering verification" in body
