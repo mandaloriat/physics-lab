@@ -361,6 +361,7 @@ every page is arranged as one path:
 
 | Step | Carries |
 |---|---|
+| **0 Learn** *(optional, skippable)* | Nothing from the nine sections. A short guided path of chapters for a visitor who does not yet know the subject, ending in an invitation to run something. Present only where an exercise has been given one; skipped from any chapter, and the skip is remembered. See [ADR-021](architecture-decisions.md#adr-021--an-exercise-page-opens-with-a-lesson-and-the-lesson-can-be-skipped) |
 | **1 Mission** | §1 — the objective, the targets with their tolerances, the constraints, pass/fail per target, and — separately — why a run does not count when the numbers are right but the model is not |
 | **2 Configure** | §5, in two visible groups (*Design*, *Conditions*) plus *Advanced*, closed, holding the numerical settings and the study |
 | **3 Run** | a stable action bar: Run, Cancel while solving, Keep result afterwards, Compare once rows exist |
@@ -369,7 +370,7 @@ every page is arranged as one path:
 | **6 Keep and compare** | §9 |
 | **7 Understand the model** | §2, §3, §4 and the reasoning behind §5–§8, in collapsible blocks |
 
-Two rules the arrangement adds to the contract:
+Three rules the arrangement adds to the contract:
 
 - **Nothing internal reaches the screen.** A target is stated in the metric's *symbol* — `L′`,
   `C_m,c/4` — not in the key the report stores it under. The keys stay in the export, where they
@@ -377,6 +378,11 @@ Two rules the arrangement adds to the contract:
 - **A section with nothing in it does not exist yet.** Before the first run the reporting
   sections are absent, not empty. A panel reading "Nothing computed yet" occupies the position
   where an answer will be and teaches the visitor to skip it.
+- **Step 0 adds nothing to §1–§9 and removes nothing from them.** It is a way in, not a section:
+  an exercise with a guided path and one without contain exactly the same nine things and report
+  exactly the same numbers. A chapter that stated a target, a metric or a residual would be
+  duplicating a section rather than introducing it, and the duplicate is the copy that goes
+  stale.
 
 ---
 

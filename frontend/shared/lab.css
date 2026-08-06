@@ -1,14 +1,41 @@
 /* Spoon Physics — the whole visual identity, in one file.
  *
  * Restrained on purpose. The audience is a curious teenager, a student, or an adult who
- * likes physics — not a buyer of enterprise software and not a child. So: one accent
- * colour, generous line length limits, real typographic hierarchy, tabular numerals for
- * anything measured, and no illustration where a diagram would do.
+ * likes physics — not a buyer of enterprise software and not a child. So: generous line
+ * length limits, real typographic hierarchy, tabular numerals for anything measured, and
+ * no illustration where a diagram would do.
  *
  * Fenix Spoon's own pages are plain system-font documents with a single blue accent;
  * this stays in that family rather than inventing a second identity for a project built
  * on top of it.
+ *
+ * **Two colours, and they mean different things** (ADR-021). This file used to say "one
+ * accent colour", and that was right while every page was an instrument. Now the pages
+ * open with a lesson, and a lesson and a measurement are not the same kind of thing:
+ * `--accent` (blue) is the instrument — controls, links, anything that acts on the solve —
+ * and `--spark` (violet) is the voice that explains — chapters, their numbering, their
+ * progress. A measured number is never violet and a chapter control is never blue, so a
+ * visitor can see the handover from the story to the bench before reading a word of it.
  */
+
+/* The one downloaded face on the site. Self-hosted because the Caddyfile's CSP says
+   `font-src 'self'`, so a CDN would be blocked in production and work in development —
+   the worst way to find out. `font-display: swap` and a real serif fallback in the stack
+   are what keep it an improvement rather than a dependency: if it never arrives, the page
+   is styled, just less characterful. Only the `latin` subset ships (67 kB), which covers
+   English, Italian, the prime in L′ and the currency signs; anything outside it falls back
+   to the next family in the stack. Fraunces is under the SIL Open Font Licence — see
+   assets/fonts/OFL.txt, which travels with it because the licence requires it. */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/assets/fonts/fraunces-variable.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 :root {
   color-scheme: light dark;
@@ -16,14 +43,23 @@
   --ink: #14181f;
   --ink-soft: #4a5464;
   --ink-faint: #6b7686;
-  --surface: #ffffff;
-  --surface-sunken: #f4f6f9;
+  /* Paper, not screen. The page is a warm off-white and a card is pure white on top of it,
+     so a card lifts without needing a shadow — this file draws none and has no reason to
+     start. The sunken tone follows the same hue rather than the old blue-grey, which read
+     cold beside a photograph of a computed field. */
+  --surface: #fdfcfa;
+  --surface-sunken: #f5f2ec;
   --surface-raised: #ffffff;
-  --line: #dde2ea;
-  --line-strong: #c3ccd8;
+  --line: #e2ddd4;
+  --line-strong: #c8c1b5;
   --accent: #2563eb;
   --accent-soft: #eaf0fe;
   --accent-ink: #1d4ed8;
+  /* The narrative colour. Only the guided path may use it: chapter numbers, the progress
+     dots, the skip control. Never a measured quantity — see the header note. */
+  --spark: #7b3fe4;
+  --spark-soft: #f3edfd;
+  --spark-ink: #6027cd;
   --warn: #b45309;
   --warn-soft: #fdf4e3;
   --ok: #15803d;
@@ -52,9 +88,12 @@
   --overlay-streamline: #7ee0d3;
 
   --radius: 8px;
-  --radius-lg: 12px;
+  --radius-lg: 14px;
   --measure: 68ch;
 
+  /* Headings and card titles only. Never a number: a measured quantity stays monospaced and
+     tabular, which is the rule this file has had from the start. */
+  --font-display: 'Fraunces', Georgia, 'Iowan Old Style', 'Times New Roman', serif;
   --font-text:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
@@ -73,6 +112,11 @@
     --accent: #6b9bff;
     --accent-soft: #1a2438;
     --accent-ink: #9dbcff;
+    /* Lightened well past the light-mode violet: on a near-black surface #7b3fe4 is a
+       smudge rather than a colour, and the chapter numbering has to stay legible. */
+    --spark: #b494ff;
+    --spark-soft: #211a33;
+    --spark-ink: #cbb5ff;
     --warn: #e0a14a;
     --warn-soft: #2a2116;
     --ok: #5bbd7f;
@@ -133,12 +177,25 @@ h3 {
   font-weight: 620;
 }
 
+/* The display face carries the voice, so it goes where the page speaks — the title of a
+   page, of a chapter, of a card — and nowhere it merely labels. `font-optical-sizing: auto`
+   is what makes a variable Fraunces worth shipping: the same file draws a 2.5rem headline
+   and a 1.1rem card title with different letterforms, tightened for the size each is at. */
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 h1 {
-  font-size: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
+  font-size: clamp(1.9rem, 1.25rem + 2.3vw, 2.75rem);
+  line-height: 1.15;
 }
 
 h2 {
-  font-size: clamp(1.2rem, 1rem + 0.8vw, 1.5rem);
+  font-size: clamp(1.25rem, 1rem + 0.9vw, 1.6rem);
 }
 
 h3 {
@@ -188,7 +245,10 @@ code {
   display: inline-flex;
   align-items: baseline;
   gap: 0.5rem;
-  font-weight: 640;
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 1.12rem;
+  font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--ink);
   text-decoration: none;
@@ -315,20 +375,34 @@ html[data-lang-pending] body {
 /* ---------------------------------------------------------------- hero + cards */
 
 .hero {
-  padding: 3rem 0 1rem;
+  padding: 3.5rem 0 1.25rem;
+}
+
+/* The product's claim, in the fixed wording ADR-016 settled on. It sits above the heading
+   because the heading is now an invitation, and a page can invite and still say what it is. */
+.hero__tagline {
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 620;
 }
 
 .hero .lede {
-  font-size: 1.12rem;
+  font-size: 1.14rem;
   color: var(--ink-soft);
-  max-width: var(--measure);
+  max-width: 60ch;
 }
 
+/* Two up on a desktop rather than three. With four exercises, three columns leave the fourth
+   card alone on a row looking like an afterthought; two give an even block and a thumbnail
+   big enough to read as the picture of a real solve, which is the whole reason it is there. */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-  gap: 1.25rem;
-  margin: 1.5rem 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
+  gap: 1.5rem;
+  margin: 1.75rem 0;
   padding: 0;
   list-style: none;
 }
@@ -383,7 +457,12 @@ html[data-lang-pending] body {
 
 .card h3 {
   margin: 0;
-  font-size: 1.12rem;
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
 .card h3 a {
@@ -414,6 +493,54 @@ html[data-lang-pending] body {
   color: var(--ink-faint);
 }
 
+/* The badge and the promise about time, on one line above the question. "base · ~5 min" is a
+   promise about how long this takes, not a score and not a level to grind — the lab has no
+   points and is not going to grow any. */
+.card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.card__level {
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.01em;
+}
+
+/* What the exercise is *about*, under the question it asks. The question is the heading
+   because it is the thing a visitor can answer yes or no to wanting; the discipline is the
+   thing they can only recognise if they already know it. */
+.card p.card__topic {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+/* The exercise's quantities, folded. They are the honesty of the card and they stay one
+   click away — the same treatment ADR-017 gave the prose on an experiment page, and for the
+   same reason: nothing is deleted, it is moved out of the way of the invitation. */
+.card__numbers {
+  margin-top: 0.35rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+}
+
+.card__numbers > summary {
+  cursor: pointer;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  list-style-position: outside;
+}
+
+.card__numbers > summary:hover {
+  color: var(--accent-ink);
+}
+
 /* The one metric or constraint that makes the problem concrete. Tabular, because these are
    quantities and a card that states one is making a promise about the page. */
 .card__facts {
@@ -421,7 +548,6 @@ html[data-lang-pending] body {
   gap: 0.3rem;
   margin: 0.2rem 0 0;
   padding-top: 0.6rem;
-  border-top: 1px solid var(--line);
   font-size: 0.8rem;
 }
 
@@ -1084,8 +1210,12 @@ fs-geometry-2d {
   padding: 1rem;
 }
 
+/* These are `h2` elements, but they label a panel rather than say anything, so they take the
+   text face back off the display one. Small uppercase letterforms are exactly where a display
+   serif stops being characterful and starts being hard to read. */
 .panel__title {
   margin: 0 0 0.75rem;
+  font-family: var(--font-text);
   font-size: 0.78rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1671,6 +1801,363 @@ input:focus-visible {
 
 .artifacts:empty {
   display: none;
+}
+
+/* -------------------------------------------------- the guided path (ADR-021)
+ *
+ * The lesson an exercise page opens with. Everything here is violet, and nothing outside here
+ * is: `--spark` marks the voice that explains, `--accent` marks the instrument, and the change
+ * of colour is how a visitor sees the handover from the story to the bench before reading a
+ * word of it. No measured quantity appears in this block, which is what makes that rule
+ * keepable.
+ */
+
+.guide {
+  margin: 1.25rem 0 1.5rem;
+}
+
+.guide--folded {
+  margin: 0.5rem 0 1rem;
+}
+
+.guide__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+
+/* The gap is 0.8rem so that the dots' *hit areas* — extended 0.4rem past each edge below —
+   meet rather than overlap. Overlapping targets are worse than small ones: the press lands on
+   whichever element happens to be on top, which is not the one under the finger. Measured,
+   they meet at exactly 0 px, except on either side of the current dot, which is scaled up by
+   a quarter and so reaches 1.6 px into its neighbour — a dot you are already on, stealing a
+   sliver from one you are not. */
+.guide__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A dot is a jump to a chapter, so it is a button and not a decoration — and 11 px is far too
+   small to press with a thumb. Padding cannot fix it, because the background paints the
+   padding box and the dot would simply become large. The hit area is therefore an invisible
+   `::after` that reaches 0.4rem past every edge: 11.2 px of dot plus 12.8 px of reach is a
+   24 px target, the minimum WCAG 2.5.8 asks for, while the thing you see stays a dot. */
+.guide__dot {
+  position: relative;
+  display: block;
+  width: 0.7rem;
+  height: 0.7rem;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  cursor: pointer;
+  box-sizing: content-box;
+}
+
+.guide__dot::after {
+  content: '';
+  position: absolute;
+  inset: -0.4rem;
+  border-radius: inherit;
+}
+
+.guide__dot.is-done {
+  background: color-mix(in srgb, var(--spark) 45%, transparent);
+  border-color: transparent;
+}
+
+.guide__dot.is-current {
+  background: var(--spark);
+  border-color: transparent;
+  transform: scale(1.25);
+}
+
+.guide__count {
+  margin: 0;
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* The way out. Pushed to the far end of the bar so it is in the same place on every chapter —
+   a skip control a visitor has to look for each time is not a way out. */
+.guide__skip {
+  margin-left: auto;
+  border-color: color-mix(in srgb, var(--spark) 45%, var(--line-strong));
+  color: var(--spark-ink);
+  font-weight: 560;
+}
+
+.guide__skip:hover {
+  background: var(--spark-soft);
+}
+
+.guide__chapter {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--spark);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  padding: 1.15rem 1.35rem 1.25rem;
+}
+
+.guide__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+}
+
+.guide__number {
+  margin: 0;
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  color: color-mix(in srgb, var(--spark) 70%, transparent);
+}
+
+.guide__heading {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: clamp(1.2rem, 1rem + 0.8vw, 1.55rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Focused on every chapter change so a screen reader is told the content underneath was
+   replaced. Visible only when the focus came from the keyboard, so a mouse user never sees a
+   ring appear on a heading they did not click. */
+.guide__heading:focus {
+  outline: none;
+}
+
+/* The site header is sticky, so a heading scrolled to by `focus()` would land underneath it.
+   Its min-height is 58px; this clears that and a little air. */
+.guide__heading {
+  scroll-margin-top: 5rem;
+}
+
+.guide__heading:focus-visible {
+  outline: 2px solid var(--spark);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+.guide__body {
+  max-width: var(--measure);
+}
+
+.guide__body p:last-child {
+  margin-bottom: 0;
+}
+
+.guide__figure {
+  margin: 0.9rem 0 1.1rem;
+  padding: 0.75rem;
+  background: var(--surface-sunken);
+  border-radius: var(--radius);
+}
+
+.guide__figure .figure {
+  display: block;
+  width: 100%;
+  max-height: 15rem;
+}
+
+.guide__nav {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+
+.guide__nav .primary {
+  background: var(--spark);
+  border-color: var(--spark);
+}
+
+.guide__nav .primary:hover {
+  background: var(--spark-ink);
+  border-color: var(--spark-ink);
+}
+
+/* The preset ladder. A value and a one-line consequence, because a row of bare angles asks a
+   visitor to guess what each one is for. A grid rather than a wrapping row: the notes differ
+   in length by three to one, and flex-wrapping them leaves a ragged 3-2-1 staircase that reads
+   as an accident. */
+.guide__presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr));
+  gap: 0.55rem;
+  margin: 1.1rem 0 0;
+}
+
+.guide__preset {
+  display: grid;
+  gap: 0.1rem;
+  justify-items: start;
+  align-content: start;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-color: color-mix(in srgb, var(--spark) 35%, var(--line-strong));
+}
+
+.guide__preset:hover:not(:disabled) {
+  background: var(--spark-soft);
+  border-color: var(--spark);
+}
+
+.guide__preset-value {
+  font-size: 1.05rem;
+  font-weight: 620;
+  color: var(--spark-ink);
+}
+
+.guide__preset:disabled .guide__preset-value {
+  color: inherit;
+}
+
+.guide__preset-note {
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+/* Folded: one line, and a way back into the chapters for anyone who wants them after all. */
+.guide__folded {
+  margin: 0;
+}
+
+.guide__reopen {
+  border-style: dashed;
+  color: var(--spark-ink);
+  font-size: 0.85rem;
+}
+
+.guide__reopen:hover {
+  background: var(--spark-soft);
+}
+
+/* ---- the chapter diagrams. Identity, never magnitude — the overlay palette's own rule. */
+
+.figure__section {
+  fill: var(--ink);
+  stroke: none;
+}
+
+.figure__section--open {
+  fill: color-mix(in srgb, var(--ink) 12%, transparent);
+  stroke: var(--ink);
+  stroke-width: 0.006;
+  vector-effect: non-scaling-stroke;
+}
+
+.figure__stream {
+  fill: none;
+  stroke: var(--overlay-streamline);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.55;
+}
+
+.figure__stream--near {
+  opacity: 1;
+  stroke-width: 1.8;
+}
+
+.figure__chord {
+  stroke: var(--overlay-chord);
+  stroke-width: 1.4;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+
+.figure__mean {
+  stroke: var(--spark);
+  stroke-width: 1.8;
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+
+.figure__tick {
+  stroke: var(--ink-soft);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+
+.figure__tick--thick {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.figure__tick--mean {
+  stroke: var(--spark);
+  stroke-dasharray: 3 3;
+}
+
+.figure__wing {
+  fill: color-mix(in srgb, var(--ink) 14%, transparent);
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.figure__wing-edge {
+  stroke: var(--ink-soft);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+
+.figure__plane {
+  fill: color-mix(in srgb, var(--spark) 22%, transparent);
+  stroke: var(--spark);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.figure__arrow {
+  stroke: var(--ink-soft);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  fill: none;
+}
+
+.figure__arrowhead {
+  fill: var(--ink-soft);
+}
+
+/* Labels sit inside a `viewBox` measured in chord units, so their size is set per figure as
+   an attribute rather than here: these boxes differ in width by more than two to one, and one
+   CSS size renders as a caption in the widest and a headline in the narrowest. */
+.figure__note {
+  font-family: var(--font-text);
+  fill: var(--ink-soft);
+}
+
+.figure__note--low {
+  fill: var(--accent-ink);
+}
+
+.figure__note--high {
+  fill: var(--core);
+}
+
+.figure__note--mean {
+  fill: var(--spark-ink);
+}
+
+.figure__note--thick {
+  fill: var(--accent-ink);
 }
 
 /* ---------------------------------------------------------------- didactics */

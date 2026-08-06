@@ -181,8 +181,27 @@ class AirfoilPanel2D(Solver):
             ),
         )
         # --- numerical: how well it is approximated, and nothing else (§7)
+        #
+        # The two defaults were raised together (ADR-021) once the page became something a
+        # visitor plays with rather than reads, and they were chosen by measuring rather than
+        # by taste, because they cost in different currencies. On a NACA 2412 at 5.4°, in the
+        # 2.6 x 1.2-chord window the page submits:
+        #
+        #     panels 240 -> 320, resolution fixed   +0.19 s   +0.01 MB
+        #     panels 400, resolution fixed          +0.36 s   +0.01 MB
+        #     resolution 192 -> 256, panels fixed   +0.35 s   +1.08 MB
+        #     resolution 192 -> 320, panels fixed   +0.92 s   +2.50 MB
+        #
+        # Panels are nearly free: the influence matrix is (N+1)^2 of arithmetic and the
+        # convergence check's refinement is bounded by PANEL_CEILING. Resolution is not, and
+        # the currency that matters is not seconds but *bytes* — every grid point ships a
+        # speed, a C_p and two velocity components as JSON, so the field is the response.
+        # 320 x 320 would have been 1.6 s and 3.9 MB per solve, which is a poor trade on a
+        # page whose invitation is "press these six buttons". 320 panels and 256 points is
+        # 1.0 s and 2.5 MB: a visibly denser field and better streamlines, at a cost a game
+        # can pay. The ceiling is unchanged, so anyone who wants 512 can still ask for it.
         panels: int = Field(
-            default=240,
+            default=320,
             ge=40,
             le=400,
             description="Panels around the outline. Its only legitimate effect is on the error.",
@@ -195,7 +214,7 @@ class AirfoilPanel2D(Solver):
             ),
         )
         resolution: int = Field(
-            default=192,
+            default=256,
             ge=16,
             le=512,
             description="Sampling grid for the field picture, along the longer edge of the domain.",

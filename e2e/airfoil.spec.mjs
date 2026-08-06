@@ -34,7 +34,24 @@ async function solve(page) {
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 90_000 });
 }
 
+/**
+ * The page, with the guided path already dealt with.
+ *
+ * Since ADR-021 the page opens on a lesson, and every test below this line is about the bench
+ * underneath it. The skip decision is written *before* the first navigation rather than clicked
+ * afterwards, so these tests exercise the state a returning visitor is in and none of them
+ * depends on the chapters' wording. The guided path has its own tests, which do not use this
+ * helper.
+ */
 async function ready(page) {
+  await page.addInitScript(() => {
+    try {
+      window.localStorage.setItem('spoon-physics:guide:airfoil', 'skipped');
+    } catch {
+      // A store that refuses is the guide's problem, not this helper's: the chapters simply
+      // stay on screen, above the bench, and every assertion below still holds.
+    }
+  });
   await page.goto('/experiments/airfoil/');
   await expect(page.locator('#widgets-missing')).toBeHidden();
   await expect(page.locator('#param-alpha_deg')).toBeVisible();
@@ -45,6 +62,107 @@ async function openAdvanced(page) {
   await page.locator('#advanced > summary').click();
   await expect(page.locator('#advanced')).toHaveAttribute('open', '');
 }
+
+/* ------------------------------------------------------ 0. the guided path (ADR-021) */
+
+test('a first-time visitor meets the lesson before the mission', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+
+  await page.goto('/experiments/airfoil/');
+
+  // Chapter one, and a way out of the whole thing, both present immediately.
+  await expect(page.locator('.guide__chapter')).toBeVisible();
+  await expect(page.locator('.guide__count')).toContainText('Chapter 1 of 4');
+  await expect(page.locator('.guide__skip')).toBeVisible();
+
+  // Above the mission, which is the point: "800 N/m with |C_m,c/4| < 0.08" is the wall this
+  // exists to remove, so it must not be the first thing on the page.
+  const order = await page.evaluate(() => ({
+    guide: document.querySelector('#guide').getBoundingClientRect().top,
+    challenge: document.querySelector('.mission__challenge').getBoundingClientRect().top,
+  }));
+  expect(order.guide).toBeLessThan(order.challenge);
+
+  // And the bench is never hidden behind it: no modal, no overlay, no scroll lock.
+  await expect(page.locator('#workspace')).toBeAttached();
+  await expect(page.locator('.guide')).not.toHaveAttribute('role', 'dialog');
+
+  // Forward, backward, and straight to a chapter by its dot.
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.locator('.guide__count')).toContainText('Chapter 2 of 4');
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await expect(page.locator('.guide__count')).toContainText('Chapter 1 of 4');
+  await expect(page.getByRole('button', { name: 'Back', exact: true })).toBeDisabled();
+  await page.locator('.guide__dot').nth(2).click();
+  await expect(page.locator('.guide__count')).toContainText('Chapter 3 of 4');
+
+  expect(errors).toEqual([]);
+});
+
+test('skipping the lesson is one click, and is remembered', async ({ page }) => {
+  await page.goto('/experiments/airfoil/');
+  await expect(page.locator('.guide__chapter')).toBeVisible();
+
+  await page.locator('.guide__skip').click();
+  await expect(page.locator('.guide__chapter')).toHaveCount(0);
+  await expect(page.locator('.guide--folded')).toBeVisible();
+
+  // The point of remembering it: a second visit is not walled off from the instrument again.
+  await page.reload();
+  await expect(page.locator('#param-alpha_deg')).toBeVisible();
+  await expect(page.locator('.guide__chapter')).toHaveCount(0);
+
+  // Folded, not deleted — anybody who wants the explanation after all can have it.
+  await page.locator('.guide__reopen').click();
+  await expect(page.locator('.guide__count')).toContainText('Chapter 1 of 4');
+});
+
+test('a preset sets the incidence and runs it, and says why while it cannot', async ({ page }) => {
+  await page.goto('/experiments/airfoil/');
+  await page.locator('.guide__dot').nth(3).click();
+
+  const six = page.locator('.guide__preset[data-alpha="6"]');
+  await expect(six).toBeEnabled();
+  await six.click();
+
+  // While the solve is in flight the ladder is disabled *with its reason*, never removed —
+  // the rule ADR-017 set for the workspace toolbar, applied here.
+  await expect(six).toBeDisabled();
+  expect(await six.getAttribute('title')).toBeTruthy();
+  await expect(page.locator('#status')).toContainText('Done.', { timeout: 90_000 });
+
+  // The control and the solver agree about what was run. A preset that wrote straight into the
+  // parameter object would pass every other assertion here and fail this one.
+  await expect(page.locator('#param-alpha_deg')).toHaveValue('6');
+  await expect(page.locator('#kpis')).toContainText('964');
+  await expect(six).toBeEnabled();
+});
+
+test('a browser that refuses storage still gets the page, and the lesson', async ({ page }) => {
+  // The guide's memory is a convenience; losing it must cost the chapters showing again and
+  // nothing else. `runs.js` already has this test for its own store — the rule is the lab's.
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', {
+      get() {
+        throw new Error('storage is blocked');
+      },
+    });
+  });
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+
+  await page.goto('/experiments/airfoil/');
+  await expect(page.locator('.guide__chapter')).toBeVisible();
+  await expect(page.locator('#param-alpha_deg')).toBeVisible();
+
+  // Skipping still works for this visit; it just will not be there next time.
+  await page.locator('.guide__skip').click();
+  await expect(page.locator('.guide__chapter')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+/* ------------------------------------------------------------------------- the bench */
 
 test('the exercise states a problem before it offers a solver', async ({ page }) => {
   const errors = [];
@@ -218,9 +336,13 @@ test('a run that meets the target says so, with its verification and its validit
   await setParam(page, 'alpha_deg', 4.6);
   await solve(page);
 
-  // The answer, headline first: the tiles carry the number the target is set in.
-  await expect(page.locator('#kpis')).toContainText('800');
-  await expect(page.locator('#challenge')).toContainText('799');
+  // The answer, headline first: the tiles carry the number the target is set in. The digits
+  // moved by about a newton when the default panel count went from 240 to 320 (ADR-021) —
+  // 799.5 became 798.8 — which is the discretisation error doing exactly what a panel count is
+  // allowed to do, and the reason `panels` is a numerical setting and not a physical input.
+  // What must not move is the verdict: 798.8 is well inside the 2 % band the target states.
+  await expect(page.locator('#kpis')).toContainText('799');
+  await expect(page.locator('#challenge')).toContainText('798');
   await expect(page.locator('.challenge__target.is-met')).toHaveCount(2);
   await expect(page.locator('#challenge')).toContainText('Target met');
 
@@ -446,6 +568,16 @@ test('a tool the result cannot support is disabled with a readable reason', asyn
 
   await page.locator('[data-tool=vectors]').click();
   await expect(page.locator('#viewer')).toHaveAttribute('vectors', 'velocity');
+
+  // Streamlines arrive already on, and are the one thing on this page that does (ADR-021):
+  // the question the exercise opens with is how the air gets round the section, and a C_p
+  // field answers it only for somebody who can already read one. This assertion used to
+  // *click* the tool and then look for curves, which now says the opposite of what it means —
+  // the click would turn them off. The toggle must still toggle, so that is checked instead.
+  await expect(page.locator('[data-tool=streamlines]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.overlay__streamlines path').first()).toBeAttached();
+  await page.locator('[data-tool=streamlines]').click();
+  await expect(page.locator('.overlay__streamlines path')).toHaveCount(0);
   await page.locator('[data-tool=streamlines]').click();
   await expect(page.locator('.overlay__streamlines path').first()).toBeAttached();
 

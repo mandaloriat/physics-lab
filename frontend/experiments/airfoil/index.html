@@ -63,6 +63,17 @@
       <p class="mission__eyebrow" data-i18n="airfoil.eyebrow">Exercise 1 · ideal flow with a Kutta condition</p>
       <h1 data-i18n="airfoil.heading">Airfoil design</h1>
     </div>
+
+    <!-- 0. Learn. The short lesson this page opens with, between the title and the mission —
+         above the mission on purpose, because "800 N/m with |C_m,c/4| < 0.08" is the wall that
+         stops somebody who has never met a wing section, and it is the second thing they should
+         read rather than the first. Skippable from every chapter and remembered, so a returning
+         visitor lands on the bench. Filled by `shared/guide.js`; empty and harmless if the
+         content file carries no chapters. See ADR-021. -->
+    <section class="guide" id="guide" aria-labelledby="guide-heading">
+      <h2 id="guide-heading" class="visually-hidden" data-i18n="guide.heading">Before you start</h2>
+    </section>
+
     <div class="mission__challenge panel panel--mission" aria-labelledby="challenge-heading">
       <h2 id="challenge-heading" class="panel__title" data-i18n="bench.mission">The mission</h2>
       <div id="challenge"></div>

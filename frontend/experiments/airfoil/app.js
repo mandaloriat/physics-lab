@@ -43,8 +43,11 @@ import {
   syncFieldOptions,
 } from '/shared/experiment.js';
 import { contentUrl, t } from '/shared/i18n.js';
+import { createGuide } from '/shared/guide.js';
 import { createWorkspace, marker, polyline, svgNode } from '/shared/workspace.js';
 import * as runs from '/shared/runs.js';
+import { controlPoints } from './naca.js';
+import { drawFlowFigure, drawNacaFigure, drawSliceFigure, mountFigureDefs } from './figures.js';
 
 const EXERCISE = 'airfoil';
 const GEOMETRY_TYPE = 'domain2d';
@@ -57,6 +60,7 @@ const SOLVER_PREFIX = 'lab.airfoil';
 
 const dom = Object.fromEntries(
   [
+    'guide',
     'lesson',
     'editor',
     'viewer',
@@ -135,15 +139,6 @@ const CATALOGUE = [
 
 const DEFAULT_PROFILE = 'NACA 2412';
 
-/** Control points per surface. Six is what a Catmull-Rom through a cosine-spaced outline needs
- *  to stay faithful while staying draggable; `samples` on the editor then decides how many
- *  polygon vertices the solver receives from it. */
-const POINTS_PER_SURFACE = 6;
-
-/** Closed trailing edge: the published −0.1015 leaves a finite base, and the Kutta condition is
- *  applied *at* the trailing edge. Matches `physics_lab/solvers/airfoil_geometry.py`. */
-const TE_CLOSED = 0.1036;
-
 const shape = { m: 0.02, p: 0.4, t: 0.12 };
 const geometry = { source: 'catalogue', label: DEFAULT_PROFILE };
 const physical = {
@@ -156,51 +151,6 @@ const physical = {
 };
 
 let applyingShape = false;
-
-function halfThickness(x, t) {
-  return (
-    5 *
-    t *
-    (0.2969 * Math.sqrt(x) - 0.126 * x - 0.3516 * x ** 2 + 0.2843 * x ** 3 - TE_CLOSED * x ** 4)
-  );
-}
-
-function meanLine(x, m, p) {
-  if (m === 0) return { y: 0, slope: 0 };
-  if (x < p) {
-    return { y: (m / p ** 2) * (2 * p * x - x ** 2), slope: ((2 * m) / p ** 2) * (p - x) };
-  }
-  return {
-    y: (m / (1 - p) ** 2) * (1 - 2 * p + 2 * p * x - x ** 2),
-    slope: ((2 * m) / (1 - p) ** 2) * (p - x),
-  };
-}
-
-/**
- * Control points for a four-digit profile, ordered around the outline on a unit chord.
- *
- * No rotation: incidence is the free stream's direction, not the profile's (§5.1). The trailing
- * edge is a single point, because two coincident points are a zero-length panel and a
- * `duplicate consecutive points` rejection from the protocol's validator.
- */
-function controlPoints({ m, p, t }) {
-  const stations = [];
-  for (let i = 1; i <= POINTS_PER_SURFACE; i += 1) {
-    stations.push(0.5 * (1 - Math.cos((Math.PI * i) / POINTS_PER_SURFACE)));
-  }
-  const surface = (x, sign) => {
-    const { y, slope } = meanLine(x, m, p);
-    const theta = Math.atan(slope);
-    const yt = halfThickness(x, t);
-    return [x - sign * yt * Math.sin(theta), y + sign * yt * Math.cos(theta)];
-  };
-
-  const points = [[1, 0]]; // trailing edge, once
-  for (let i = stations.length - 2; i >= 0; i -= 1) points.push(surface(stations[i], -1)); // lower
-  points.push([0, 0]); // leading edge
-  for (let i = 0; i < stations.length - 1; i += 1) points.push(surface(stations[i], +1)); // upper
-  return points;
-}
 
 function applyShape() {
   applyingShape = true;
@@ -526,6 +476,7 @@ let running = false;
 let currentJob = null;
 let selected = new Set();
 let workspace = null;
+let guide = null;
 
 /** Every parameter, as the solver will receive it. */
 function currentParams() {
@@ -567,6 +518,7 @@ async function run() {
   }
 
   running = true;
+  syncGuidePresets();
   dom.artifacts.replaceChildren();
   const { rho, mu, a } = air();
 
@@ -596,7 +548,69 @@ async function run() {
     running = false;
     currentJob = null;
     dom.keep.disabled = report === null;
+    syncGuidePresets();
   }
+}
+
+/**
+ * Build the guided path, if this exercise's content file carries one.
+ *
+ * The chapters are prose and live in `content.json`; the drawings are code and live in
+ * `figures.js`, because a figure of a NACA section has to come from the same formula the
+ * solver is handed. `content.guide` being absent is not an error — it is an exercise that has
+ * not been given a lesson yet, and the page is exactly what it was before.
+ */
+function mountGuide() {
+  if (!content.guide?.length) return;
+  mountFigureDefs(dom.guide);
+  guide = createGuide({
+    root: dom.guide,
+    chapters: content.guide,
+    storageKey: `spoon-physics:guide:${EXERCISE}`,
+    figures: { flow: drawFlowFigure, slice: drawSliceFigure, naca: drawNacaFigure },
+    onPreset: runPreset,
+    // The guide does not know where the bench is, and should not: it hands back control and
+    // the page decides what "go to the simulator" means on this page.
+    onSkip: () => {
+      dom.workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+  });
+  syncGuidePresets();
+}
+
+/**
+ * Tell the guided path whether its preset buttons may act, and why not when they may not.
+ *
+ * Called on both edges of a solve rather than only on the way in, because `run()` can leave
+ * through its `catch` as easily as through its happy path, and a preset left disabled after a
+ * failed solve would be a dead control with a stale reason on it.
+ */
+function syncGuidePresets() {
+  if (!guide) return;
+  if (running) guide.setPresetsAvailable({ ok: false, why: t('guide.presetBusy') });
+  else if (!solver()) guide.setPresetsAvailable({ ok: false, why: t('guide.presetNoSolver') });
+  else if (dom.run.disabled) guide.setPresetsAvailable({ ok: false, why: t('guide.presetPaused') });
+  else guide.setPresetsAvailable({ ok: true });
+}
+
+/**
+ * Run one of the guided path's preset incidences.
+ *
+ * It sets the control and lets the control's own handler carry the value into the parameter
+ * object, rather than writing to that object directly. The two are not equivalent: the object
+ * `buildParamForm` returns is mutated by the controls, so a preset that wrote straight into it
+ * would leave the `<input>` showing one angle while the solver received another — silently,
+ * and only visible by reading the annotation on the field afterwards. This is also the exact
+ * path `setParam` in `e2e/airfoil.spec.mjs` drives, so the tested route and the real one are
+ * the same route.
+ */
+function runPreset(alphaDeg) {
+  if (running) return;
+  const input = document.getElementById('param-alpha_deg');
+  if (!input) return;
+  input.value = String(alphaDeg);
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  run();
 }
 
 /**
@@ -1258,6 +1272,11 @@ workspace = createWorkspace({
   exportName: 'airfoil-field',
   subject: profileBox,
   onDraw: drawOverlay,
+  // On from the first result. Everywhere else in the lab a streamline is a tool you reach
+  // for; here it is the subject — the question the page opens with is how the air gets round
+  // the section, and a C_p field alone answers it only for someone who can already read one.
+  // This solver publishes `vector_fields.velocity` on a grid, so the tool can always deliver.
+  streamlines: true,
   onModeChange: (mode) => {
     dom.editShape.classList.toggle('is-active', mode === 'edit');
     dom.editShape.setAttribute('aria-pressed', String(mode === 'edit'));
@@ -1356,6 +1375,7 @@ try {
   content = loaded;
   catalogue = solvers;
   renderLesson({ content, intro: null, lesson: dom.lesson, open: ['problem'] });
+  mountGuide();
   present();
   refreshRuns();
 
@@ -1382,6 +1402,11 @@ try {
     dom.run.disabled = false;
     setStatusOn(dom, t('airfoil.ready'));
   }
+  // After the Run button has been decided, not before: `syncGuidePresets` reads it, and
+  // `mountGuide` runs while it is still disabled — which is the state the page ships in
+  // precisely so it never offers an action it has not yet heard the server agree to. Without
+  // this second call every preset sits there greyed out saying the lab is under maintenance.
+  syncGuidePresets();
 } catch (error) {
   setStatusOn(dom, t('experiment.unreachable', { detail: describeError(error) }), 'error');
   dom.run.disabled = true;

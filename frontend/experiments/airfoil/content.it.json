@@ -29,6 +29,55 @@
     },
     "next_step": "un profilo diverso a un'incidenza diversa"
   },
+  "guide": [
+    {
+      "id": "lift",
+      "heading": "Come fa l'aria a tenere su un'ala",
+      "figure": "flow",
+      "body": [
+        "Metti una mano piatta fuori dal finestrino di un'auto e inclinala. Si solleva. Della mano non è cambiato niente: è cambiato il modo in cui l'aria deve girarle intorno, ed è tutto l'argomento di questa pagina.",
+        "L'aria che arriva su una forma inclinata non può attraversarla, quindi le gira intorno. Sopra deve accelerare, e **dove l'aria accelera la sua pressione cala**. Sotto invece rallenta e preme di più. La forma è spinta da sotto più di quanto sia spinta da sopra, e quella differenza, sommata su tutta la superficie, è la **portanza**.",
+        "Forse ti hanno raccontato che l'aria di sopra ha più strada da fare e si affretta per ricongiungersi a quella di sotto. Quella storia è **falsa**: le due particelle non si reincontrano mai, e quella passata di sopra arriva prima. A decidere davvero la velocità sopra il profilo è la **circolazione** — un solo numero che dice quanto la corrente nel suo insieme gira attorno alla sezione — e sceglierla correttamente è l'unica cosa che al modello di questa pagina va spiegata come si fa."
+      ]
+    },
+    {
+      "id": "section",
+      "heading": "Quello che stai guardando è una fetta",
+      "figure": "slice",
+      "body": [
+        "Un'ala vera è un oggetto tridimensionale. Ha un'apertura, ha un'estremità, e proprio a quell'estremità la pressione alta di sotto sfugge verso la pressione bassa di sopra e si arrotola in un vortice che si lascia dietro.",
+        "Qui non c'è niente di tutto questo. Questa pagina taglia una **fetta** dell'ala, lontano da ogni estremità, e studia il contorno che quella fetta lascia — la **sezione**. Tutto quello che viene riportato è quindi **per metro di apertura**: l'obiettivo è 800 newton al metro, non 800 newton.",
+        "È anche il motivo per cui fra i comandi non c'è l'apertura alare. Un'apertura implicherebbe un modello con estremità, deflessione indotta e resistenza indotta, e questo non ne ha nessuna delle tre. Non offrire quel dato è più onesto che offrirlo e poi ignorarlo in silenzio."
+      ]
+    },
+    {
+      "id": "naca",
+      "heading": "Che cosa vogliono dire quelle quattro cifre",
+      "figure": "naca",
+      "body": [
+        "Una sezione si costruisce con due cose: una **linea media**, la curva che va dal naso alla coda esattamente a metà fra la superficie superiore e quella inferiore, e uno **spessore** avvolto simmetricamente attorno a essa. Scelte quelle due, hai scelto la forma.",
+        "La famiglia NACA a quattro cifre nomina esattamente questo. In **NACA 2412** la prima cifra è l'altezza massima della linea media sopra la corda — il **2 %** della corda. La seconda dice dove si trova quel punto più alto, in decimi di corda — **4**, cioè al 40 % a partire dal naso. Le ultime due sono lo spessore massimo — il **12 %** della corda.",
+        "Quindi un **0009** comincia con uno zero: nessuna curvatura, sezione simmetrica, e portanza esattamente nulla a incidenza zero. Un **4412** ha una curvatura doppia rispetto al 2412, porta di più allo stesso angolo, e lo fa pagare in momento di beccheggio — che è esattamente il vincolo attorno a cui è costruito questo esercizio."
+      ]
+    },
+    {
+      "id": "play",
+      "heading": "Adesso inclinalo tu",
+      "body": [
+        "L'**angolo d'attacco** è l'angolo fra la sezione e l'aria che le arriva addosso. È il modo più rapido di vedere succedere tutto insieme quello che dicono i tre capitoli precedenti.",
+        "Ogni pulsante qui sotto imposta quell'angolo e calcola la corrente — un calcolo vero sul server, non un'animazione, ed è per questo che ci mette un attimo. Mentre arriva, guarda tre cose: le linee di flusso che si stringono sopra il dorso, la depressione blu che vi compare, e la portanza che la pagina riporta più sotto.",
+        "L'esercizio chiede 800 newton al metro. Nessuno di questi sei pulsanti ci arriva: la risposta sta fra due di loro, e trovarla è l'esercizio."
+      ],
+      "presets": [
+        { "alpha": -2, "note": "quasi niente: 16 N/m" },
+        { "alpha": 0, "note": "porta comunque: 253 N/m" },
+        { "alpha": 2, "note": "491 N/m" },
+        { "alpha": 4, "note": "728 N/m — vicino" },
+        { "alpha": 6, "note": "964 N/m — troppo" },
+        { "alpha": 8, "note": "1199 N/m, e una depressione feroce" }
+      ]
+    }
+  ],
   "sections": [
     {
       "id": "problem",
