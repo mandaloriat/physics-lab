@@ -47,11 +47,24 @@ test('the homepage leads with the problems, and shows a real field for each', as
   // What must hold at any count, including none, is that a planned card is not a link.
   await expect(page.locator('.card--planned a')).toHaveCount(0);
 
-  // Every card carries a stated quantity and a concrete invitation, not a paragraph of prose.
-  await expect(page.locator('.card--available .card__facts').first()).toContainText('800 N/m');
-  await expect(page.locator('.card--available .card__facts').nth(1)).toContainText('4.5 mWb/m');
-  await expect(page.locator('.card--available .card__facts').nth(2)).toContainText('2400 kg');
-  await expect(page.locator('.card--available .card__facts').nth(3)).toContainText('170 g');
+  // Every card leads with the question it answers, so someone who does not know the subject
+  // still knows whether they want it (ADR-021).
+  await expect(page.getByRole('link', { name: 'Why does a wing stay up?' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Which bar gives way first?' })).toBeVisible();
+
+  // And every card still carries its stated quantity — folded, not deleted. Asserting on the
+  // folded text alone would be worthless: a closed <details> keeps its content in
+  // `textContent`, so `toContainText` would pass whether or not the fold ever opens. Open it,
+  // then require the quantity to be *visible*, which is the thing that was meant all along.
+  const quantities = ['800 N/m', '4.5 mWb/m', '2400 kg', '170 g'];
+  for (const [index, quantity] of quantities.entries()) {
+    const numbers = page.locator('.card--available .card__numbers').nth(index);
+    await expect(numbers.locator('.card__facts')).toBeHidden();
+    await numbers.locator('summary').click();
+    await expect(numbers.locator('.card__facts')).toContainText(quantity);
+    await expect(numbers.locator('.card__facts')).toBeVisible();
+  }
+
   await expect(page.getByRole('link', { name: /Design an airfoil/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /Design a magnetic circuit/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /Build a bridge/ })).toBeVisible();

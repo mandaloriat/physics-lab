@@ -43,8 +43,14 @@ def test_homepage_names_the_experiments_and_carries_the_disclaimer(client):
     # without a way in has not shipped.
     for name in EXPERIMENTS:
         assert f"/experiments/{name}/" in body
-    assert "The magnetic circuit" in body
-    assert "Heat sink" in body
+    # Each card leads with the question its exercise answers, and names the discipline
+    # underneath (ADR-021). This used to assert the *titles* — "The magnetic circuit", "Heat
+    # sink" — which the cards no longer lead with, because a title only tells you what the
+    # page is if you already know the subject. What has to hold is that a card still says
+    # which physics it is about, and that is the topic line.
+    assert "Why does a wing stay up?" in body
+    assert "Magnetostatics — the iron circuit" in body
+    assert "Heat transfer — the finned body" in body
     # What is still planned is listed honestly rather than linked to nothing — and *if* nothing
     # is planned, the badge is simply absent. This used to assert the badge was present, which
     # was a fact about the release that wrote it rather than about the page: the heat sink was

@@ -210,12 +210,15 @@ export default {
   home: {
     title: 'Spoon Physics',
     description:
-      'Interactive problems. Computed fields. Checkable answers. An interactive laboratory: set a quantitative target, change the geometry and the conditions, compute the field, and check the answer.',
-    heroHeading: 'Interactive problems.<br>Computed fields. Checkable answers.',
-    lede: 'Each experiment sets a quantitative target under constraints. Change the geometry and the conditions, run a real solver, explore the field it computes — and find out whether you met the target, and how far the numbers can be trusted.',
+      'Play with the physics, then find out why it works. An interactive laboratory: a short lesson you can skip, a real solver that computes the field, the engineering numbers that answer the question, and a statement on every run of how far to trust them.',
+    heroHeading: 'Play with the physics.<br>Then find out why it works.',
+    lede: 'Every experiment opens with a question you can follow knowing nothing at all, explains just enough to make the controls mean something, and hands you a real solver: it computes the field, gives you the engineering numbers, and says on every run how far those numbers can be trusted.',
     experiments: 'Experiments',
     badgeExercise: 'Exercise',
     badgePlanned: 'In preparation',
+    /* Folded on every card. The quantities are the honesty of the page and none of them is
+       deleted — they are one click behind the invitation instead of in front of it. */
+    numbersSummary: 'The numbers behind it',
     target: 'Target',
     wouldTarget: 'Would target',
     constraint: 'Constraint',
@@ -224,8 +227,13 @@ export default {
     status: 'Status',
     airfoil: {
       name: 'Airfoil design',
+      /* The heading of the card, because it is the thing a visitor can want the answer to
+         without already knowing the subject. The subject goes underneath, in `topic`. */
+      question: 'Why does a wing stay up?',
+      topic: 'Aerodynamics — the wing section',
+      level: 'no physics needed · ~5 min',
       problem:
-        'Find a wing section that lifts <strong>800 N per metre of span</strong> at 40 m/s — without a pitching moment a tail could not trim out.',
+        'Tilt a wing section into the wind and watch the air do the work. Then go after the real thing: <strong>800 N of lift per metre of span</strong>, without a pitching moment a tail could not trim out.',
       target: 'L′ = 800 N/m ± 2 %',
       constraint: '|C_m,c/4| < 0.08',
       checked: 'lift computed two independent ways',
@@ -233,6 +241,9 @@ export default {
     },
     solenoid: {
       name: 'The magnetic circuit',
+      question: 'Why does iron guide a magnetic field?',
+      topic: 'Magnetostatics — the iron circuit',
+      level: 'some physics helps · ~8 min',
       problem:
         'Carry a required flux through an iron core on a fixed ampere-turn budget, without letting it leak away into the air.',
       target: '4.5 mWb/m at ≤ 3600 A',
@@ -242,6 +253,9 @@ export default {
     },
     truss: {
       name: 'The bridge',
+      question: 'Which bar gives way first?',
+      topic: 'Statics — the pin-jointed lattice',
+      level: 'you draw this one · ~10 min',
       problem:
         'Build a lattice across a 24 m gorge and carry the traffic on a steel budget — the bar that gives way first is almost never the one you expect.',
       target: 'η < 1 on ≤ 2400 kg',
@@ -251,6 +265,9 @@ export default {
     },
     heatsink: {
       name: 'Heat sink',
+      question: 'When do more fins stop helping?',
+      topic: 'Heat transfer — the finned body',
+      level: 'some physics helps · ~10 min',
       problem:
         'Dissipate a given power below a maximum temperature, using less metal. How many fins actually help, and when do they stop?',
       target: 'T_max < 95 °C on ≤ 170 g',

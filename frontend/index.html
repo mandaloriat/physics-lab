@@ -44,18 +44,30 @@
 
 <main class="wrap">
 
+  <!-- The heading is now an invitation rather than the product's claim, so the claim moves to
+       the line above it and keeps its exact wording (ADR-016). It reads from `brand.tagline`,
+       the same key the footer uses, so the two can never drift apart. -->
   <section class="hero">
-    <h1 data-i18n-html="home.heroHeading">Interactive problems.<br>Computed fields. Checkable answers.</h1>
+    <p class="hero__tagline" data-i18n="brand.tagline">Interactive problems. Computed fields. Checkable answers.</p>
+    <h1 data-i18n-html="home.heroHeading">Play with the physics.<br>Then find out why it works.</h1>
     <p class="lede" data-i18n="home.lede">
-      Each experiment sets a quantitative target under constraints. Change the geometry and the
-      conditions, run a real solver, explore the field it computes — and find out whether you
-      met the target, and how far the numbers can be trusted.
+      Every experiment opens with a question you can follow knowing nothing at all, explains
+      just enough to make the controls mean something, and hands you a real solver: it computes
+      the field, gives you the engineering numbers, and says on every run how far those numbers
+      can be trusted.
     </p>
   </section>
 
   <!-- The cards come first and carry a real field each, because what a visitor wants before
        clicking is what the thing looks like when it works. Every thumbnail is a solve, made by
-       scripts/make-thumbnails.py from the same solver the page runs — not an illustration. -->
+       scripts/make-thumbnails.py from the same solver the page runs — not an illustration.
+
+       Each card leads with the *question* the exercise answers, because that is the thing
+       someone can want the answer to without already knowing the subject; the discipline is
+       underneath, where it informs rather than gates. The quantitative target and its
+       constraint are not deleted — they are folded into "the numbers behind it", the same
+       treatment ADR-017 gave the prose on an experiment page and for the same reason. See
+       ADR-021. -->
   <section aria-labelledby="experiments">
     <h2 id="experiments" class="visually-hidden" data-i18n="home.experiments">Experiments</h2>
     <ul class="card-grid">
@@ -65,18 +77,26 @@
           <img src="/assets/thumbnails/airfoil.png" alt="" width="480" height="222" loading="lazy">
         </a>
         <div class="card__body">
-          <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
-          <h3><a href="/experiments/airfoil/" data-i18n="home.airfoil.name">Airfoil design</a></h3>
-          <p class="card__problem" data-i18n-html="home.airfoil.problem">
-            Find a wing section that lifts <strong>800 N per metre of span</strong> at 40 m/s —
-            without a pitching moment a tail could not trim out.
+          <p class="card__meta">
+            <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
+            <span class="card__level" data-i18n="home.airfoil.level">no physics needed · ~5 min</span>
           </p>
-          <dl class="card__facts">
-            <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.airfoil.target">L′ = 800 N/m ± 2 %</dd></div>
-            <div><dt data-i18n="home.constraint">Constraint</dt><dd class="num" data-i18n="home.airfoil.constraint">|C_m,c/4| &lt; 0.08</dd></div>
-            <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.airfoil.checked">lift computed two independent ways</dd></div>
-          </dl>
+          <h3><a href="/experiments/airfoil/" data-i18n="home.airfoil.question">Why does a wing stay up?</a></h3>
+          <p class="card__topic" data-i18n="home.airfoil.topic">Aerodynamics — the wing section</p>
+          <p class="card__problem" data-i18n-html="home.airfoil.problem">
+            Tilt a wing section into the wind and watch the air do the work. Then go after the
+            real thing: <strong>800 N of lift per metre of span</strong>, without a pitching
+            moment a tail could not trim out.
+          </p>
           <p class="card__foot"><a class="cta" href="/experiments/airfoil/" data-i18n="home.airfoil.cta">Design an airfoil →</a></p>
+          <details class="card__numbers">
+            <summary data-i18n="home.numbersSummary">The numbers behind it</summary>
+            <dl class="card__facts">
+              <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.airfoil.target">L′ = 800 N/m ± 2 %</dd></div>
+              <div><dt data-i18n="home.constraint">Constraint</dt><dd class="num" data-i18n="home.airfoil.constraint">|C_m,c/4| &lt; 0.08</dd></div>
+              <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.airfoil.checked">lift computed two independent ways</dd></div>
+            </dl>
+          </details>
         </div>
       </li>
 
@@ -85,18 +105,25 @@
           <img src="/assets/thumbnails/solenoid.png" alt="" width="480" height="480" loading="lazy">
         </a>
         <div class="card__body">
-          <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
-          <h3><a href="/experiments/solenoid/" data-i18n="home.solenoid.name">The magnetic circuit</a></h3>
+          <p class="card__meta">
+            <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
+            <span class="card__level" data-i18n="home.solenoid.level">some physics helps · ~8 min</span>
+          </p>
+          <h3><a href="/experiments/solenoid/" data-i18n="home.solenoid.question">Why does iron guide a magnetic field?</a></h3>
+          <p class="card__topic" data-i18n="home.solenoid.topic">Magnetostatics — the iron circuit</p>
           <p class="card__problem" data-i18n="home.solenoid.problem">
             Carry a required flux through an iron core on a fixed ampere-turn budget, without
             letting it leak away into the air.
           </p>
-          <dl class="card__facts">
-            <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.solenoid.target">4.5 mWb/m at ≤ 3600 A</dd></div>
-            <div><dt data-i18n="home.youSet">You set</dt><dd data-i18n="home.solenoid.youSet">core, gap, winding, length, μᵣ, current density</dd></div>
-            <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.solenoid.checked">an energy balance, Ampère’s law and a mesh study</dd></div>
-          </dl>
           <p class="card__foot"><a class="cta" href="/experiments/solenoid/" data-i18n="home.solenoid.cta">Design a magnetic circuit →</a></p>
+          <details class="card__numbers">
+            <summary data-i18n="home.numbersSummary">The numbers behind it</summary>
+            <dl class="card__facts">
+              <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.solenoid.target">4.5 mWb/m at ≤ 3600 A</dd></div>
+              <div><dt data-i18n="home.youSet">You set</dt><dd data-i18n="home.solenoid.youSet">core, gap, winding, length, μᵣ, current density</dd></div>
+              <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.solenoid.checked">an energy balance, Ampère’s law and a mesh study</dd></div>
+            </dl>
+          </details>
         </div>
       </li>
 
@@ -105,18 +132,25 @@
           <img src="/assets/thumbnails/truss.png" alt="" width="480" height="120" loading="lazy">
         </a>
         <div class="card__body">
-          <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
-          <h3><a href="/experiments/truss/" data-i18n="home.truss.name">The bridge</a></h3>
+          <p class="card__meta">
+            <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
+            <span class="card__level" data-i18n="home.truss.level">you draw this one · ~10 min</span>
+          </p>
+          <h3><a href="/experiments/truss/" data-i18n="home.truss.question">Which bar gives way first?</a></h3>
+          <p class="card__topic" data-i18n="home.truss.topic">Statics — the pin-jointed lattice</p>
           <p class="card__problem" data-i18n="home.truss.problem">
             Build a lattice across a 24 m gorge and carry the traffic on a steel budget — the
             bar that gives way first is almost never the one you expect.
           </p>
-          <dl class="card__facts">
-            <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.truss.target">η &lt; 1 on ≤ 2400 kg</dd></div>
-            <div><dt data-i18n="home.youSet">You set</dt><dd data-i18n="home.truss.youSet">every joint, every bar, the supports, the loads, the section</dd></div>
-            <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.truss.checked">the method of joints, a moment balance and an energy check</dd></div>
-          </dl>
           <p class="card__foot"><a class="cta" href="/experiments/truss/" data-i18n="home.truss.cta">Build a bridge →</a></p>
+          <details class="card__numbers">
+            <summary data-i18n="home.numbersSummary">The numbers behind it</summary>
+            <dl class="card__facts">
+              <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.truss.target">η &lt; 1 on ≤ 2400 kg</dd></div>
+              <div><dt data-i18n="home.youSet">You set</dt><dd data-i18n="home.truss.youSet">every joint, every bar, the supports, the loads, the section</dd></div>
+              <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.truss.checked">the method of joints, a moment balance and an energy check</dd></div>
+            </dl>
+          </details>
         </div>
       </li>
 
@@ -125,18 +159,25 @@
           <img src="/assets/thumbnails/heatsink.png" alt="" width="480" height="320" loading="lazy">
         </a>
         <div class="card__body">
-          <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
-          <h3><a href="/experiments/heatsink/" data-i18n="home.heatsink.name">Heat sink</a></h3>
+          <p class="card__meta">
+            <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
+            <span class="card__level" data-i18n="home.heatsink.level">some physics helps · ~10 min</span>
+          </p>
+          <h3><a href="/experiments/heatsink/" data-i18n="home.heatsink.question">When do more fins stop helping?</a></h3>
+          <p class="card__topic" data-i18n="home.heatsink.topic">Heat transfer — the finned body</p>
           <p class="card__problem" data-i18n="home.heatsink.problem">
             Dissipate a given power below a maximum temperature, using less metal. How many fins
             actually help, and when do they stop?
           </p>
-          <dl class="card__facts">
-            <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.heatsink.target">T_max &lt; 95 °C on &#8804; 170 g</dd></div>
-            <div><dt data-i18n="home.youSet">You set</dt><dd data-i18n="home.heatsink.youSet">fin count, height and thickness, the base, the finish, the cooling</dd></div>
-            <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.heatsink.checked">an energy balance over both heat paths, and view-factor identities that hold exactly</dd></div>
-          </dl>
           <p class="card__foot"><a class="cta" href="/experiments/heatsink/" data-i18n="home.heatsink.cta">Cool a device →</a></p>
+          <details class="card__numbers">
+            <summary data-i18n="home.numbersSummary">The numbers behind it</summary>
+            <dl class="card__facts">
+              <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.heatsink.target">T_max &lt; 95 °C on &#8804; 170 g</dd></div>
+              <div><dt data-i18n="home.youSet">You set</dt><dd data-i18n="home.heatsink.youSet">fin count, height and thickness, the base, the finish, the cooling</dd></div>
+              <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.heatsink.checked">an energy balance over both heat paths, and view-factor identities that hold exactly</dd></div>
+            </dl>
+          </details>
         </div>
       </li>
 

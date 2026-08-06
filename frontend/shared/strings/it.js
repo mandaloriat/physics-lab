@@ -217,12 +217,13 @@ export default {
   home: {
     title: 'Spoon Physics',
     description:
-      'Problemi interattivi. Campi calcolati. Risposte verificabili. Un laboratorio interattivo: fissa un obiettivo quantitativo, cambia la geometria e le condizioni, calcola il campo e verifica la risposta.',
-    heroHeading: 'Problemi interattivi.<br>Campi calcolati. Risposte verificabili.',
-    lede: 'Ogni esperimento fissa un obiettivo quantitativo sotto vincoli. Cambia la geometria e le condizioni, fai girare un solutore vero, esplora il campo che calcola — e scopri se hai centrato l’obiettivo, e fino a che punto ci si può fidare dei numeri.',
+      'Gioca con la fisica, poi scopri perché funziona. Un laboratorio interattivo: una spiegazione breve che puoi saltare, un solutore vero che calcola il campo, i numeri ingegneristici che rispondono alla domanda, e a ogni esecuzione quanto ci si può fidare.',
+    heroHeading: 'Gioca con la fisica.<br>Poi scopri perché funziona.',
+    lede: 'Ogni esperimento parte da una domanda che si segue senza sapere niente, spiega quel tanto che basta perché i comandi vogliano dire qualcosa, e poi ti mette in mano un solutore vero: calcola il campo, dà i numeri ingegneristici e a ogni esecuzione dice fino a che punto ci si può fidare.',
     experiments: 'Esperimenti',
     badgeExercise: 'Esercizio',
     badgePlanned: 'In preparazione',
+    numbersSummary: 'I numeri che ci stanno sotto',
     target: 'Obiettivo',
     wouldTarget: 'Obiettivo previsto',
     constraint: 'Vincolo',
@@ -231,8 +232,11 @@ export default {
     status: 'Stato',
     airfoil: {
       name: 'Progetto di un profilo alare',
+      question: 'Perché un’ala sta su?',
+      topic: 'Aerodinamica — la sezione alare',
+      level: 'non serve saper niente · ~5 min',
       problem:
-        'Trova una sezione alare che porti <strong>800 N per metro di apertura</strong> a 40 m/s — senza un momento di beccheggio che un piano di coda non riuscirebbe a equilibrare.',
+        'Inclina una sezione alare nel vento e guarda l’aria fare il lavoro. Poi vai a prenderti la cosa vera: <strong>800 N di portanza per metro di apertura</strong>, senza un momento di beccheggio che un piano di coda non riuscirebbe a equilibrare.',
       target: 'L′ = 800 N/m ± 2 %',
       constraint: '|C_m,c/4| < 0,08',
       checked: 'portanza calcolata per due vie indipendenti',
@@ -240,6 +244,9 @@ export default {
     },
     solenoid: {
       name: 'Il circuito magnetico',
+      question: 'Perché il ferro guida un campo magnetico?',
+      topic: 'Magnetostatica — il circuito di ferro',
+      level: 'un po’ di fisica aiuta · ~8 min',
       problem:
         'Porta il flusso richiesto attraverso un nucleo di ferro con un budget fisso di amperspire, senza lasciarlo disperdere nell’aria.',
       target: '4,5 mWb/m con ≤ 3600 A',
@@ -249,6 +256,9 @@ export default {
     },
     truss: {
       name: 'Il ponte',
+      question: 'Quale asta cede per prima?',
+      topic: 'Statica — la travatura reticolare',
+      level: 'questo lo disegni tu · ~10 min',
       problem:
         'Costruisci una travatura reticolare su una gola di 24 m e porta il traffico entro un budget di acciaio — l’asta che cede per prima non è quasi mai quella che ti aspetti.',
       target: 'η < 1 con ≤ 2400 kg',
@@ -258,6 +268,9 @@ export default {
     },
     heatsink: {
       name: 'Dissipatore',
+      question: 'Quando smettono di servire le alette?',
+      topic: 'Trasmissione del calore — il corpo alettato',
+      level: 'un po’ di fisica aiuta · ~10 min',
       problem:
         'Smaltisci una potenza data restando sotto una temperatura massima, usando meno metallo. Quante alette servono davvero, e quando smettono di servire?',
       target: 'T_max < 95 °C con ≤ 170 g',
