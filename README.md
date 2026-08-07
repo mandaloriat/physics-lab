@@ -9,8 +9,8 @@ Live at **[lab.andolfatto.eu](https://lab.andolfatto.eu)** — the hostname is i
 not the name of the thing
 ([ADR-016](docs/architecture-decisions.md#adr-016--the-product-is-called-spoon-physics)).
 
-> The simulations are demonstrative and educational. They are not a substitute for
-> professional engineering verification.
+> These models are for exploring ideas and comparing designs. They are
+> not professional engineering tools.
 
 The lab is an **application** built on
 [Fenix Spoon](https://github.com/mandaloriat/fenix-spoon), which is the **toolkit**: the
