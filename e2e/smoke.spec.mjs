@@ -90,8 +90,11 @@ test('the homepage leads with the problems, and shows a real field for each', as
     expect(shot.loaded).toBe(true);
   }
 
-  // The explanation of how it is built is still here, and is now underneath the invitation.
-  await expect(page.locator('#modes')).toContainText('Two ways to compute the same thing');
+  // The explanation of how it is built is still here, still underneath the invitation, and now
+  // in one block instead of a list of solver modes: which of two routes computed a field is a
+  // question for the exercise page that offers the choice, not for somebody deciding which
+  // challenge to open. ADR-022, §6.8.
+  await expect(page.locator('#modes')).toContainText('Method, code and data');
   const order = await page.evaluate(() => {
     const cards = document.querySelector('.card-grid').getBoundingClientRect().top;
     const about = document.querySelector('.about').getBoundingClientRect().top;
