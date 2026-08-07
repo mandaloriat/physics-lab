@@ -53,7 +53,7 @@ async function solve(page) {
 test('the exercise states a problem before it offers a solver', async ({ page }) => {
   await ready(page);
   // The mission is above everything, and it is quantitative: three targets with numbers.
-  await expect(page.locator('#challenge .challenge__statement')).toContainText('24 m deck');
+  await expect(page.locator('#challenge .challenge__statement')).toContainText('2400 kg');
   await expect(page.locator('#challenge .challenge__target')).toHaveCount(3);
   // Before a run every target reads as unanswered rather than as failed.
   await expect(page.locator('#challenge .challenge__target.is-pending')).toHaveCount(3);
@@ -240,5 +240,5 @@ test('a kept run records the lattice it was computed on, and reloads it', async 
   await expect(page.locator('#lattice-note')).toContainText('17 joints');
   await page.locator('#runs-table button', { hasText: 'Load' }).first().click();
   await expect(page.locator('#lattice-note')).toContainText('21 joints');
-  await expect(page.locator('#status')).toContainText('Press Run to recompute it');
+  await expect(page.locator('#status')).toContainText('Press Compute to run it again');
 });

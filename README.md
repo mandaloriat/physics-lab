@@ -30,14 +30,19 @@ which supersedes part of
 
 ---
 
-## Current experiments
+## Current challenges
 
-| Experiment | Physics | Status |
+Three challenges on the homepage, and one advanced lab on a shelf below them. Each challenge
+runs the same loop — predict, try, improve, compare — and each states its mission twice: once in
+words, which is what the page shows, and once in the units an engineer would state it in, which
+stays in the model details. See [ADR-022](docs/architecture-decisions.md#adr-022--the-lab-is-a-set-of-challenges-and-the-explanation-comes-after-the-attempt).
+
+| Challenge | Physics | Status |
 |---|---|---|
-| **Airfoil design** | Ideal flow with a Kutta condition, by a panel method: hit a lift target under a pitching-moment constraint | **Available** — the first page built to the *exercise* contract |
-| **The magnetic circuit** — *magnetostatics* | Vector potential for an out-of-plane current, on a grid fitted to the iron: carry a required flux on an ampere-turn budget without leaking it | **Available** — the second |
-| **The bridge** — *statics* | A pin-jointed lattice by the direct stiffness method: build a truss across a gorge and carry the traffic on a steel budget, without buckling a member | **Available** — the third, and the one you draw |
-| **Heat sink conduction and convection** | Conduction in a finned body with convective surfaces | Planned |
+| **Find the wing's attitude** — *aerodynamics* | Ideal flow with a Kutta condition, by a panel method: hit a lift target without twisting too hard | **Available** — the first page built to the *exercise* contract |
+| **Build a bridge that holds** — *statics* | A pin-jointed lattice by the direct stiffness method: build a truss across a gorge and carry the traffic on a steel budget, without buckling a member | **Available** — the one you draw |
+| **How many fins do you actually need?** — *heat transfer* | Conduction in a finned extrusion with convection and radiation at the surfaces: an optimum that is not "more" | **Available** |
+| **Magnetic field in a 2D section** — *magnetostatics* | Vector potential for an out-of-plane current, on a grid fitted to the iron: carry a required flux on an ampere-turn budget without leaking it | **Advanced lab.** Written for readers who already know flux and magnetic circuits. Not a challenge: its mission is a flux in Wb/m, which has no outcome a student can picture. The electromagnet meant to replace it — pull a plate on a power budget — is specified and unbuilt |
 
 Each page also numbers *itself* — "Exercise 1", "Exercise 3", "Exercise 4" — and that number is its
 row in [the contract's list of exercises](docs/exercise-contract.md#7-the-exercises), not the order
@@ -328,8 +333,8 @@ sudo ufw allow 80,443/tcp && sudo ufw allow 443/udp
 ### 3. Deploy
 
 ```bash
-git clone https://github.com/mandaloriat/physics-lab.git
-cd physics-lab
+git clone https://github.com/mandaloriat/spoon-physics.git
+cd spoon-physics
 cp .env.example .env          # set LAB_DOMAIN; everything else has a working default
 docker compose -f compose.yaml -f compose.production.yaml up -d --build
 ```

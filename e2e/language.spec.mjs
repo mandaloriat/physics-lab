@@ -54,7 +54,7 @@ test('the homepage reads in English until the switch is used', async ({ page }) 
   // line above it and keeps its wording (ADR-016). Both are asserted, because the point of
   // this test is that the *page* changed language, not that one string did.
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Play with the physics');
-  await expect(page.locator('.hero__tagline')).toContainText('Interactive problems');
+  await expect(page.locator('.hero__tagline')).toContainText('Physics challenges');
 
   await page.getByRole('link', { name: 'Italiano' }).click();
 
@@ -69,12 +69,12 @@ test('the homepage reads in English until the switch is used', async ({ page }) 
   await expect(page.locator('.card__problem').first()).toContainText(
     '800 N di portanza per metro di apertura',
   );
-  await expect(page.locator('.card__problem strong').first()).toContainText('800 N di portanza');
+  await expect(page.locator('.card__problem').first()).toContainText('portanza');
 
   await page.getByRole('link', { name: 'English' }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Play with the physics');
-  await expect(page.locator('.hero__tagline')).toContainText('Interactive problems');
+  await expect(page.locator('.hero__tagline')).toContainText('Physics challenges');
 });
 
 test('the choice follows an ordinary link, with no query string on it', async ({ page }) => {

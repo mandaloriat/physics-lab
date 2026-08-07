@@ -39,7 +39,16 @@ import {
   renderMetrics,
   renderValidity,
   renderVerification,
+  attemptState,
+  renderAfterAttempt,
+  renderTeacher,
 } from '/shared/exercise.js';
+import {
+  changedTheDesign,
+  mountPath,
+  mountPrediction,
+  renderPredictionRecall,
+} from '/shared/journey.js';
 import {
   applyFieldView,
   applyMaintenance,
@@ -147,6 +156,17 @@ const dom = Object.fromEntries(
     'exportJson',
     'clearRuns',
     'maintenance',
+    'path',
+    'prediction',
+    'predictionRecall',
+    'outcome',
+    'hint',
+    'credibility',
+    'explain',
+    'teacher',
+    'whyPanel',
+    'predictPanel',
+    'teacherCard',
   ].map((key) => [
     key,
     document.getElementById(key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)),
@@ -353,6 +373,7 @@ const PARAM_UI = [
 const METRICS = [
   {
     key: 'utilisation_max',
+    goal: t('truss.goal.capacity'),
     label: t('truss.metrics.worst'),
     symbol: 'η',
     unit: '1',
@@ -361,6 +382,7 @@ const METRICS = [
   },
   {
     key: 'span_ratio',
+    goal: t('truss.goal.sag'),
     label: t('truss.metrics.spanRatio'),
     symbol: 'δ/L',
     unit: '1',
@@ -377,6 +399,7 @@ const METRICS = [
   },
   {
     key: 'mass',
+    goal: t('truss.goal.steel'),
     label: t('truss.metrics.mass'),
     symbol: 'm',
     unit: 'kg',
@@ -437,36 +460,47 @@ const METRIC_LABELS = Object.fromEntries(METRICS.map((metric) => [metric.key, me
 
 /** The few numbers that answer the mission, shown before any table. */
 const KPIS = [
-  { key: 'utilisation_max', label: t('truss.metrics.worst'), symbol: 'η', unit: '1', digits: 2 },
-  { key: 'mass', label: t('truss.metrics.mass'), symbol: 'm', unit: 'kg', digits: 0 },
   {
-    key: 'span_ratio',
-    label: t('truss.metrics.deflectionShort'),
-    symbol: 'span ÷',
-    unit: '1',
+    key: 'utilisation_max',
+    label: t('truss.headline.worst'),
+    symbol: 'η',
+    unit: '%',
+    plainUnit: '%',
     digits: 0,
-    // Shown as the denominator, because "span/1400" is how a deflection limit is spoken and
-    // 0.000714 is not. The metric itself is unchanged; only its presentation is inverted.
     from: (found) =>
-      found.metrics?.span_ratio > 0 ? Math.round(1 / found.metrics.span_ratio) : null,
-    absent: t('truss.metrics.deflectionAbsent'),
+      typeof found.metrics?.utilisation_max === 'number'
+        ? 100 * found.metrics.utilisation_max
+        : null,
+    goal: { value: 100, comparator: '<' },
+    hint: t('truss.headline.worstHint'),
   },
   {
-    key: 'carried_per_mass',
-    label: t('truss.metrics.carriedShort'),
-    symbol: 'F/m',
-    unit: 'N/kg',
+    key: 'mass',
+    label: t('truss.headline.steel'),
+    symbol: 'm',
+    unit: 'kg',
+    plainUnit: 'kg',
     digits: 0,
+    goal: { value: 2400, comparator: '<' },
+    hint: t('truss.headline.steelHint'),
   },
   {
-    key: 'buckling_margin_min',
-    label: t('truss.metrics.buckling'),
-    symbol: 'P_cr/P',
-    unit: '1',
-    digits: 2,
-    absent: t('truss.metrics.bucklingAbsent'),
+    key: 'deflection_max',
+    label: t('truss.headline.sag'),
+    symbol: 'δ',
+    unit: 'mm',
+    plainUnit: 'mm',
+    digits: 1,
+    // Millimetres, not a span ratio. `δ/L < 1/800` is how a code states a serviceability limit
+    // and "18 of 30 mm" is how a person pictures one; the ratio is still in All results and in
+    // the tooltip, which is where §2.4 puts a symbol.
+    from: (found) =>
+      typeof found.metrics?.deflection_max === 'number'
+        ? 1000 * Math.abs(found.metrics.deflection_max)
+        : null,
+    goal: { value: 30, comparator: '<' },
+    hint: t('truss.headline.sagHint'),
   },
-  { key: 'reaction_max', label: t('truss.metrics.reaction'), symbol: 'R', unit: 'N', digits: 0 },
 ];
 
 const CHECKS = [
@@ -1210,6 +1244,17 @@ function present() {
   renderMetrics(dom.metrics, METRICS, report);
   renderVerification(dom.verification, CHECKS, report);
   renderValidity(dom.validity, report);
+  renderAfterAttempt(dom, {
+    challenge: content?.challenge,
+    explain: content?.explain,
+    report,
+    state: attemptState(content?.challenge, report),
+    hint: report ? suggestion() : null,
+    facts: attemptFacts(),
+  });
+  renderPredictionRecall(dom.predictionRecall, prediction?.answer() ?? null);
+  if (report) path.mark('attempt');
+
   declareOverlays();
 
   if (!report) return;
@@ -1520,6 +1565,9 @@ function refreshRuns(rows = runs.load(EXERCISE), evicted = 0) {
     button.disabled = !rows.length;
   }
   dom.compareJump.hidden = rows.length < 2;
+  if (selected.size >= 2) path.mark('compare');
+  if (!rows.length) dom.runsNote.textContent = t('runs.none');
+  else if (rows.length === 1) dom.runsNote.textContent += ` ${t('runs.one')}`;
 }
 
 /** Put a saved row's inputs back on the page. Does not re-solve: Run is still the visitor's. */
@@ -1646,7 +1694,13 @@ dom.field.addEventListener('change', () => {
 });
 dom.keep.addEventListener('click', () => {
   if (!report) return;
-  const { rows, evicted } = runs.save(EXERCISE, row());
+  // "Improve" is not "run it again". A second attempt at a finer grid is a numerical
+  // experiment and a worthwhile one, but it is not a second design — `changedTheDesign`
+  // compares the geometry and the physical conditions, and nothing else. See `journey.js`.
+  const kept = runs.load(EXERCISE);
+  const entry = row();
+  if (kept.length && changedTheDesign(kept[0], entry)) path.mark('improve');
+  const { rows, evicted } = runs.save(EXERCISE, entry);
   refreshRuns(rows, evicted);
   revealPanel(dom.runsPanel);
 });
@@ -1662,6 +1716,71 @@ dom.clearRuns.addEventListener('click', () => {
   refreshRuns();
 });
 
+/* ------------------------------------------------------------- one suggestion at a time */
+
+/**
+ * What to say after an attempt that did not pass.
+ *
+ * Editorial rules rather than generated prose (§13.7). The compression case is separated from
+ * the tension one on purpose: they call for opposite moves — shorten the bar, or thicken it —
+ * and a single "add steel" hint would teach the wrong lesson about buckling.
+ */
+function suggestion() {
+  if (!report) return null;
+  const worst = report.metrics?.utilisation_max;
+  const mass = report.metrics?.mass;
+  const sag = report.metrics?.deflection_max;
+  const buckling = report.metrics?.buckling_margin_min;
+  if ((report.validity?.warnings ?? []).length) return t('truss.hint.outside');
+  if (typeof worst === 'number' && worst >= 1) {
+    return typeof buckling === 'number' && buckling < 1.5
+      ? t('truss.hint.compression')
+      : t('truss.hint.tension');
+  }
+  if (typeof mass === 'number' && mass >= 2400) {
+    return t('truss.hint.mass', { excess: Math.round(mass - 2400) });
+  }
+  if (typeof sag === 'number' && 1000 * sag >= 30) return t('truss.hint.sag');
+  return null;
+}
+
+/** Numbers the post-attempt cards may quote, so an explanation can be about *this* attempt. */
+function attemptFacts() {
+  if (!report) return {};
+  const worst = report.metrics?.utilisation_max;
+  return {
+    utilisation: typeof worst === 'number' ? Math.round(100 * worst) : '—',
+    mass: Math.round(report.metrics?.mass ?? 0),
+  };
+}
+
+/* ------------------------------------------------------------------- predict, try, compare */
+
+/**
+ * The loop the page is played in, mounted once.
+ *
+ * The prediction is asked before anything is computed and gates nothing; the path lights the
+ * steps that have been taken. Both live in `shared/journey.js` — see the note there about why
+ * neither is allowed to block a solve or to score an answer.
+ */
+const path = mountPath(dom.path, { exercise: EXERCISE });
+let prediction = null;
+
+function mountLoop() {
+  if (content?.prediction) {
+    prediction = mountPrediction(dom.prediction, {
+      exercise: EXERCISE,
+      prediction: content.prediction,
+      hasSolved: () => Boolean(report),
+      onAnswer: () => path.mark('predict'),
+    });
+  } else {
+    dom.predictPanel?.remove();
+  }
+  renderTeacher(dom.teacher, content?.teacher);
+  if (!content?.teacher) dom.teacherCard?.remove();
+}
+
 try {
   const [loaded, info, solvers] = await Promise.all([
     fetch(contentUrl(EXERCISE)).then((response) => response.json()),
@@ -1671,6 +1790,7 @@ try {
 
   content = loaded;
   catalogue = solvers;
+  mountLoop();
   renderLesson({ content, intro: null, lesson: dom.lesson, open: ['problem'] });
   present();
   refreshRuns();

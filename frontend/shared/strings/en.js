@@ -25,13 +25,16 @@ export default {
 
   brand: {
     name: 'Spoon Physics',
-    tagline: 'Interactive problems. Computed fields. Checkable answers.',
+    // ADR-016 fixed the old tagline as the product's non-negotiable claim. The editorial
+    // review replaces it deliberately: that one described the solver, this one describes what
+    // you do with it. See ADR-022.
+    tagline: 'Physics challenges. Real computation. Results worth arguing about.',
   },
 
   nav: {
     label: 'Lab sections',
-    experiments: 'Experiments',
-    how: 'How it works',
+    experiments: 'Challenges',
+    how: 'How to play',
     code: 'Code',
   },
 
@@ -93,65 +96,133 @@ export default {
     unreachable: 'Cannot reach the server — {detail}',
     kept: '{count} of {capacity} kept, in this browser only.',
     evicted: '{count} oldest dropped to make room.',
-    loaded: 'Loaded the inputs of the {label} run. Press Run to recompute it.',
+    loaded: 'Loaded the inputs of attempt {label}. Press Compute to run it again.',
   },
 
   /* ------------------------------------------------------------------ the shared renderers */
 
   exercise: {
-    notRunYet: 'not run yet',
-    notReported: 'this run does not report it',
-    reading: 'this run: {value}',
-    metButOutside: 'The numbers are right, but the model is outside its domain of validity. ',
-    outside: 'This run is outside the model’s domain of validity. ',
-    limitCrossedOne: 'The limit crossed is',
-    limitCrossedMany: 'The limits crossed are',
-    limitCrossedTail:
-      ' listed under “How far to trust it”, and a run that crosses one cannot meet the target however good its numbers look.',
-    didNotVerify: 'This run did not verify. ',
+    notRunYet: 'not computed yet',
+    notReported: 'this attempt does not report it',
+    reading: 'this attempt: {value}',
+    atMost: 'at most',
+    atLeast: 'at least',
+    within: ', within {amount}',
     verificationGap:
-      'The two independent routes to the answer differ by {value} %, above the {limit} % this exercise asks for. Refine the discretisation and run again.',
-    targetMet: 'Target met. ',
-    tryAnother: 'Keep the run, then try to meet it another way — {next} — and compare the two.',
-    tryAnotherPlain: 'Keep the run, then try to meet it another way and compare the two.',
+      'The two independent routes to the answer differ by {value} %, above the {limit} % this challenge asks for. Refine the discretisation and try again.',
     notApplicable: 'not applicable',
     needs: 'needs {key}',
-    everySolve: 'Runs with every solve.',
-    everyRun: 'Checked on every run.',
+    everySolve: 'Computed on every attempt.',
+    everyRun: 'Checked on every attempt.',
     notRun: 'not run',
     inside: 'Inside the stated domain of validity. ',
     insideTail:
-      'Every limit this model declares was checked against this run and none was crossed.',
-  },
+      'Every limit this model declares was checked against this attempt and none was crossed.',
+    explainLocked: 'Unlocks after your first computation — your prediction comes first.',
 
-  runs: {
-    none: 'No runs kept yet. Solve something and press Keep run — a kept run records every input, so it can be recomputed and compared.',
-    select: 'Select this run for comparison',
-    load: 'Load',
-    delete: 'Delete',
-    yes: 'yes',
-    no: 'no',
-    selectTwo: 'Select two or more runs to compare them.',
-    field: 'Field',
-    run: 'Run {index}',
-    differOne: '{differ} field differs; {same} are identical and hidden.',
-    differMany: '{differ} fields differ; {same} are identical and hidden.',
-    blocks: {
-      exercise: 'Exercise',
-      solver: 'Solver',
-      model: 'Model',
-      geometry: 'Geometry',
-      physical: 'Conditions',
-      numerics: 'Numerics',
-      dimensionless: 'Dimensionless',
-      metrics: 'Answer',
-      sweep: 'Sweep',
-      verification: 'Verification',
-      validity: 'Validity',
-      cost: 'Cost',
+    /* The verdict, in one line. The reasons are one panel down. */
+    outcome: {
+      metLead: 'Challenge met.',
+      metTail:
+        'Keep this attempt, then look for a different way through: {next}. Two similar results can come from very different designs.',
+      metTailPlain:
+        'Keep this attempt, then look for a different way through. Two similar results can come from very different designs.',
+      missedLead: 'Not yet.',
+      missedTail: 'Look at which limit was crossed, and change one thing at a time.',
+      outsideMetLead: 'The numbers hit the target, but this attempt does not count.',
+      outsideMetTail: 'The model is outside its own domain of validity.',
+      outsideLead: 'This attempt does not count.',
+      outsideTail: 'The configuration is outside the model’s domain of validity.',
+      unverifiedLead: 'This attempt cannot be judged yet.',
+      unverifiedTail: 'The numerical check did not pass.',
+      failedLead: 'The computation did not finish.',
+      failedTail: 'Read the message above and try again.',
+    },
+
+    /* Two indicators, because they answer two different questions. */
+    credibility: {
+      numeric: 'Computation settled',
+      physical: 'Model applies here',
+      yes: 'yes',
+      improve: 'needs work',
+      unchecked: 'not checked',
+      caution: 'with care',
+      no: 'no',
+      numericWhat:
+        'Whether the answer barely moves when the computation is refined, or checked a second way.',
+      physicalWhat:
+        'Whether this configuration stays inside the physical assumptions the model declares.',
+      seeChecks: 'See the checks →',
+    },
+
+    /* The line under each headline result. */
+    tile: {
+      within: 'Inside the tolerance.',
+      short: '{delta} short.',
+      over: '{delta} over the target.',
+      spare: '{margin} to spare.',
+      above: '{delta} over the limit.',
+      below: '{delta} below the minimum.',
+      barAria: '{value} against a limit of {limit}',
     },
   },
 
+  path: {
+    label: 'The path through this challenge',
+    predict: 'Predict',
+    attempt: 'Try',
+    improve: 'Improve',
+    compare: 'Compare',
+    done: 'done',
+  },
+
+  prediction: {
+    heading: 'Before you compute',
+    unknown: 'Not sure yet',
+    note: 'Your prediction changes nothing in the computation. It is there so you have something to compare the result against.',
+    youSaid: 'You predicted:',
+  },
+
+  teacher: {
+    summary: 'For teachers',
+    objective: 'Objective',
+    prediction: 'A prediction worth asking for',
+    misconception: 'Common misconception',
+    discussion: 'Closing discussion',
+    prerequisites: 'Prerequisites',
+    duration: 'Time',
+  },
+
+  runs: {
+    none: 'No attempts kept yet. Compute a configuration, keep it, then change one choice and try again.',
+    one: 'Keep a second attempt to see what actually changed.',
+    select: 'Select this attempt for comparison',
+    load: 'Load',
+    delete: 'Delete',
+    rename: 'Name this attempt',
+    namePlaceholder: 'e.g. “more camber”',
+    yes: 'yes',
+    no: 'no',
+    selectTwo: 'Select two or more attempts to compare them.',
+    field: 'Field',
+    run: 'Attempt {index}',
+    differOne: '{differ} field differs; {same} are identical and hidden.',
+    differMany: '{differ} fields differ; {same} are identical and hidden.',
+    blocks: {
+      exercise: 'Challenge',
+      solver: 'Computation',
+      model: 'Model',
+      geometry: 'Geometry',
+      physical: 'Your choices',
+      numerics: 'Computation settings',
+      dimensionless: 'Dimensionless',
+      metrics: 'Results',
+      sweep: 'Sweep',
+      verification: 'Numerical checks',
+      validity: 'Model limits',
+      cost: 'Computation',
+    },
+  },
   curve: {
     empty: 'Nothing to plot yet.',
     aria: '{y} against {x}',
@@ -208,108 +279,96 @@ export default {
   /* ------------------------------------------------------------------------- the home page */
 
   home: {
-    title: 'Spoon Physics',
+    title: 'Spoon Physics — interactive physics challenges',
     description:
-      'Play with the physics, then find out why it works. An interactive laboratory: a short lesson you can skip, a real solver that computes the field, the engineering numbers that answer the question, and a statement on every run of how far to trust them.',
-    heroHeading: 'Play with the physics.<br>Then find out why it works.',
-    lede: 'Every experiment opens with a question you can follow knowing nothing at all, explains just enough to make the controls mean something, and hands you a real solver: it computes the field, gives you the engineering numbers, and says on every run how far those numbers can be trusted.',
-    experiments: 'Experiments',
-    badgeExercise: 'Exercise',
+      'Small interactive physics challenges: make a prediction, change the design, compute the result, and compare your attempts against the limits of the model.',
+    heroHeading: 'Make a prediction. Put it to the test.',
+    lede: 'Pick a challenge, change a few parameters, and see what the model predicts. Keep your attempts, compare them, and find where the simulation stops being believable.',
+    experiments: 'Challenges',
+    badgeExercise: 'Challenge',
     badgePlanned: 'In preparation',
-    /* Folded on every card. The quantities are the honesty of the page and none of them is
-       deleted — they are one click behind the invitation instead of in front of it. */
-    numbersSummary: 'The numbers behind it',
-    target: 'Target',
-    wouldTarget: 'Would target',
-    constraint: 'Constraint',
-    youSet: 'You set',
-    checkedBy: 'Checked by',
-    status: 'Status',
+    missionSummary: 'The challenge',
+
     airfoil: {
-      /* Labels inside the guided path's diagrams. Here rather than in `figures.js` so the i18n
-       checker can see them: a hardcoded English string inside an SVG is invisible to every
-       test that only loads a page, and shipped once already. */
-      name: 'Airfoil design',
-      /* The heading of the card, because it is the thing a visitor can want the answer to
-         without already knowing the subject. The subject goes underneath, in `topic`. */
-      question: 'Why does a wing stay up?',
-      topic: 'Aerodynamics — the wing section',
-      level: 'no physics needed · ~5 min',
+      name: 'Find the wing’s attitude',
+      question: 'How much tilt does a wing need?',
+      topic: 'Aerodynamics · 5–8 min',
       problem:
-        'Tilt a wing section into the wind and watch the air do the work. Then go after the real thing: <strong>800 N of lift per metre of span</strong>, without a pitching moment a tail could not trim out.',
-      target: 'L′ = 800 N/m ± 2 %',
-      constraint: '|C_m,c/4| < 0.08',
-      checked: 'lift computed two independent ways',
-      cta: 'Design an airfoil →',
-    },
-    solenoid: {
-      name: 'The magnetic circuit',
-      question: 'Why does iron guide a magnetic field?',
-      topic: 'Magnetostatics — the iron circuit',
-      level: 'some physics helps · ~8 min',
-      problem:
-        'Carry a required flux through an iron core on a fixed ampere-turn budget, without letting it leak away into the air.',
-      target: '4.5 mWb/m at ≤ 3600 A',
-      youSet: 'core, gap, winding, length, μᵣ, current density',
-      checked: 'an energy balance, Ampère’s law and a mesh study',
-      cta: 'Design a magnetic circuit →',
+        'Pick a section and set the angle until the wing carries the lift it has to, without twisting too hard. Different sections can get there in different ways.',
+      mission: 'Hold up the equivalent of about 80 kg for every metre of wing.',
+      cta: 'Try a wing →',
     },
     truss: {
-      name: 'The bridge',
+      name: 'Build a bridge that holds',
       question: 'Which bar gives way first?',
-      topic: 'Statics — the pin-jointed lattice',
-      level: 'you draw this one · ~10 min',
+      topic: 'Structures · 8–12 min',
       problem:
-        'Build a lattice across a 24 m gorge and carry the traffic on a steel budget — the bar that gives way first is almost never the one you expect.',
-      target: 'η < 1 on ≤ 2400 kg',
-      youSet: 'every joint, every bar, the supports, the loads, the section',
-      checked: 'the method of joints, a moment balance and an energy check',
-      cta: 'Build a bridge →',
+        'Draw a 24-metre bridge, carry the traffic and stay inside the steel budget. Before you compute, say which bar you think is the weakest.',
+      mission: 'About 10 tonnes spread along the deck, on 2.4 tonnes of steel at most.',
+      cta: 'Build the bridge →',
     },
     heatsink: {
-      name: 'Heat sink',
-      question: 'When do more fins stop helping?',
-      topic: 'Heat transfer — the finned body',
-      level: 'some physics helps · ~10 min',
+      name: 'How many fins do you actually need?',
+      question: 'Do more fins always cool better?',
+      topic: 'Heat · 6–10 min',
       problem:
-        'Dissipate a given power below a maximum temperature, using less metal. How many fins actually help, and when do they stop?',
-      target: 'T_max < 95 °C on ≤ 170 g',
-      youSet: 'fin count, height and thickness, the base, the finish, the cooling',
-      checked:
-        'an energy balance over both heat paths, and view-factor identities that hold exactly',
-      cta: 'Cool a device →',
+        'Predict how many fins it takes, then let the computation explore the alternatives. Too few shed little heat; too many can choke the air trying to get past.',
+      mission: 'Keep a 30 W device under 95 °C on no more than 170 g of aluminium.',
+      cta: 'Design the heat sink →',
     },
+    solenoid: {
+      name: 'Magnetic field in a 2D section',
+      question: 'Magnetic field in a 2D section',
+      topic: 'Magnetostatics',
+      problem:
+        'Carry a required flux through an iron core on an ampere-turn budget, and watch how much of it leaks into the air.',
+      mission: 'Written for readers who already know flux, field and magnetic circuits.',
+      cta: 'Open the lab →',
+    },
+
+    howHeading: 'How to play',
+    step1Heading: '1. Predict',
+    step1:
+      'Say what you think will happen. Guessing right is not the point: the prediction is there to give you something to compare against.',
+    step2Heading: '2. Compute',
+    step2:
+      'Change a few parameters and run it. The field and the numbers come out of the configuration you chose.',
+    step3Heading: '3. Compare',
+    step3:
+      'Keep at least two attempts. Look for what changed, which constraint decided the result, and where the model stops being enough.',
+    howNote:
+      '<strong>A number can be computed well and still describe reality badly.</strong> That is why every attempt keeps the stability of the computation separate from the limits of the model.',
+
+    advancedHeading: 'Advanced labs',
+    advancedLead:
+      'Pages built for readers who already know the subject. They are not challenges with a target to hit.',
+
     disclaimerLabel: 'Note.',
     disclaimer:
-      'The simulations are demonstrative and educational. They are not a substitute for professional engineering verification.',
-    aboutHeading: 'How it works',
-    modesSummary: 'Two ways to compute the same thing',
-    modesLead:
-      'The same problem can be solved quickly and approximately, or slowly and more faithfully. The lab offers both routes and always tells you which one you are looking at — because the difference between them <em>is</em> part of what there is to learn.',
-    modeFast:
-      '<strong>Fast preview</strong> — a regular Cartesian grid solved in NumPy. Near-instant, and approximate by construction: the grid does not follow the body’s outline.',
-    modeFenics:
-      '<strong>FEniCSx computation</strong> — an unstructured triangular mesh generated with Gmsh, solved with P1 finite elements. Slower, more faithful close to the body, and it produces a VTK file that opens in ParaView.',
-    modePanel:
-      '<strong>Panel method</strong> — for the airfoil, neither of the above: source and vortex sheets on the body itself, so the boundary is exact rather than meshed. It is not a preview of something better; it is the most accurate surface solution here.',
+      'These models are for exploring ideas and comparing designs. They are not professional engineering tools.',
+
+    aboutHeading: 'How to play',
+    methodSummary: 'Method, code and data',
+    methodBody:
+      'The answers are not canned animations: they are computed from the configuration in front of you. Each challenge uses the model that suits it, and offers numerical controls, the full set of quantities and a data export. The lab’s code is open source.',
+    methodAirfoil: '<strong>Wing</strong> — a panel method on the surface of the section itself.',
+    methodTruss: '<strong>Bridge</strong> — one bar element per bar, solved once.',
+    methodHeatsink:
+      '<strong>Heat sink</strong> — conduction through the metal, with convection and radiation at the surfaces.',
+    methodSolenoid: '<strong>Magnetostatics</strong> — the field in a two-dimensional section.',
     capabilityChecking: 'Checking what is installed on this server…',
-    capabilityBoth: 'Both modes are active on this server.',
+    capabilityBoth: 'This server has both the fast computation and the finite-element one.',
     capabilityPreviewOnly:
-      'Only the fast preview is active on this server: no FEniCSx solver is installed. The experiments remain fully usable, and the airfoil exercise does not need one.',
-    capabilityPaused: 'New simulations are temporarily suspended for maintenance.',
+      'This server only has the fast computation: no FEniCSx is installed. The challenges all still work, and the wing does not need it.',
+    capabilityPaused: 'New computations are paused for maintenance.',
     capabilityUnreachable:
-      'The server cannot be reached at the moment; the experiments may be unavailable.',
+      'The server is unreachable at the moment; the challenges may not be available.',
     madeSummary: 'How it is made',
     madeBody:
-      'The lab is an application built on <a href="https://github.com/mandaloriat/fenix-spoon">Fenix Spoon</a>, an open-source toolkit that puts a finite-element solver behind a web page: the protocol, the job handling, the solvers and the browser widgets all come from there. What you find here is the teaching experience built on top — the problems, the explanations, the design and the public deployment.',
+      'The lab is an application built on <a href="https://github.com/mandaloriat/fenix-spoon">Fenix Spoon</a>, an open-source toolkit that puts a finite-element solver behind a web page. What you find here is the teaching experience built on top — the problems, the explanations, the design and the public deployment.',
     madeLicence:
-      'The code for this lab is on <a href="https://github.com/mandaloriat/physics-lab">GitHub</a> under the MIT licence. The real computations are carried out by <a href="https://fenicsproject.org/">FEniCSx</a>, and the fast previews and the panel method by <a href="https://numpy.org/">NumPy</a>.',
+      'The code for this lab is on <a href="https://github.com/mandaloriat/spoon-physics">GitHub</a> under the MIT licence. The finite-element computations are carried out by <a href="https://fenicsproject.org/">FEniCSx</a>, and the rest by <a href="https://numpy.org/">NumPy</a>.',
   },
-
-  /* ---------------------------------------------------- markup shared by every bench page */
-
-  /* ------------------------------------------- the guided path an exercise page opens with */
-
   guide: {
     /* The heading of the whole block, for screen readers; the chapters carry the visible ones. */
     heading: 'Before you start',
@@ -330,45 +389,68 @@ export default {
   },
 
   bench: {
-    mission: 'The mission',
+    mission: 'The challenge',
     widgetsMissing:
       'The browser widgets have not been built. Run <code>./scripts/fetch-widgets.sh</code> and reload the page.',
-    workspace: 'Workspace',
+    workspace: 'Test bench',
     visualisationTools: 'Visualisation tools',
     stageAria: 'Computed field. Drag to pan, plus and minus to zoom.',
     field: 'Field',
     fieldShown: 'Field shown',
-    configure: 'Configure',
-    design: 'Design',
-    conditions: 'Conditions',
-    whatFollows: 'What follows from these',
-    advanced: 'Advanced',
+    configure: 'Change the design',
+    design: 'Your choices',
+    conditions: 'Conditions of the test',
+    whatFollows: 'Derived values',
+    advanced: 'More controls',
     advancedError:
-      'These change the error, not the answer. How much they change it is what the verification panel measures.',
-    solverLabel: 'Solver',
+      'These change the error, not the answer. How much they change it is what the checks panel measures.',
+    solverLabel: 'Computation',
     checkingServer: 'Checking what this server can do…',
-    run: 'Run',
+    run: 'Compute',
     cancel: 'Cancel',
-    keep: 'Keep result',
-    compare: 'Compare',
-    answer: 'The answer',
-    everyQuantity: 'Every reported quantity',
-    trust: 'How far to trust it',
-    cost: 'What the solve cost',
-    keptRuns: 'Kept runs',
+    keep: 'Keep attempt',
+    compare: 'Compare attempts',
+    answer: 'How it went',
+    everyQuantity: 'All results',
+    trust: 'Is the result credible?',
+    checks: 'Numerical checks and model limits',
+    cost: 'Computation details',
+    keptRuns: 'Your attempts',
     exportCsv: 'Export CSV',
     exportJson: 'Export JSON',
     deleteAll: 'Delete all',
-    lesson: 'Understand the model',
+    why: 'Why it happens',
+    lesson: 'Model details',
     lessonLead:
-      'Everything the exercise rests on, in the order it matters. Nothing here has been shortened — it has been moved out of the way of the experiment.',
+      'Formulae, boundary conditions, checks and export. None of it is needed to play: it is here for when you want to know how the answer was computed.',
     maintenance:
-      'The lab is not accepting new simulations right now. You can still read the problem, {alternative} and look at any runs you have kept.',
+      'The lab is not accepting new simulations right now. You can still read the challenge, {alternative} and look at any attempts you have kept.',
   },
-
-  /* --------------------------------------------------------------------------- the airfoil */
-
   airfoil: {
+    /* The targets as a student reads them. §2.4: meaning first, the symbol in the tooltip. */
+    goal: {
+      lift: 'Lift: 800 N per metre, within 2 %',
+      twist: 'Tendency to twist: under the limit',
+    },
+    /* The three headline results (§7.5) and the nudges after a failed attempt (§7.7). */
+    headline: {
+      lift: 'Lift',
+      perMetre: 'N per metre',
+      liftHint: 'Lift per metre of span, from the pressure integrated over the whole surface.',
+      twist: 'Tendency to twist',
+      twistHint: 'Pitching moment about the quarter chord, against the limit this challenge sets.',
+      noseDown: 'Twisting nose-down.',
+      noseUp: 'Twisting nose-up.',
+      suction: 'Sharpest suction',
+      suctionNote: 'Not a target. It says how concentrated the pressure changes are.',
+      suctionHint: 'The lowest pressure coefficient anywhere on the surface.',
+    },
+    hint: {
+      lowLift: 'Lift is low. Change the angle first, and leave the profile where it is.',
+      highLift: 'Lift is past the target. Reduce the angle and watch how the pressure changes.',
+      moment: 'The lift is right, but the section twists too hard. Try a less cambered shape.',
+      outside: 'The computation carried on, but at this angle a real flow might separate.',
+    },
     /* Labels inside the guided path's diagrams. Here rather than in `figures.js` so the i18n
        checker can see them: a hardcoded English string inside an SVG is invisible to every test
        that only loads a page, and shipped once already.
@@ -419,7 +501,7 @@ export default {
     noSolver: 'This server has no solver that can impose a Kutta condition.',
     noSolverHere:
       'This server has no solver that imposes a Kutta condition, so this exercise cannot be run here.',
-    ready: 'Press Run to solve the section as it stands.',
+    ready: 'Pick a profile, make a prediction, then press Compute.',
     edited: 'Edited by hand, so the profile menu no longer describes this shape.',
     described: '{label} — camber {camber} %, at {position} % of chord, thickness {thickness} %.',
     readback:
@@ -571,6 +653,30 @@ export default {
   /* -------------------------------------------------------------------- the magnetic circuit */
 
   solenoid: {
+    /* The targets as a reader of this lab states them. */
+    goal: {
+      flux: 'Flux: at least 4.5 mWb per metre',
+      drive: 'Drive: 3600 ampere-turns at most',
+      leakage: 'Flux missing the core: under 1 %',
+    },
+    /* The three headline results (§7.5) and the nudges after a failed attempt (§7.7). */
+    headline: {
+      flux: 'Flux through the core',
+      drive: 'Ampere-turns',
+      driveHint: 'The drive the winding provides, against the budget this lab sets.',
+      leakage: 'Flux missing the core',
+      leakageHint: 'The share of the flux that closes through the air instead of the iron.',
+    },
+    hint: {
+      lowFlux:
+        'The flux is short and there is drive to spare. Look at the path the field has to take through air.',
+      spent:
+        'The ampere-turn budget is spent. More drive is no longer the cheap move — look at the geometry.',
+      overDrive: 'The flux is there, but it costs more drive than the budget allows.',
+      leakage:
+        'Too much of the flux is closing through the air beside the core rather than through it.',
+      outside: 'This configuration is outside the limits the model declares.',
+    },
     title: 'The magnetic circuit — Spoon Physics',
     description:
       'A magnetics design exercise: carry a required flux through an iron core on an ampere-turn budget, with computed fields, engineering metrics and a verification residual on every run.',
@@ -592,7 +698,7 @@ export default {
     noSolver: 'This server has no solver that reports magnetic metrics.',
     noSolverHere:
       'This server has no solver that reports magnetic metrics, so this exercise cannot be run here.',
-    ready: 'Press Run to solve the cross-section as it stands.',
+    ready: 'Press Compute to solve the cross-section as it stands.',
     described:
       'Core {core} mm across in a {bore} mm bore, {winding} mm of winding, {length} mm long. μᵣ = {permeability}, and {turns} ampere-turns per side. Solved in a {window} mm window, which is too large to draw here.',
     shapeLabel: '{core}×{length} core, {winding} mm winding at {gap} mm',
@@ -738,6 +844,31 @@ export default {
   /* ---------------------------------------------------------------------------- the bridge */
 
   truss: {
+    /* The targets as a student reads them. §2.4: meaning first, the symbol in the tooltip. */
+    goal: {
+      capacity: 'No bar over 100 % of its capacity',
+      steel: 'Steel: 2400 kg at most',
+      sag: 'Sag: 30 mm at most',
+    },
+    /* The three headline results (§7.5) and the nudges after a failed attempt (§7.7). */
+    headline: {
+      worst: 'Bar closest to failure',
+      worstHint: 'The most worked bar, as a share of what that bar can carry.',
+      steel: 'Steel used',
+      steelHint: 'Total mass of the lattice, self-weight included.',
+      sag: 'Largest sag',
+      sagHint: 'Also called deflection: the largest downward movement of any joint.',
+    },
+    hint: {
+      compression:
+        'The first bar to go is long and in compression. Shortening it can beat making the whole bridge heavier.',
+      tension:
+        'This bar is past its capacity in tension. Thicken the section, or send the load another way.',
+      mass: 'The bridge holds, but it uses {excess} kg of steel over budget. Look for bars doing very little.',
+      sag: 'It does not fail, but it sags too far. A taller lattice can lower the forces in the chords.',
+      outside:
+        'Either the lattice can move without stretching a bar, or it has left the small-displacement range.',
+    },
     title: 'The bridge — Spoon Physics',
     description:
       'A structures exercise: build a truss across a gorge, load it at the joints or along the deck, and carry the traffic within a mass budget without buckling a member — with computed forces, engineering metrics and a verification residual on every run.',
@@ -765,7 +896,7 @@ export default {
     noSolver: 'This server has no solver that answers a truss.',
     noSolverHere:
       'This server has no solver that answers a truss, so this exercise cannot be run here.',
-    ready: 'Press Run to solve the lattice as it stands.',
+    ready: 'Press Compute to solve the lattice as it stands.',
     presets: {
       'warren-8': 'Warren, 8 panels, 3 m deep',
       'warren-10': 'Warren, 10 panels, 3 m deep',
@@ -942,7 +1073,7 @@ export default {
       note: 'The eight busiest bars. Bar {index} is the one the mission is decided by, and it is marked on the field by the Worst member layer. A bar limited by buckling is one whose Euler load is below its squash load — shortening it helps by the square of the length, where thickening it helps by the square of the area.',
     },
     shapeLabel: '{bars} bars, {depth} m deep',
-    loadedRun: 'Loaded the {label} run. Press Run to recompute it.',
+    loadedRun: 'Loaded attempt {label}. Press Compute to run it again.',
     columns: {
       lattice: 'Lattice',
       mass: 'mass kg',
@@ -952,6 +1083,32 @@ export default {
     },
   },
   heatsink: {
+    /* The targets as a student reads them. §2.4: meaning first, the symbol in the tooltip. */
+    goal: {
+      temperature: 'Temperature: 95 °C at most',
+      aluminium: 'Aluminium: 170 g at most',
+    },
+    /* The three headline results (§7.5) and the nudges after a failed attempt (§7.7). */
+    headline: {
+      temperature: 'Peak temperature',
+      temperatureHint:
+        'The hottest point in the metal — the number a device rating is read against.',
+      aluminium: 'Aluminium used',
+      aluminiumHint: 'Mass of the whole extrusion over its stated length.',
+      channel: 'Gap between fins',
+      channelNote: 'Not a target. Narrow channels make it harder for the air to rise.',
+      channelHint:
+        'Clear width of one channel, which is what the convection correlation is evaluated on.',
+    },
+    hint: {
+      choked:
+        'You added surface, but the gap for the air is down to {channel} mm. Try taking a few fins away.',
+      room: 'You still have {margin} g to spend. Try changing one fin dimension only.',
+      hot: 'It runs too hot and there is no mass left. Something other than more metal has to change.',
+      heavy:
+        'The temperature is fine, but you are {excess} g over budget. Look for fins adding mass faster than they remove heat.',
+      outside: 'The geometry is outside the range the convection correlation was fitted over.',
+    },
     title: 'The heat sink — Spoon Physics',
     description:
       'A thermal design exercise: keep a power device below its rating on a mass budget, with conduction, convection taken from the channel between the fins and radiation exchanged through it — and find the fin count where adding more starts making it worse.',
@@ -979,7 +1136,7 @@ export default {
     shapeNote: 'Channel {channel} mm · about {mass} g of aluminium.',
     shapeOverlap:
       '{count} fins of this thickness do not fit across the 60 mm base — they would overlap. Thin the fins or use fewer.',
-    ready: 'Ready. Press Run.',
+    ready: 'Ready. Press Compute.',
     noSolver: 'No heat-sink solver is available on this server.',
     noSolverHere: 'This server has no heat-sink solver, so nothing can be run here.',
     maintenanceAlternative: 'the specification, which carries the model and every check in full',

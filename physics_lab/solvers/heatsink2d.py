@@ -54,6 +54,18 @@ VERSION = "1.0.0"
 
 #: Emissivity by surface finish. Ordered, because the page shows them as a choice and the
 #: order is the argument: sixteen-fold from top to bottom, for no metal at all.
+#: Total hemispherical emissivity by surface treatment, for aluminium near 350 K.
+#:
+#: Nominal values with a source, per the editorial review §12.3: a finish that sets a radiative
+#: flux may not carry a remembered number. Real surfaces spread around these — oxide thickness,
+#: dye loading, roughness and wavelength all move them, and a mill finish in particular ranges
+#: from about 0.03 when freshly rolled to 0.10 once weathered. They are nominal values for a
+#: teaching model, not a specification.
+#:
+#: Sources: Touloukian, Y. S. and DeWitt, D. P. (1970), *Thermophysical Properties of Matter,
+#: Vol. 7: Thermal Radiative Properties — Metallic Elements and Alloys*, IFI/Plenum, aluminium
+#: entries; and Vol. 8 for anodic coatings, where hard black anodising on aluminium is reported
+#: at 0.80–0.88 over 300–400 K. Clear anodising is intermediate and coating-thickness dependent.
 FINISHES = {"mill": 0.05, "clear_anodised": 0.6, "black_anodised": 0.8}
 
 HEATSINK_METRICS = [

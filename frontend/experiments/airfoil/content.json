@@ -1,8 +1,8 @@
 {
   "id": "airfoil",
-  "title": "Airfoil design",
-  "subtitle": "Ideal flow with a Kutta condition",
-  "intro": "A wing section in a uniform stream. Pick a profile, pick an incidence, and hit a lift target without breaking the constraint that comes with it. The solver reports what the section actually does — pressure distribution, lift, pitching moment, centre of pressure — and, on every run, how far those numbers can be trusted.",
+  "title": "Find the wing's attitude",
+  "subtitle": "Section, angle and pressure distribution",
+  "intro": "The wind runs past at 40 m/s over a section one metre wide. Pick the profile and set the angle: it has to hold up the equivalent of about 80 kg for every metre of wing, without twisting too hard.",
   "challenge": {
     "statement": "Choose a profile and an angle of attack that generate 800 N/m of sectional lift at 40 m/s and sea level, keeping the pitching moment small: |C_m,c/4| below 0.08. Runs that leave the model's domain of validity do not count.",
     "targets": [
@@ -27,7 +27,75 @@
       "metric": "cl_consistency_rel",
       "below": 0.02
     },
-    "next_step": "a different profile at a different incidence"
+    "next_step": "the same lift from a different profile",
+    "plain_statement": "Get 800 N of lift per metre, within 2 %, and keep the section's tendency to twist low. The attempt only counts if it stays inside the model's limits and passes the numerical check."
+  },
+  "prediction": {
+    "question": "At the same angle, which profile do you think makes more lift?",
+    "options": [
+      {
+        "id": "symmetric",
+        "label": "The symmetric one"
+      },
+      {
+        "id": "slight",
+        "label": "The slightly cambered one"
+      },
+      {
+        "id": "strong",
+        "label": "The strongly cambered one"
+      }
+    ],
+    "allow_unknown": true,
+    "follow_up": {
+      "question": "And which one do you think twists hardest?",
+      "options": [
+        {
+          "id": "symmetric",
+          "label": "The symmetric one"
+        },
+        {
+          "id": "slight",
+          "label": "The slightly cambered one"
+        },
+        {
+          "id": "strong",
+          "label": "The strongly cambered one"
+        }
+      ],
+      "allow_unknown": true
+    }
+  },
+  "explain": [
+    {
+      "id": "pressure",
+      "heading": "The force comes out of the pressure",
+      "body": [
+        "The computation adds up the pressure over the whole surface. In your attempt the distribution is not the same above and below the section, so the resultant has a component pointing up. The same thing can be read a second way, by looking at how much the flow is turned."
+      ]
+    },
+    {
+      "id": "angle-camber",
+      "heading": "Angle and camber are not the same lever",
+      "body": [
+        "Raising the angle changes the whole field around the same shape. Adding camber changes the shape that guides the flow. Either can raise the lift, and they do not leave the section with the same tendency to twist."
+      ]
+    },
+    {
+      "id": "no-stall",
+      "heading": "This model cannot show you a stall",
+      "body": [
+        "There is no viscosity here and no separated flow. The computation can therefore go on raising the lift past the point where a real section would begin to stall. A numerically settled result does not make that prediction valid."
+      ]
+    }
+  ],
+  "teacher": {
+    "objective": "Tell apart variables that can produce the same lift, and watch a design trade-off appear.",
+    "prediction": "Will the more cambered profile make more lift at the same angle?",
+    "misconception": "More lift automatically means a better section.",
+    "discussion": "Two configurations hit the same target. Which number stops you saying one of them is always better?",
+    "prerequisites": "Force, pressure, and reading a simple graph.",
+    "duration": "15–25 minutes with a written comparison."
   },
   "guide": [
     {
@@ -69,12 +137,30 @@
         "The exercise asks for 800 newtons per metre. None of these six buttons gets there: the answer is between two of them, and finding it is the exercise."
       ],
       "presets": [
-        { "alpha": -2, "note": "almost nothing: 16 N/m" },
-        { "alpha": 0, "note": "still lifting: 253 N/m" },
-        { "alpha": 2, "note": "491 N/m" },
-        { "alpha": 4, "note": "728 N/m — close" },
-        { "alpha": 6, "note": "964 N/m — too far" },
-        { "alpha": 8, "note": "1199 N/m, and a fierce suction peak" }
+        {
+          "alpha": -2,
+          "note": "almost nothing: 16 N/m"
+        },
+        {
+          "alpha": 0,
+          "note": "still lifting: 253 N/m"
+        },
+        {
+          "alpha": 2,
+          "note": "491 N/m"
+        },
+        {
+          "alpha": 4,
+          "note": "728 N/m — close"
+        },
+        {
+          "alpha": 6,
+          "note": "964 N/m — too far"
+        },
+        {
+          "alpha": 8,
+          "note": "1199 N/m, and a fierce suction peak"
+        }
       ]
     }
   ],
@@ -85,7 +171,7 @@
       "lead": "Get 800 N/m of lift out of one metre of chord, and keep the pitching moment under control.",
       "body": [
         "At 40 m/s and sea level the dynamic pressure is 980 Pa, so on a one-metre chord the target asks for a lift coefficient of 0.816. Almost any section will reach it at some incidence. The constraint is what makes it a design problem: **|C_m,c/4| < 0.08**, because pitching moment is what a tail has to trim out, and a section that needs a large tail is not free.",
-        "Camber buys lift at low incidence and charges for it in pitching moment. A NACA 4412 reaches the target at 2.5° and is **disqualified** at |C_m| ≈ 0.11. A symmetric 0009 has almost no moment, and pays instead in incidence — 6.9° — and in suction: its C_p,min is about −4.8, a pressure peak a real boundary layer would not survive. Nothing in this model will stop you choosing it, which is exactly why the number is on the screen.",
+        "Camber buys lift at low incidence and charges for it in pitching moment; a symmetric section has almost no moment and pays in angle instead, and in how sharp its suction peak becomes. Which of those costs matters is the thing to find out by computing, not by reading — so the numbers are on the screen after an attempt rather than in this paragraph before one.",
         "There is no profile that wins on every count. Find one that passes, keep the run, then find a different one that also passes and compare the two."
       ]
     },
@@ -161,7 +247,7 @@
       "heading": "Limits of the model",
       "caution": true,
       "body": [
-        "**No viscosity, so no drag and no stall.** There is no boundary layer, no wall friction and no separation. Lift here grows with incidence forever; a real section stops somewhere between 10° and 16° and then loses most of it. The page warns when a run is past the range where the comparison is meaningful, but it cannot tell you what the real section would do.",
+        "**No viscosity, so no drag and no stall.** There is no boundary layer, no wall friction and no separation. Lift here grows with incidence forever; a real section stops somewhere and then loses most of it, at an angle that depends on the profile, the Reynolds number, the surface and the turbulence it meets. The page warns when a run is past the range where the comparison is meaningful, but it cannot tell you what the real section would do.",
         "**Incompressible.** Valid to about Mach 0.3. Past that the page warns, and the pressures are wrong by more than the difference between two profiles.",
         "**A suction peak is not free.** C_p,min is reported precisely because this model will happily produce −5 and say nothing about the separation that would follow.",
         "**Two-dimensional.** Everything is per unit span. There is no finite wing, no downwash and no induced drag; a span is not an input because it would imply a model that does not exist here.",

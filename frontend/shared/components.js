@@ -9,7 +9,7 @@
 
 import { LANGUAGES, language, num, t, translateDom, urlFor } from '/shared/i18n.js';
 
-export const REPO_URL = 'https://github.com/mandaloriat/physics-lab';
+export const REPO_URL = 'https://github.com/mandaloriat/spoon-physics';
 export const FENIX_SPOON_URL = 'https://github.com/mandaloriat/fenix-spoon';
 
 /**

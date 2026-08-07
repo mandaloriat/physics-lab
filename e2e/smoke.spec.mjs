@@ -49,26 +49,29 @@ test('the homepage leads with the problems, and shows a real field for each', as
 
   // Every card leads with the question it answers, so someone who does not know the subject
   // still knows whether they want it (ADR-021).
-  await expect(page.getByRole('link', { name: 'Why does a wing stay up?' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'How much tilt does a wing need?' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Which bar gives way first?' })).toBeVisible();
 
-  // And every card still carries its stated quantity — folded, not deleted. Asserting on the
-  // folded text alone would be worthless: a closed <details> keeps its content in
-  // `textContent`, so `toContainText` would pass whether or not the fold ever opens. Open it,
-  // then require the quantity to be *visible*, which is the thing that was meant all along.
-  const quantities = ['800 N/m', '4.5 mWb/m', '2400 kg', '170 g'];
+  // And every card states its mission in a sentence a person can picture — visible, not folded.
+  // The fold that used to hold `η < 1` and `4.5 mWb/m` is gone: the engineering statement of
+  // each target is on the challenge page, where the vocabulary to read it is a paragraph away,
+  // and a symbol on a card is a gate in front of a choice. ADR-022.
+  const quantities = ['80 kg', '2.4 tonnes', '170 g'];
   for (const [index, quantity] of quantities.entries()) {
-    const numbers = page.locator('.card--available .card__numbers').nth(index);
-    await expect(numbers.locator('.card__facts')).toBeHidden();
-    await numbers.locator('summary').click();
-    await expect(numbers.locator('.card__facts')).toContainText(quantity);
-    await expect(numbers.locator('.card__facts')).toBeVisible();
+    const mission = page.locator('.card--available .card__mission').nth(index);
+    await expect(mission).toBeVisible();
+    await expect(mission).toContainText(quantity);
   }
+  await expect(page.locator('.card-grid .card__numbers')).toHaveCount(0);
 
-  await expect(page.getByRole('link', { name: /Design an airfoil/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Design a magnetic circuit/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Build a bridge/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Cool a device/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Try a wing/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Build the bridge/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Design the heat sink/ })).toBeVisible();
+
+  // The magnetic circuit keeps its URL and loses its card: it is a working lab rather than a
+  // challenge with a target a student can picture, and the shelf says so. ADR-022, §9.3.
+  await expect(page.locator('.card-grid a[href="/experiments/solenoid/"]')).toHaveCount(0);
+  await expect(page.locator('.shelf a[href="/experiments/solenoid/"]')).toBeVisible();
 
   // The thumbnails are real solves committed by scripts/make-thumbnails.py, so they must
   // actually load — a broken one is a card that says nothing at all.
@@ -231,7 +234,7 @@ test('the magnetics page solves a solenoid and derives the field strength', asyn
   await page.locator('#param-cells_across').fill('40');
   await page.locator('#param-convergence_check').uncheck();
 
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   await expect(page.locator('#stats')).toContainText('duration');
@@ -290,7 +293,7 @@ test('the magnetics page is an exercise: a target, and what it costs to miss it'
   await openAdvanced(page);
   await page.locator('#param-cells_across').fill('40');
   await page.locator('#param-convergence_check').uncheck();
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   await expect(page.locator('.challenge__target.is-missed')).toHaveCount(2);
@@ -330,7 +333,7 @@ test('the surfaces every reported number is measured on can be drawn', async ({ 
   await openAdvanced(page);
   await page.locator('#param-cells_across').fill('40');
   await page.locator('#param-convergence_check').uncheck();
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   for (const layer of ['plane', 'bundle', 'contour']) {
@@ -367,10 +370,10 @@ test('a kept magnetics run records enough to be recomputed, and reloads its geom
   // would be visible.
   await page.locator('#shape-coreHalfWidth').fill('6');
   await page.locator('#shape-gap').fill('2');
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
-  await page.getByRole('button', { name: 'Keep result' }).click();
+  await page.getByRole('button', { name: 'Keep attempt' }).click();
   await expect(page.locator('#runs-table tbody tr')).toHaveCount(1);
 
   const [row] = await page.evaluate(() =>
@@ -426,7 +429,7 @@ test('a leakage the run does not report is not printed as zero', async ({ page }
   await openAdvanced(page);
   await page.locator('#param-cells_across').fill('40');
   await page.locator('#param-convergence_check').uncheck();
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   await expect(page.locator('#plane-note')).not.toContainText('0.00 %');
@@ -441,7 +444,7 @@ test('the magnetics workspace keeps the cross-section and can be explored', asyn
   await openAdvanced(page);
   await page.locator('#param-cells_across').fill('40');
   await page.locator('#param-convergence_check').uncheck();
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   // The cross-section diagram survives the redesign — it is what tells a visitor what will be
@@ -469,7 +472,7 @@ test('H is B over mu, and only A is drawn with field lines', async ({ page }) =>
   await page.locator('#param-cells_across').fill('40');
   await page.locator('#param-convergence_check').uncheck();
 
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   // H = |B| / (mu0 mu_r), reported in kA/m. Checked against the two fields it is built from
@@ -620,7 +623,7 @@ for (const experiment of ['airfoil', 'solenoid', 'truss', 'heatsink']) {
     release();
     // Once both answers are in, the button is offered and the status says so.
     await expect(page.locator('#run')).toBeEnabled();
-    await expect(page.locator('#status')).toContainText('Press Run');
+    await expect(page.locator('#status')).toContainText('Press Compute');
     expect(submissions).toEqual([]);
   });
 

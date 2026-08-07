@@ -30,7 +30,7 @@ async function setParam(page, name, value) {
 }
 
 async function solve(page) {
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 90_000 });
 }
 
@@ -172,7 +172,7 @@ test('the exercise states a problem before it offers a solver', async ({ page })
   await expect(page).toHaveTitle(/Airfoil design/);
 
   // The objective, and each target, before anything has been run.
-  await expect(page.locator('.challenge__statement')).toContainText('800 N/m');
+  await expect(page.locator('.challenge__statement')).toContainText('800 N of lift per metre');
   await expect(page.locator('.challenge__target')).toHaveCount(2);
   await expect(page.locator('.challenge__target.is-pending')).toHaveCount(2);
   await expect(page.locator('#challenge')).toContainText('not run yet');
@@ -188,8 +188,11 @@ test('the mission names quantities the way a person reads them', async ({ page }
   await ready(page);
   // Symbols, not storage keys. The report calls these `l_prime` and `c_m_c4`; the visitor
   // should never have to learn that.
-  await expect(page.locator('#challenge')).toContainText('L′ = 800 N/m');
-  await expect(page.locator('#challenge')).toContainText('|C_m,c/4| < 0.08');
+  await expect(page.locator('#challenge')).toContainText('Lift: 800 N/m');
+  await expect(page.locator('#challenge .challenge__target').nth(1)).toHaveAttribute(
+    'title',
+    /\|C_m,c\/4\| < 0\.08/,
+  );
 });
 
 test('no internal identifier reaches the screen, before or after a run', async ({ page }) => {
@@ -222,10 +225,10 @@ test('no internal identifier reaches the screen, before or after a run', async (
   expect(await visibleText()).not.toMatch(new RegExp(FORBIDDEN.join('|')));
 
   // Including the comparison table, which used to print the flattened storage path.
-  await page.getByRole('button', { name: 'Keep result' }).click();
+  await page.getByRole('button', { name: 'Keep attempt' }).click();
   await setParam(page, 'alpha_deg', 2.0);
   await solve(page);
-  await page.getByRole('button', { name: 'Keep result' }).click();
+  await page.getByRole('button', { name: 'Keep attempt' }).click();
   await page.locator('#runs-table tbody input[type=checkbox]').first().check();
   await page.locator('#runs-table tbody input[type=checkbox]').nth(1).check();
   await expect(page.locator('#compare table')).toBeVisible();
@@ -411,8 +414,8 @@ test('a target hit outside the model’s validity does not count, and says so se
   await expect(page.locator('#validity')).toContainText('Mach');
   // The disqualification is its own message, distinct from a verification failure: a visitor
   // has to know which of their choices to change.
-  await expect(page.locator('.challenge__blocked--validity')).toContainText('domain of validity');
-  await expect(page.locator('.challenge__blocked--verification')).toHaveCount(0);
+  await expect(page.locator('#outcome')).toContainText('domain of validity');
+  await expect(page.locator('#outcome')).not.toContainText('numerical check');
   await expect(page.locator('#challenge')).not.toContainText('Target met');
 });
 
@@ -423,7 +426,7 @@ test('the aerodynamic centre is unavailable until a sweep has been run', async (
   // A property of several solves must not be offered after one — in the tiles, in the overlay
   // switches, and as a panel.
   await expect(page.locator('#sweep-panel')).toBeHidden();
-  await expect(page.locator('#kpis')).toContainText('needs a sweep');
+  await expect(page.locator('#metrics')).toContainText('needs a sweep');
   await expect(page.locator('[data-layer=ac]')).toBeDisabled();
   await expect(page.locator('[data-layer=ac]')).toHaveAttribute('title', /sweep/);
 
@@ -654,7 +657,9 @@ test('the centre of pressure is drawn on the field, not only tabulated', async (
   await expect(page.locator('#overlay .overlay__peak')).toHaveCount(1);
 });
 
-test('Run, Keep result and exporting the image all work from the action bar', async ({ page }) => {
+test('Compute, Keep attempt and exporting the image all work from the action bar', async ({
+  page,
+}) => {
   await ready(page);
 
   // The action bar carries the whole loop, and Keep is offered only once there is a result.
@@ -717,7 +722,7 @@ test('a kept run records enough to be recomputed, and two runs can be compared',
   await ready(page);
   await setParam(page, 'alpha_deg', 4.6);
   await solve(page);
-  await page.getByRole('button', { name: 'Keep result' }).click();
+  await page.getByRole('button', { name: 'Keep attempt' }).click();
   await expect(page.locator('#runs-table tbody tr')).toHaveCount(1);
 
   const [row] = await page.evaluate(() =>
@@ -742,7 +747,7 @@ test('a kept run records enough to be recomputed, and two runs can be compared',
   await page.selectOption('#profile', 'NACA 4412');
   await setParam(page, 'alpha_deg', 2.5);
   await solve(page);
-  await page.getByRole('button', { name: 'Keep result' }).click();
+  await page.getByRole('button', { name: 'Keep attempt' }).click();
   await expect(page.locator('#runs-table tbody tr')).toHaveCount(2);
 
   await page.locator('#runs-table tbody input[type=checkbox]').first().check();
@@ -767,7 +772,7 @@ test('a browser that refuses to store cannot take the page down', async ({ page 
 
   await setParam(page, 'alpha_deg', 4.6);
   await solve(page);
-  await page.getByRole('button', { name: 'Keep result' }).click();
+  await page.getByRole('button', { name: 'Keep attempt' }).click();
   await expect(page.locator('#runs-table tbody tr')).toHaveCount(1);
 
   await page.evaluate(() => {
@@ -781,7 +786,7 @@ test('a browser that refuses to store cannot take the page down', async ({ page 
     Storage.prototype.removeItem = refuse;
   });
 
-  await page.getByRole('button', { name: 'Keep result' }).click();
+  await page.getByRole('button', { name: 'Keep attempt' }).click();
   await expect(page.locator('#runs-table tbody tr')).toHaveCount(1); // the run is lost, the page is not
   await page
     .locator('#runs-table tbody tr')

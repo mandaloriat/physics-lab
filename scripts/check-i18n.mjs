@@ -216,6 +216,65 @@ for (const exercise of EXERCISES) {
       }
     }
   }
+
+  /* The blocks the editorial review added (§13.3), under the same rule as the sections: the
+     prose differs and must, the structure may not. Two of these carry behaviour rather than
+     wording and would change what the page *does* if a translation drifted.
+
+     A prediction's option **ids** are stored with the attempt and read back beside the result,
+     so an Italian file with a different set would save answers the English page cannot show —
+     and `journey.js` discards a stored answer whose question no longer matches, which turns
+     that drift into a prediction that silently disappears on a language switch.
+
+     An explain card's **id** is what a page addresses when it wants to unlock or reference one,
+     and `allow_unknown` decides whether "not sure yet" is offered at all — a language missing
+     it is a language where the student with no opinion has no way through. */
+  const options = (spec) => (spec?.options ?? []).map((option) => option.id).join(',');
+  if (options(source.prediction) !== options(translated.prediction)) {
+    fail(`${exercise}/content.it.json offers different prediction options from content.json`);
+  }
+  if (Boolean(source.prediction?.allow_unknown) !== Boolean(translated.prediction?.allow_unknown)) {
+    fail(`${exercise}: "not sure yet" is offered in one language and not the other`);
+  }
+  if (options(source.prediction?.follow_up) !== options(translated.prediction?.follow_up)) {
+    fail(`${exercise}: the follow-up prediction differs between languages`);
+  }
+
+  const cards = (content) => (content.explain ?? []).map((card) => card.id).join(',');
+  if (cards(source) !== cards(translated)) {
+    fail(`${exercise}/content.it.json has different "why it happens" cards from content.json`);
+  }
+  for (const [index, card] of (source.explain ?? []).entries()) {
+    const other = (translated.explain ?? [])[index];
+    if (count(card) !== count(other ?? {})) {
+      fail(
+        `${exercise}: explain card "${card.id}" has ${count(card)} paragraphs in English and ` +
+          `${count(other ?? {})} in Italian`,
+      );
+    }
+  }
+
+  /* The teacher's card is prose throughout, so only its presence is structural — but a field
+     present in one language and absent in the other renders as a missing row rather than as a
+     visible gap, which is the failure mode this whole file exists for. */
+  const fields = (content) =>
+    Object.keys(content.teacher ?? {})
+      .sort()
+      .join(',');
+  if (fields(source) !== fields(translated)) {
+    fail(`${exercise}: the teacher card has different fields per language`);
+  }
+
+  /* The plain statement is the one a student reads. A file that has the engineering statement
+     and not this one has not been through the review. */
+  for (const [language, content] of [
+    ['content.json', source],
+    ['content.it.json', translated],
+  ]) {
+    if (!content.challenge?.plain_statement) {
+      fail(`${exercise}/${language} states its mission only in symbols`);
+    }
+  }
 }
 
 /* -------------------------------------------------------------------------------- verdict */

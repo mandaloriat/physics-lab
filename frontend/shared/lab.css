@@ -519,6 +519,114 @@ html[data-lang-pending] body {
   color: var(--ink-faint);
 }
 
+/* The mission in one sentence a person can picture, in place of the fold that used to carry
+   `η < 1` and `4.5 mWb/m`. The quantities are not deleted — they are on the challenge page,
+   stated in words first and in symbols underneath, which is where the vocabulary to read them
+   is. A symbol on a card is a gate in front of a choice. ADR-022. */
+.card__mission {
+  margin-top: 0.35rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.card__mission-label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  margin-bottom: 0.15rem;
+}
+
+/* ---------------------------------------------------------------- how to play */
+
+.how {
+  margin: 2.75rem 0 0;
+}
+
+.how > h2 {
+  margin-bottom: 0.9rem;
+}
+
+.how__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.1rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.how__steps h3 {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-text);
+  font-size: 0.95rem;
+  font-weight: 620;
+}
+
+.how__steps p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+/* The one thing on the homepage worth saying about rigour, and the reason every challenge
+   page carries two indicators instead of one badge. */
+.how__note {
+  margin: 1.2rem 0 0;
+  padding-left: 0.8rem;
+  border-left: 2px solid var(--accent);
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  max-width: var(--measure);
+}
+
+/* ---------------------------------------------------------------- advanced shelf */
+
+/* Not a card and deliberately not shaped like one: a page listed here is a working lab, not a
+   challenge with a target, and giving it the same frame as the three above would say the
+   opposite. See ADR-022 and the note in index.html. */
+.shelf {
+  margin: 2.25rem 0 0;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--line);
+}
+
+.shelf > h2 {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-text);
+  font-size: 0.95rem;
+  font-weight: 620;
+}
+
+.shelf__lead {
+  margin: 0 0 0.7rem;
+  font-size: 0.88rem;
+  color: var(--ink-faint);
+  max-width: var(--measure);
+}
+
+.shelf__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.shelf__list li {
+  display: grid;
+  gap: 0.1rem;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.shelf__list a {
+  font-weight: 560;
+}
+
 /* The exercise's quantities, folded. They are the honesty of the card and they stay one
    click away — the same treatment ADR-017 gave the prose on an experiment page, and for the
    same reason: nothing is deleted, it is moved out of the way of the invitation. */
@@ -1275,11 +1383,29 @@ fs-geometry-2d {
   letter-spacing: 0;
 }
 
+/* A tile reads "784 / 800 N per metre", not "784". The bare number answers nothing on its own:
+   what a student needs is the reading against what they were asked for, which is why the goal
+   and the bar are part of the tile rather than something to go and look up. ADR-022. */
+.kpi__reading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 0.1rem;
+}
+
 .kpi__value {
   font-size: 1.5rem;
   line-height: 1.15;
   font-weight: 600;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi__goal {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
 }
 
 .kpi__value--absent {
@@ -1292,6 +1418,50 @@ fs-geometry-2d {
 .kpi__unit {
   font-size: 0.74rem;
   color: var(--ink-faint);
+}
+
+.kpi__bar {
+  display: block;
+  position: relative;
+  height: 4px;
+  margin-top: 0.3rem;
+  border-radius: 2px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.kpi__fill {
+  display: block;
+  height: 100%;
+  background: var(--ink-faint);
+}
+
+.kpi.is-met .kpi__fill {
+  background: var(--ok);
+}
+
+.kpi.is-missed .kpi__fill {
+  background: var(--warn);
+}
+
+/* Over the limit is drawn as a hatch running off the end rather than a longer bar, because a
+   bar that stops at 100 % makes 105 % and 400 % look identical. */
+.kpi__over {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 22%;
+  background: repeating-linear-gradient(-45deg, var(--warn) 0 3px, transparent 3px 6px);
+}
+
+.kpi__note {
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  margin-top: 0.2rem;
+}
+
+.kpi.is-missed .kpi__note {
+  color: var(--warn);
 }
 
 .kpi.is-absent .kpi__name {
@@ -2328,24 +2498,315 @@ input:focus-visible {
   color: var(--ink-faint);
 }
 
-/* Two disqualifications, never merged into one sentence: "the model does not apply here" and
-   "the solve did not verify" are different facts, and a visitor has to know which of their
-   choices to change. */
-.challenge__blocked,
-.challenge__done {
-  margin: 0.8rem 0 0;
-  padding-left: 0.7rem;
-  border-left: 2px solid currentColor;
-  font-size: 0.9rem;
+/* ------------------------------------------------------- the loop: predict, try, compare */
+
+/* The path is a signpost, never a gate. Nothing in it is clickable, nothing is disabled by it,
+   and a visitor who goes straight to the instrument simply leaves the first step unlit. */
+.path {
+  margin: 0.9rem 0 0;
+}
+
+.path__steps {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.15rem;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+}
+
+.path__step {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.path__index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  align-self: center;
+}
+
+.path__step.is-taken {
+  color: var(--ink);
+}
+
+.path__step.is-taken .path__index {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* The prediction. A radio group, so arrow keys work and the browser owns the roving focus. */
+.prediction__set {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.prediction__set + .prediction__set {
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.prediction__question {
+  padding: 0;
+  margin-bottom: 0.55rem;
+  font-weight: 560;
+  color: var(--ink);
   max-width: var(--measure);
 }
 
-.challenge__blocked {
+.prediction__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.prediction__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.prediction__option:hover {
+  border-color: var(--accent);
+}
+
+.prediction__option.is-chosen {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+/* Focus has to survive the pill: the input is small and sits inside a large hit area, so the
+   ring is drawn on the label the eye is actually following. */
+.prediction__option:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.prediction__note {
+  margin: 0.7rem 0 0;
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+  max-width: var(--measure);
+}
+
+/* What was predicted, beside what happened. Never marked right or wrong — the gap between the
+   two is the experiment, not a score. */
+.prediction__recall {
+  margin: 0 0 0.7rem;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.prediction__recall-label {
+  color: var(--ink-faint);
+  margin-right: 0.35rem;
+}
+
+/* The verdict, in one line. Everything that explains it is a panel further down. */
+.outcome {
+  margin: 0.9rem 0 0;
+  padding-left: 0.7rem;
+  border-left: 2px solid currentColor;
+  font-size: 0.95rem;
+  max-width: var(--measure);
+}
+
+.outcome--met {
+  color: var(--ok);
+}
+
+.outcome--missed {
   color: var(--warn);
 }
 
-.challenge__done {
+/* One suggestion, naming one problem, offering one direction — and never the answer. */
+.hint {
+  display: flex;
+  gap: 0.45rem;
+  margin: 0.7rem 0 0;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  max-width: var(--measure);
+}
+
+.hint__mark {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- is it credible? */
+
+/* Two indicators, three states each, and the state is a word. A colour alone would make the
+   whole distinction — settled arithmetic versus applicable physics — invisible to a reader who
+   cannot see the difference between the two greens. §13.9. */
+.credibility {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+}
+
+.credibility + .credibility {
+  margin-top: 0.6rem;
+}
+
+.credibility__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.credibility__verdict {
+  font-size: 0.82rem;
+  font-weight: 620;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.credibility__why {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-faint);
+  max-width: var(--measure);
+}
+
+.credibility--yes {
+  border-left-color: var(--ok);
+}
+
+.credibility--yes .credibility__verdict {
   color: var(--ok);
+}
+
+.credibility--caution,
+.credibility--improve {
+  border-left-color: var(--warn);
+}
+
+.credibility--caution .credibility__verdict,
+.credibility--improve .credibility__verdict {
+  color: var(--warn);
+}
+
+.credibility--no {
+  border-left-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.credibility--no .credibility__verdict {
+  color: var(--warn);
+}
+
+.credibility--unchecked {
+  border-left-color: var(--line-strong);
+}
+
+.credibility--unchecked .credibility__verdict {
+  color: var(--ink-faint);
+}
+
+.credibility__warnings {
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  max-width: var(--measure);
+}
+
+.credibility__more {
+  margin: 0.7rem 0 0;
+  font-size: 0.86rem;
+}
+
+/* ---------------------------------------------------------------- why it happens */
+
+.explain {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.explain__card {
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+}
+
+.explain__heading {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-text);
+  font-size: 0.92rem;
+  font-weight: 620;
+}
+
+.explain__card p {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.explain__card p:last-child {
+  margin-bottom: 0;
+}
+
+/* The teacher's card. Addressed to somebody else entirely, which is why it is folded. */
+.teacher {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.teacher > div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 10rem) minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: baseline;
+}
+
+.teacher dt {
+  color: var(--ink-faint);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.teacher dd {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 34rem) {
+  .teacher > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.1rem;
+  }
 }
 
 /* The three parameter groups are marked, faintly, because the distinction between a physical
