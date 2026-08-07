@@ -33,3 +33,8 @@ playwright-report/
 
 # Local scratch for screenshots and one-off scripts. Never committed.
 .scratch/
+
+# The Python lock file. Generated locally by `uv sync` for a test run; the project installs
+# from `pyproject.toml` and does not pin a resolution, so a lock committed by accident would
+# quietly become the resolution CI uses.
+/uv.lock
