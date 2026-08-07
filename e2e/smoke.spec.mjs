@@ -165,10 +165,10 @@ test('a server without FEniCSx is fully usable and says so', async ({ page }) =>
 
   await page.locator('#modes details').first().click();
   await expect(page.locator('#capability')).toContainText(
-    hasFenics ? 'Both modes are active' : 'no FEniCSx solver is installed',
+    hasFenics ? 'both the fast computation and the finite-element one' : 'no FEniCSx is installed',
   );
   if (!hasFenics) {
-    await expect(page.locator('#capability')).toContainText('remain fully usable');
+    await expect(page.locator('#capability')).toContainText('challenges all still work');
   }
 
   // And the exercise really runs on such a server, which is the claim that matters.
@@ -281,9 +281,14 @@ test('the magnetics page is an exercise: a target, and what it costs to miss it'
   await expect(page.locator('.challenge__target')).toHaveCount(3);
   await expect(page.locator('.challenge__target.is-pending')).toHaveCount(3);
 
-  // Targets are stated in the metric's *symbol*, never in the key the report stores it under.
-  // This is the assertion that would catch `flux_core` reaching the screen.
-  await expect(page.locator('#challenge')).toContainText('|Φ′| >= 0.0045 Wb/m');
+  // Targets are stated in words, with the engineering statement in the tooltip beside them —
+  // meaning before symbol, ADR-022. This is still the assertion that would catch `flux_core`
+  // reaching the screen, and it now also catches the two registers being collapsed into one.
+  await expect(page.locator('#challenge')).toContainText('Flux: at least 4.5 mWb per metre');
+  await expect(page.locator('#challenge .challenge__target').first()).toHaveAttribute(
+    'title',
+    /Φ′ >= 0\.0045 Wb\/m/,
+  );
   await expect(page.locator('#challenge')).not.toContainText('flux_core');
   await expect(page.locator('#challenge')).not.toContainText('leakage_ratio');
 
