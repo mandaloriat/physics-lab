@@ -84,7 +84,7 @@ test('the homepage leads with the problems, and shows a real field for each', as
       loaded: img.complete && img.naturalWidth > 0,
     })),
   );
-  expect(shots.length).toBe(4);
+  expect(shots.length).toBe(3);
   for (const shot of shots) {
     expect(shot.src).toMatch(/^\/assets\/thumbnails\//);
     expect(shot.loaded).toBe(true);
@@ -287,7 +287,7 @@ test('the magnetics page is an exercise: a target, and what it costs to miss it'
   await expect(page.locator('#challenge')).toContainText('Flux: at least 4.5 mWb per metre');
   await expect(page.locator('#challenge .challenge__target').first()).toHaveAttribute(
     'title',
-    /Φ′ >= 0\.0045 Wb\/m/,
+    /\|Φ′\| >= 0\.0045 Wb\/m/,
   );
   await expect(page.locator('#challenge')).not.toContainText('flux_core');
   await expect(page.locator('#challenge')).not.toContainText('leakage_ratio');
