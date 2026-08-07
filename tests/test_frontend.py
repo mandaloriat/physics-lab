@@ -217,9 +217,7 @@ def test_the_solenoid_page_renders_the_field_and_draws_its_own_cross_section(cli
     assert 'id="schematic"' in markup
     # Collapsed, because the disclaimer is line-wrapped in the source and a line break is
     # formatting rather than content.
-    assert "not a substitute for professional engineering verification" in re.sub(
-        r"\s+", " ", markup
-    )
+    assert "not professional engineering tools" in re.sub(r"\s+", " ", markup)
 
 
 @pytest.mark.parametrize(

@@ -33,14 +33,17 @@ test('the homepage leads with the problems, and shows a real field for each', as
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
   // The educational disclaimer is a requirement, not decoration.
-  await expect(page.locator('.disclaimer')).toContainText('not a substitute for');
+  await expect(page.locator('.disclaimer')).toContainText('not professional engineering tools');
 
-  // Every available experiment is reachable from the homepage.
-  for (const experiment of ['airfoil', 'solenoid', 'truss', 'heatsink']) {
+  // Every challenge is reachable from the homepage as a card.
+  for (const experiment of ['airfoil', 'truss', 'heatsink']) {
     await expect(
       page.locator(`.card--available a[href="/experiments/${experiment}/"]`).first(),
     ).toBeVisible();
   }
+  // And the advanced lab is reachable too, from the shelf rather than the grid — a page that
+  // ships without a way in has not shipped, whatever shape its way in has. ADR-022.
+  await expect(page.locator('.shelf a[href="/experiments/solenoid/"]')).toBeVisible();
   // What is still planned must read as planned, not as a broken link. The count used to be
   // pinned at one, which was a fact about the release that wrote it rather than about the
   // page: the heat sink was the last planned card and building it made the assertion false.
@@ -623,7 +626,7 @@ for (const experiment of ['airfoil', 'solenoid', 'truss', 'heatsink']) {
     release();
     // Once both answers are in, the button is offered and the status says so.
     await expect(page.locator('#run')).toBeEnabled();
-    await expect(page.locator('#status')).toContainText('Press Compute');
+    await expect(page.locator('#status')).toContainText(/[Pp]ress Compute/);
     expect(submissions).toEqual([]);
   });
 
