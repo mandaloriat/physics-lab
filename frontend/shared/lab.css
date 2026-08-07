@@ -509,16 +509,6 @@ html[data-lang-pending] body {
   letter-spacing: 0.01em;
 }
 
-/* What the exercise is *about*, under the question it asks. The question is the heading
-   because it is the thing a visitor can answer yes or no to wanting; the discipline is the
-   thing they can only recognise if they already know it. */
-.card p.card__topic {
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-faint);
-}
-
 /* The mission in one sentence a person can picture, in place of the fold that used to carry
    `η < 1` and `4.5 mWb/m`. The quantities are not deleted — they are on the challenge page,
    stated in words first and in symbols underneath, which is where the vocabulary to read them
@@ -627,56 +617,9 @@ html[data-lang-pending] body {
   font-weight: 560;
 }
 
-/* The exercise's quantities, folded. They are the honesty of the card and they stay one
-   click away — the same treatment ADR-017 gave the prose on an experiment page, and for the
-   same reason: nothing is deleted, it is moved out of the way of the invitation. */
-.card__numbers {
-  margin-top: 0.35rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--line);
-}
-
-.card__numbers > summary {
-  cursor: pointer;
-  font-size: 0.76rem;
-  color: var(--ink-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  list-style-position: outside;
-}
-
-.card__numbers > summary:hover {
-  color: var(--accent-ink);
-}
-
-/* The one metric or constraint that makes the problem concrete. Tabular, because these are
-   quantities and a card that states one is making a promise about the page. */
-.card__facts {
-  display: grid;
-  gap: 0.3rem;
-  margin: 0.2rem 0 0;
-  padding-top: 0.6rem;
-  font-size: 0.8rem;
-}
-
-.card__facts div {
-  display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr);
-  gap: 0.5rem;
-  align-items: baseline;
-}
-
-.card__facts dt {
-  color: var(--ink-faint);
-  text-transform: uppercase;
-  font-size: 0.68rem;
-  letter-spacing: 0.05em;
-}
-
-.card__facts dd {
-  margin: 0;
-  color: var(--ink-soft);
-}
+/* `.card__numbers`, `.card__facts` and `.card__topic` lived here until ADR-022 and are gone
+   rather than orphaned: the fold that held `η < 1` and `4.5 mWb/m` was removed from the cards
+   entirely, and `.card__mission` above is what replaced it. */
 
 .card__foot {
   margin-top: 0.35rem;

@@ -185,14 +185,14 @@ export function renderOutcome(container, state, challenge, report) {
  * the discretisation; "applicable" is a claim about the physics, and no amount of refinement
  * makes an inviscid model see a stall.
  */
-export function renderCredibility(container, challenge, report, { detailsId } = {}) {
+export function renderCredibility(container, challenge, report, { checks, detailsId } = {}) {
   container.replaceChildren();
   if (!report) {
     container.append(el('p', { class: 'field__hint', text: t('exercise.everyRun') }));
     return;
   }
 
-  const numeric = numericState(report, challenge);
+  const numeric = numericState(report, challenge, checks);
   const warnings = report.validity?.warnings ?? [];
   const physical = !warnings.length ? 'yes' : challenge?.requires_valid ? 'no' : 'caution';
 
@@ -232,18 +232,25 @@ export function renderCredibility(container, challenge, report, { detailsId } = 
   }
 }
 
-/** `yes` when every declared check passed, `improve` when one did not, `unchecked` when none ran. */
-function numericState(report, challenge) {
-  const checks = Object.entries(report.verification ?? {}).filter(
-    ([key, value]) => typeof value === 'number' && !key.endsWith('_tol'),
-  );
+/**
+ * `yes` when every declared check passed, `improve` when one did not, `unchecked` when none ran.
+ *
+ * The residual-to-tolerance pairing comes from the page's own `CHECKS` spec — the same list
+ * {@link renderVerification} renders — rather than from a naming convention. There is no
+ * convention to rely on: the reports carry `cl_consistency_tolerance` and `energy_balance_tol`
+ * side by side, so a guessed suffix finds nothing, silently skips the check, and reports a
+ * settled computation over a residual that is out of bounds. Which is worse than no indicator.
+ *
+ * Without a spec this answers `unchecked`, because "we did not look" and "we looked and it was
+ * fine" are different claims and only one of them is this function's to make.
+ */
+function numericState(report, challenge, spec) {
   if (verificationBlocker(report, challenge)) return 'improve';
-  if (!checks.length) return 'unchecked';
-  for (const [key, value] of checks) {
-    const tolerance = report.verification?.[`${key.replace(/_rel$|_residual$/, '')}_tol`];
-    if (typeof tolerance === 'number' && value > tolerance) return 'improve';
-  }
-  return 'yes';
+  const pairs = (spec ?? [])
+    .map((check) => [report.verification?.[check.key], report.verification?.[check.tolerance]])
+    .filter(([value, limit]) => typeof value === 'number' && typeof limit === 'number');
+  if (!pairs.length) return 'unchecked';
+  return pairs.every(([value, limit]) => value <= limit) ? 'yes' : 'improve';
 }
 
 /**
@@ -539,7 +546,10 @@ export function renderMetrics(container, spec, report) {
   }
 
   const rows = spec.map((metric) => {
-    const value = report.metrics?.[metric.key];
+    // `from` reads a quantity that does not live in `metrics` — the aerodynamic centre is a
+    // property of a *sweep* and the report puts it there. Same escape hatch `renderKpis` has,
+    // and it is needed in both places for the same quantity, which is the argument for it.
+    const value = metric.from ? metric.from(report) : report.metrics?.[metric.key];
     const missing = metric.requires && !report[metric.requires];
     // `requires` names a key in the report; `absent` names the same prerequisite the way a
     // visitor reads it. The wording belongs to the exercise — "an incidence sweep" is what a
@@ -700,11 +710,11 @@ export function renderExplain(container, cards, { unlocked, facts = {} } = {}) {
  */
 export function renderAfterAttempt(
   dom,
-  { challenge, explain, report, state, hint = null, facts = {}, detailsId = 'checks' } = {},
+  { challenge, explain, report, state, checks, hint = null, facts = {}, detailsId = 'checks' } = {},
 ) {
   renderOutcome(dom.outcome, state, challenge, report);
   renderHint(dom.hint, hint);
-  renderCredibility(dom.credibility, challenge, report, { detailsId });
+  renderCredibility(dom.credibility, challenge, report, { checks, detailsId });
   renderExplain(dom.explain, explain, { unlocked: Boolean(report), facts });
 }
 

@@ -169,13 +169,13 @@ test('the exercise states a problem before it offers a solver', async ({ page })
   page.on('pageerror', (error) => errors.push(error.message));
 
   await ready(page);
-  await expect(page).toHaveTitle(/Airfoil design/);
+  await expect(page).toHaveTitle(/Find the wing/);
 
   // The objective, and each target, before anything has been run.
   await expect(page.locator('.challenge__statement')).toContainText('800 N of lift per metre');
   await expect(page.locator('.challenge__target')).toHaveCount(2);
   await expect(page.locator('.challenge__target.is-pending')).toHaveCount(2);
-  await expect(page.locator('#challenge')).toContainText('not run yet');
+  await expect(page.locator('#challenge')).toContainText('not computed yet');
 
   // Only a solver that can impose a Kutta condition implements this model.
   await expect(page.locator('#solver')).toHaveValue(/^lab\.airfoil/);
@@ -188,7 +188,7 @@ test('the mission names quantities the way a person reads them', async ({ page }
   await ready(page);
   // Symbols, not storage keys. The report calls these `l_prime` and `c_m_c4`; the visitor
   // should never have to learn that.
-  await expect(page.locator('#challenge')).toContainText('Lift: 800 N/m');
+  await expect(page.locator('#challenge')).toContainText('Lift: 800 N per metre, within 2 %');
   await expect(page.locator('#challenge .challenge__target').nth(1)).toHaveAttribute(
     'title',
     /\|C_m,c\/4\| < 0\.08/,
@@ -232,7 +232,7 @@ test('no internal identifier reaches the screen, before or after a run', async (
   await page.locator('#runs-table tbody input[type=checkbox]').first().check();
   await page.locator('#runs-table tbody input[type=checkbox]').nth(1).check();
   await expect(page.locator('#compare table')).toBeVisible();
-  await expect(page.locator('#compare')).toContainText('Answer ·');
+  await expect(page.locator('#compare')).toContainText('Results ·');
   expect(await page.locator('#compare').innerText()).not.toMatch(/l_prime|c_m_c4/);
 });
 
@@ -347,7 +347,7 @@ test('a run that meets the target says so, with its verification and its validit
   await expect(page.locator('#kpis')).toContainText('799');
   await expect(page.locator('#challenge')).toContainText('798');
   await expect(page.locator('.challenge__target.is-met')).toHaveCount(2);
-  await expect(page.locator('#challenge')).toContainText('Target met');
+  await expect(page.locator('#outcome')).toContainText('Challenge met');
 
   // Every check ran and passed, and the validity statement is explicit rather than an empty box.
   await expect(page.locator('#verification tr')).toHaveCount(3);
@@ -460,10 +460,10 @@ test('turning the Kutta condition off returns the page to zero lift, and explain
   await solve(page);
 
   const lift = await page.evaluate(() => {
-    const tile = [...document.querySelectorAll('#kpis .kpi')].find((k) =>
-      k.textContent.includes('Lift coefficient'),
+    const row = [...document.querySelectorAll('#metrics tr')].find((r) =>
+      r.querySelector('th')?.textContent.includes('Lift coefficient'),
     );
-    return parseFloat(tile.querySelector('.kpi__value').textContent);
+    return parseFloat(row.querySelector('td').textContent);
   });
   expect(Math.abs(lift)).toBeLessThan(1e-6);
 

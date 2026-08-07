@@ -1249,6 +1249,7 @@ function present() {
     explain: content?.explain,
     report,
     state: attemptState(content?.challenge, report),
+    checks: CHECKS,
     hint: report ? suggestion() : null,
     facts: attemptFacts(),
   });

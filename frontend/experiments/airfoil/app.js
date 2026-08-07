@@ -410,6 +410,21 @@ const METRICS = [
     digits: 3,
     hint: t('airfoil.metrics.incidenceHint'),
   },
+  // The aerodynamic centre was a headline tile until the row went to three, and it is here
+  // rather than deleted because of what it says when it is *absent*: this is a property of
+  // several incidences, so one solve cannot produce it. A quantity that says why it is missing
+  // is teaching something; one that quietly vanishes is not. `docs/exercise-contract.md` §7.
+  {
+    key: 'x_ac_over_c',
+    label: t('airfoil.metrics.aerodynamicCentre'),
+    symbol: 'x_ac/c',
+    unit: '1',
+    digits: 3,
+    from: (found) => found.sweep?.x_ac_over_c,
+    requires: 'sweep',
+    absent: t('airfoil.metrics.aerodynamicCentreAbsent'),
+    hint: t('airfoil.metrics.aerodynamicCentreHint'),
+  },
 ];
 
 /** The `key -> wording` table the challenge reads, built from the same list. */
@@ -683,6 +698,7 @@ function present() {
     explain: content?.explain,
     report,
     state: attemptState(content?.challenge, report),
+    checks: CHECKS,
     hint: report ? suggestion() : null,
     facts: attemptFacts(),
   });
