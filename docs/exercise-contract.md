@@ -362,13 +362,15 @@ every page is arranged as one path:
 | Step | Carries |
 |---|---|
 | **0 Learn** *(optional, skippable)* | Nothing from the nine sections. A short guided path of chapters for a visitor who does not yet know the subject, ending in an invitation to run something. Present only where an exercise has been given one; skipped from any chapter, and the skip is remembered. See [ADR-021](architecture-decisions.md#adr-021--an-exercise-page-opens-with-a-lesson-and-the-lesson-can-be-skipped) |
-| **1 Mission** | §1 — the objective, the targets with their tolerances, the constraints, pass/fail per target, and — separately — why a run does not count when the numbers are right but the model is not |
-| **2 Configure** | §5, in two visible groups (*Design*, *Conditions*) plus *Advanced*, closed, holding the numerical settings and the study |
-| **3 Run** | a stable action bar: Run, Cancel while solving, Keep result afterwards, Compare once rows exist |
+| **1 Challenge** | §1 — the objective stated in words (`challenge.plain_statement`), the targets each in a plain wording with the symbol in its tooltip, and pass/fail per target. The engineering statement stays in step 7 |
+| **1b Predict** | A question asked before the first solve, offering *not sure yet*, gating nothing and never marked. Stored with the attempt and shown again beside the result. [ADR-022](architecture-decisions.md#adr-022--the-lab-is-a-set-of-challenges-and-the-explanation-comes-after-the-attempt) |
+| **2 Change the design** | §5, in two visible groups (*Your choices*, *Conditions of the test*) plus *More controls*, closed, holding the numerical settings and the study |
+| **3 Compute** | a stable action bar: Compute, Cancel while solving, Keep attempt afterwards, Compare once rows exist |
 | **4 Explore** | §6 — the field, with the tools to interrogate it rather than only look at it |
-| **5 Check** | §7 as a few headline tiles before any table, then §8 and the domain of validity, then the cost of the solve |
-| **6 Keep and compare** | §9 |
-| **7 Understand the model** | §2, §3, §4 and the reasoning behind §5–§8, in collapsible blocks |
+| **5 How it went** | §7 as **at most three** headline tiles, each against its goal with a bar and one sentence; then the verdict in one line; then one contextual suggestion; then §8 and the domain of validity as **two indicators** — is the computation settled, does the model apply — with the residuals behind a closed disclosure, and the cost of the solve behind another. The rest of §7 is in *All results* |
+| **5b Why it happens** | At most three short cards, **locked until the first computation**, which may quote the attempt that unlocked them |
+| **6 Keep and compare** | §9, in the vocabulary of *attempts* rather than runs |
+| **7 Model details** | §2, §3, §4 and the reasoning behind §5–§8, in collapsible blocks, plus a folded teacher's card |
 
 Three rules the arrangement adds to the contract:
 

@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title data-i18n="home.title">Spoon Physics</title>
+<title data-i18n="home.title">Spoon Physics — interactive physics challenges</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" data-i18n-attr="content: home.description" content="Interactive problems. Computed fields. Checkable answers. An interactive laboratory: set a quantitative target, change the geometry and the conditions, compute the field, and check the answer.">
+<meta name="description" data-i18n-attr="content: home.description" content="Small interactive physics challenges: make a prediction, change the design, compute the result, and compare your attempts against the limits of the model.">
 <meta name="color-scheme" content="light dark">
 <link rel="alternate" hreflang="en" href="/?lang=en">
 <link rel="alternate" hreflang="it" href="/?lang=it">
@@ -44,17 +44,16 @@
 
 <main class="wrap">
 
-  <!-- The heading is now an invitation rather than the product's claim, so the claim moves to
-       the line above it and keeps its exact wording (ADR-016). It reads from `brand.tagline`,
-       the same key the footer uses, so the two can never drift apart. -->
+  <!-- Thirty-odd words, and no second paragraph. The page used to open by explaining that the
+       solver was real, the fields computed and the answers checkable — all true, and none of it
+       the first question a fifteen-year-old has. The claim moved to the tagline, the evidence
+       moved below the cards, and what is left here is the invitation. See ADR-022. -->
   <section class="hero">
-    <p class="hero__tagline" data-i18n="brand.tagline">Interactive problems. Computed fields. Checkable answers.</p>
-    <h1 data-i18n-html="home.heroHeading">Play with the physics.<br>Then find out why it works.</h1>
+    <p class="hero__tagline" data-i18n="brand.tagline">Physics challenges. Real computation. Results worth arguing about.</p>
+    <h1 data-i18n="home.heroHeading">Make a prediction. Put it to the test.</h1>
     <p class="lede" data-i18n="home.lede">
-      Every experiment opens with a question you can follow knowing nothing at all, explains
-      just enough to make the controls mean something, and hands you a real solver: it computes
-      the field, gives you the engineering numbers, and says on every run how far those numbers
-      can be trusted.
+      Pick a challenge, change a few parameters, and see what the model predicts. Keep your
+      attempts, compare them, and find where the simulation stops being believable.
     </p>
   </section>
 
@@ -62,14 +61,14 @@
        clicking is what the thing looks like when it works. Every thumbnail is a solve, made by
        scripts/make-thumbnails.py from the same solver the page runs — not an illustration.
 
-       Each card leads with the *question* the exercise answers, because that is the thing
-       someone can want the answer to without already knowing the subject; the discipline is
-       underneath, where it informs rather than gates. The quantitative target and its
-       constraint are not deleted — they are folded into "the numbers behind it", the same
-       treatment ADR-017 gave the prose on an experiment page and for the same reason. See
-       ADR-021. -->
-  <section aria-labelledby="experiments">
-    <h2 id="experiments" class="visually-hidden" data-i18n="home.experiments">Experiments</h2>
+       A card now says four things: the question, the subject and how long it takes, what you
+       will be doing, and the mission in a sentence a person can picture. What it no longer
+       carries is `η < 1`, `|C_m,c/4| < 0.08` or `4.5 mWb/m` — a symbol on a card is a gate in
+       front of a choice, and the choice here is only which challenge to open. The engineering
+       statement of every target is on the challenge page, where the vocabulary to read it is
+       one paragraph away. ADR-022. -->
+  <section aria-labelledby="challenges">
+    <h2 id="challenges" class="visually-hidden" data-i18n="home.experiments">Challenges</h2>
     <ul class="card-grid">
 
       <li class="card card--available">
@@ -78,52 +77,19 @@
         </a>
         <div class="card__body">
           <p class="card__meta">
-            <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
-            <span class="card__level" data-i18n="home.airfoil.level">no physics needed · ~5 min</span>
+            <span class="badge badge--available" data-i18n="home.badgeExercise">Challenge</span>
+            <span class="card__level" data-i18n="home.airfoil.topic">Aerodynamics · 5–8 min</span>
           </p>
-          <h3><a href="/experiments/airfoil/" data-i18n="home.airfoil.question">Why does a wing stay up?</a></h3>
-          <p class="card__topic" data-i18n="home.airfoil.topic">Aerodynamics — the wing section</p>
-          <p class="card__problem" data-i18n-html="home.airfoil.problem">
-            Tilt a wing section into the wind and watch the air do the work. Then go after the
-            real thing: <strong>800 N of lift per metre of span</strong>, without a pitching
-            moment a tail could not trim out.
+          <h3><a href="/experiments/airfoil/" data-i18n="home.airfoil.question">How much tilt does a wing need?</a></h3>
+          <p class="card__problem" data-i18n="home.airfoil.problem">
+            Pick a section and set the angle until the wing carries the lift it has to, without
+            twisting too hard. Different sections can get there in different ways.
           </p>
-          <p class="card__foot"><a class="cta" href="/experiments/airfoil/" data-i18n="home.airfoil.cta">Design an airfoil →</a></p>
-          <details class="card__numbers">
-            <summary data-i18n="home.numbersSummary">The numbers behind it</summary>
-            <dl class="card__facts">
-              <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.airfoil.target">L′ = 800 N/m ± 2 %</dd></div>
-              <div><dt data-i18n="home.constraint">Constraint</dt><dd class="num" data-i18n="home.airfoil.constraint">|C_m,c/4| &lt; 0.08</dd></div>
-              <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.airfoil.checked">lift computed two independent ways</dd></div>
-            </dl>
-          </details>
-        </div>
-      </li>
-
-      <li class="card card--available">
-        <a class="card__shot" href="/experiments/solenoid/" tabindex="-1" aria-hidden="true">
-          <img src="/assets/thumbnails/solenoid.png" alt="" width="480" height="480" loading="lazy">
-        </a>
-        <div class="card__body">
-          <p class="card__meta">
-            <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
-            <span class="card__level" data-i18n="home.solenoid.level">some physics helps · ~8 min</span>
+          <p class="card__mission">
+            <span class="card__mission-label" data-i18n="home.missionSummary">The challenge</span>
+            <span data-i18n="home.airfoil.mission">Hold up the equivalent of about 80 kg for every metre of wing.</span>
           </p>
-          <h3><a href="/experiments/solenoid/" data-i18n="home.solenoid.question">Why does iron guide a magnetic field?</a></h3>
-          <p class="card__topic" data-i18n="home.solenoid.topic">Magnetostatics — the iron circuit</p>
-          <p class="card__problem" data-i18n="home.solenoid.problem">
-            Carry a required flux through an iron core on a fixed ampere-turn budget, without
-            letting it leak away into the air.
-          </p>
-          <p class="card__foot"><a class="cta" href="/experiments/solenoid/" data-i18n="home.solenoid.cta">Design a magnetic circuit →</a></p>
-          <details class="card__numbers">
-            <summary data-i18n="home.numbersSummary">The numbers behind it</summary>
-            <dl class="card__facts">
-              <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.solenoid.target">4.5 mWb/m at ≤ 3600 A</dd></div>
-              <div><dt data-i18n="home.youSet">You set</dt><dd data-i18n="home.solenoid.youSet">core, gap, winding, length, μᵣ, current density</dd></div>
-              <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.solenoid.checked">an energy balance, Ampère’s law and a mesh study</dd></div>
-            </dl>
-          </details>
+          <p class="card__foot"><a class="cta" href="/experiments/airfoil/" data-i18n="home.airfoil.cta">Try a wing →</a></p>
         </div>
       </li>
 
@@ -133,24 +99,19 @@
         </a>
         <div class="card__body">
           <p class="card__meta">
-            <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
-            <span class="card__level" data-i18n="home.truss.level">you draw this one · ~10 min</span>
+            <span class="badge badge--available" data-i18n="home.badgeExercise">Challenge</span>
+            <span class="card__level" data-i18n="home.truss.topic">Structures · 8–12 min</span>
           </p>
           <h3><a href="/experiments/truss/" data-i18n="home.truss.question">Which bar gives way first?</a></h3>
-          <p class="card__topic" data-i18n="home.truss.topic">Statics — the pin-jointed lattice</p>
           <p class="card__problem" data-i18n="home.truss.problem">
-            Build a lattice across a 24 m gorge and carry the traffic on a steel budget — the
-            bar that gives way first is almost never the one you expect.
+            Draw a 24-metre bridge, carry the traffic and stay inside the steel budget. Before
+            you compute, say which bar you think is the weakest.
           </p>
-          <p class="card__foot"><a class="cta" href="/experiments/truss/" data-i18n="home.truss.cta">Build a bridge →</a></p>
-          <details class="card__numbers">
-            <summary data-i18n="home.numbersSummary">The numbers behind it</summary>
-            <dl class="card__facts">
-              <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.truss.target">η &lt; 1 on ≤ 2400 kg</dd></div>
-              <div><dt data-i18n="home.youSet">You set</dt><dd data-i18n="home.truss.youSet">every joint, every bar, the supports, the loads, the section</dd></div>
-              <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.truss.checked">the method of joints, a moment balance and an energy check</dd></div>
-            </dl>
-          </details>
+          <p class="card__mission">
+            <span class="card__mission-label" data-i18n="home.missionSummary">The challenge</span>
+            <span data-i18n="home.truss.mission">About 10 tonnes spread along the deck, on 2.4 tonnes of steel at most.</span>
+          </p>
+          <p class="card__foot"><a class="cta" href="/experiments/truss/" data-i18n="home.truss.cta">Build the bridge →</a></p>
         </div>
       </li>
 
@@ -160,65 +121,105 @@
         </a>
         <div class="card__body">
           <p class="card__meta">
-            <span class="badge badge--available" data-i18n="home.badgeExercise">Exercise</span>
-            <span class="card__level" data-i18n="home.heatsink.level">some physics helps · ~10 min</span>
+            <span class="badge badge--available" data-i18n="home.badgeExercise">Challenge</span>
+            <span class="card__level" data-i18n="home.heatsink.topic">Heat · 6–10 min</span>
           </p>
-          <h3><a href="/experiments/heatsink/" data-i18n="home.heatsink.question">When do more fins stop helping?</a></h3>
-          <p class="card__topic" data-i18n="home.heatsink.topic">Heat transfer — the finned body</p>
+          <h3><a href="/experiments/heatsink/" data-i18n="home.heatsink.question">Do more fins always cool better?</a></h3>
           <p class="card__problem" data-i18n="home.heatsink.problem">
-            Dissipate a given power below a maximum temperature, using less metal. How many fins
-            actually help, and when do they stop?
+            Predict how many fins it takes, then let the computation explore the alternatives.
+            Too few shed little heat; too many can choke the air trying to get past.
           </p>
-          <p class="card__foot"><a class="cta" href="/experiments/heatsink/" data-i18n="home.heatsink.cta">Cool a device →</a></p>
-          <details class="card__numbers">
-            <summary data-i18n="home.numbersSummary">The numbers behind it</summary>
-            <dl class="card__facts">
-              <div><dt data-i18n="home.target">Target</dt><dd class="num" data-i18n="home.heatsink.target">T_max &lt; 95 °C on &#8804; 170 g</dd></div>
-              <div><dt data-i18n="home.youSet">You set</dt><dd data-i18n="home.heatsink.youSet">fin count, height and thickness, the base, the finish, the cooling</dd></div>
-              <div><dt data-i18n="home.checkedBy">Checked by</dt><dd data-i18n="home.heatsink.checked">an energy balance over both heat paths, and view-factor identities that hold exactly</dd></div>
-            </dl>
-          </details>
+          <p class="card__mission">
+            <span class="card__mission-label" data-i18n="home.missionSummary">The challenge</span>
+            <span data-i18n="home.heatsink.mission">Keep a 30 W device under 95 °C on no more than 170 g of aluminium.</span>
+          </p>
+          <p class="card__foot"><a class="cta" href="/experiments/heatsink/" data-i18n="home.heatsink.cta">Design the heat sink →</a></p>
         </div>
       </li>
 
     </ul>
   </section>
 
+  <!-- Three steps, in the order they happen, and nothing about the solver. -->
+  <section class="how" aria-labelledby="how-heading">
+    <h2 id="how-heading" data-i18n="home.howHeading">How to play</h2>
+    <ol class="how__steps">
+      <li>
+        <h3 data-i18n="home.step1Heading">1. Predict</h3>
+        <p data-i18n="home.step1">
+          Say what you think will happen. Guessing right is not the point: the prediction is
+          there to give you something to compare against.
+        </p>
+      </li>
+      <li>
+        <h3 data-i18n="home.step2Heading">2. Compute</h3>
+        <p data-i18n="home.step2">
+          Change a few parameters and run it. The field and the numbers come out of the
+          configuration you chose.
+        </p>
+      </li>
+      <li>
+        <h3 data-i18n="home.step3Heading">3. Compare</h3>
+        <p data-i18n="home.step3">
+          Keep at least two attempts. Look for what changed, which constraint decided the
+          result, and where the model stops being enough.
+        </p>
+      </li>
+    </ol>
+    <p class="how__note" data-i18n-html="home.howNote">
+      <strong>A number can be computed well and still describe reality badly.</strong> That is
+      why every attempt keeps the stability of the computation separate from the limits of the
+      model.
+    </p>
+  </section>
+
   <p class="disclaimer">
     <strong data-i18n="home.disclaimerLabel">Note.</strong>
-    <span data-i18n="home.disclaimer">The simulations are demonstrative and educational. They are not a substitute for
-    professional engineering verification.</span>
+    <span data-i18n="home.disclaimer">These models are for exploring ideas and comparing designs. They are not professional
+    engineering tools.</span>
   </p>
 
+  <!-- The magnetic circuit, off the grid and on a shelf of its own.
+
+       It is a working exercise and a good one, and it is not a challenge in the sense the three
+       cards above are: its mission is a flux in Wb/m on an ampere-turn budget, which has no
+       outcome a student can picture and no trade-off they can feel. Deleting it would throw
+       away a solver and a page; leaving it in the grid would tell a visitor these four things
+       are the same kind of thing. So it keeps its URL, loses the fourth card, and says plainly
+       who it is for. The replacement — an electromagnet that has to pull a plate on a power
+       budget — is specified in the editorial review and not built. See ADR-022 and §9. -->
+  <section class="shelf" aria-labelledby="advanced-heading">
+    <h2 id="advanced-heading" data-i18n="home.advancedHeading">Advanced labs</h2>
+    <p class="shelf__lead" data-i18n="home.advancedLead">
+      Pages built for readers who already know the subject. They are not challenges with a
+      target to hit.
+    </p>
+    <ul class="shelf__list">
+      <li>
+        <a href="/experiments/solenoid/" data-i18n="home.solenoid.name">Magnetic field in a 2D section</a>
+        <span data-i18n="home.solenoid.mission">Written for readers who already know flux, field and magnetic circuits.</span>
+      </li>
+    </ul>
+  </section>
+
   <!-- Below the fold, and folded. Both sections are worth reading and neither is worth
-       putting between a visitor and the experiment they came for. -->
+       putting between a visitor and the challenge they came for. -->
   <section class="about" id="modes" aria-labelledby="about-heading">
-    <h2 id="about-heading" data-i18n="home.aboutHeading">How it works</h2>
+    <h2 id="about-heading" data-i18n="home.aboutHeading">How to play</h2>
 
     <details class="lesson__block">
-      <summary><span data-i18n="home.modesSummary">Two ways to compute the same thing</span></summary>
+      <summary><span data-i18n="home.methodSummary">Method, code and data</span></summary>
       <div class="lesson__body">
-        <p data-i18n-html="home.modesLead">
-          The same problem can be solved quickly and approximately, or slowly and more
-          faithfully. The lab offers both routes and always tells you which one you are looking
-          at — because the difference between them <em>is</em> part of what there is to learn.
+        <p data-i18n="home.methodBody">
+          The answers are not canned animations: they are computed from the configuration in
+          front of you. Each challenge uses the model that suits it, and offers numerical
+          controls, the full set of quantities and a data export. The lab's code is open source.
         </p>
         <ul>
-          <li data-i18n-html="home.modeFast">
-            <strong>Fast preview</strong> — a regular Cartesian grid solved in NumPy.
-            Near-instant, and approximate by construction: the grid does not follow the body's
-            outline.
-          </li>
-          <li data-i18n-html="home.modeFenics">
-            <strong>FEniCSx computation</strong> — an unstructured triangular mesh generated
-            with Gmsh, solved with P1 finite elements. Slower, more faithful close to the body,
-            and it produces a VTK file that opens in ParaView.
-          </li>
-          <li data-i18n-html="home.modePanel">
-            <strong>Panel method</strong> — for the airfoil, neither of the above: source and
-            vortex sheets on the body itself, so the boundary is exact rather than meshed. It is
-            not a preview of something better; it is the most accurate surface solution here.
-          </li>
+          <li data-i18n-html="home.methodAirfoil"><strong>Wing</strong> — a panel method on the surface of the section itself.</li>
+          <li data-i18n-html="home.methodTruss"><strong>Bridge</strong> — one bar element per bar, solved once.</li>
+          <li data-i18n-html="home.methodHeatsink"><strong>Heat sink</strong> — conduction through the metal, with convection and radiation at the surfaces.</li>
+          <li data-i18n-html="home.methodSolenoid"><strong>Magnetostatics</strong> — the field in a two-dimensional section.</li>
         </ul>
         <p id="capability" class="notice" data-i18n="home.capabilityChecking">Checking what is installed on this server…</p>
       </div>
@@ -230,17 +231,16 @@
         <p data-i18n-html="home.madeBody">
           The lab is an application built on
           <a href="https://github.com/mandaloriat/fenix-spoon">Fenix Spoon</a>, an open-source
-          toolkit that puts a finite-element solver behind a web page: the protocol, the job
-          handling, the solvers and the browser widgets all come from there. What you find here
-          is the teaching experience built on top — the problems, the explanations, the design
-          and the public deployment.
+          toolkit that puts a finite-element solver behind a web page. What you find here is the
+          teaching experience built on top — the problems, the explanations, the design and the
+          public deployment.
         </p>
         <p data-i18n-html="home.madeLicence">
           The code for this lab is on
-          <a href="https://github.com/mandaloriat/physics-lab">GitHub</a> under the MIT
-          licence. The real computations are carried out by
-          <a href="https://fenicsproject.org/">FEniCSx</a>, and the fast previews and the panel
-          method by <a href="https://numpy.org/">NumPy</a>.
+          <a href="https://github.com/mandaloriat/spoon-physics">GitHub</a> under the MIT
+          licence. The finite-element computations are carried out by
+          <a href="https://fenicsproject.org/">FEniCSx</a>, and the rest by
+          <a href="https://numpy.org/">NumPy</a>.
         </p>
       </div>
     </details>

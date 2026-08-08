@@ -37,7 +37,16 @@ import {
   renderMetrics,
   renderValidity,
   renderVerification,
+  attemptState,
+  renderAfterAttempt,
+  renderTeacher,
 } from '/shared/exercise.js';
+import {
+  changedTheDesign,
+  mountPath,
+  mountPrediction,
+  renderPredictionRecall,
+} from '/shared/journey.js';
 import {
   applyFieldView,
   applyMaintenance,
@@ -154,6 +163,17 @@ const dom = Object.fromEntries(
     'exportJson',
     'clearRuns',
     'maintenance',
+    'path',
+    'prediction',
+    'predictionRecall',
+    'outcome',
+    'hint',
+    'credibility',
+    'explain',
+    'teacher',
+    'whyPanel',
+    'predictPanel',
+    'teacherCard',
   ].map((key) => [
     key,
     document.getElementById(key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)),
@@ -484,6 +504,7 @@ const PARAM_UI = [
 const METRICS = [
   {
     key: 'flux_core',
+    goal: t('solenoid.goal.flux'),
     label: t('solenoid.metrics.flux'),
     symbol: 'Φ′',
     unit: 'Wb/m',
@@ -508,6 +529,7 @@ const METRICS = [
   },
   {
     key: 'leakage_ratio',
+    goal: t('solenoid.goal.leakage'),
     label: t('solenoid.metrics.leakage'),
     symbol: 'σ',
     unit: '1',
@@ -516,6 +538,7 @@ const METRICS = [
   },
   {
     key: 'ampere_turns',
+    goal: t('solenoid.goal.drive'),
     label: t('solenoid.metrics.ampereTurns'),
     symbol: 'NI′',
     unit: 'A',
@@ -563,47 +586,42 @@ const METRIC_LABELS = Object.fromEntries(METRICS.map((metric) => [metric.key, me
 const KPIS = [
   {
     key: 'flux_core',
-    label: t('solenoid.metrics.flux'),
+    label: t('solenoid.headline.flux'),
     symbol: '|Φ′|',
     unit: 'Wb/m',
-    digits: 5,
-    from: (report) =>
-      typeof report.metrics?.flux_core === 'number' ? Math.abs(report.metrics.flux_core) : null,
+    plainUnit: 'mWb/m',
+    digits: 2,
+    from: (found) =>
+      typeof found.metrics?.flux_core === 'number'
+        ? 1000 * Math.abs(found.metrics.flux_core)
+        : null,
+    goal: { value: 4.5, comparator: '>=' },
     absent: t('solenoid.metrics.noCore'),
     hint: t('solenoid.metrics.fluxAbsHint'),
   },
   {
     key: 'ampere_turns',
-    label: t('solenoid.metrics.ampereTurns'),
+    label: t('solenoid.headline.drive'),
     symbol: 'NI′',
     unit: 'A',
+    plainUnit: 'A',
     digits: 0,
+    goal: { value: 3600, comparator: '<=' },
+    hint: t('solenoid.headline.driveHint'),
   },
   {
     key: 'leakage_ratio',
-    label: t('solenoid.metrics.leakage'),
+    label: t('solenoid.headline.leakage'),
     symbol: 'σ',
-    unit: '1',
-    digits: 4,
+    unit: '%',
+    plainUnit: '%',
+    digits: 2,
+    from: (found) =>
+      typeof found.metrics?.leakage_ratio === 'number' ? 100 * found.metrics.leakage_ratio : null,
+    goal: { value: 1, comparator: '<' },
     absent: t('solenoid.metrics.noCore'),
+    hint: t('solenoid.headline.leakageHint'),
   },
-  {
-    key: 'b_section_max',
-    label: t('solenoid.metrics.busiest'),
-    symbol: 'B_sec',
-    unit: 'T',
-    digits: 3,
-    absent: t('solenoid.metrics.noCore'),
-  },
-  {
-    key: 'inductance_index',
-    label: t('solenoid.metrics.permeance'),
-    symbol: 'Φ′/NI′',
-    unit: 'H/m',
-    digits: 8,
-    absent: t('solenoid.metrics.noCore'),
-  },
-  { key: 'energy', label: t('solenoid.metrics.energy'), symbol: 'W′', unit: 'J/m', digits: 3 },
 ];
 
 const CHECKS = [
@@ -818,6 +836,18 @@ function present() {
   renderMetrics(dom.metrics, METRICS, report);
   renderVerification(dom.verification, CHECKS, report);
   renderValidity(dom.validity, report);
+  renderAfterAttempt(dom, {
+    challenge: content?.challenge,
+    explain: content?.explain,
+    report,
+    state: attemptState(content?.challenge, report),
+    checks: CHECKS,
+    hint: report ? suggestion() : null,
+    facts: attemptFacts(),
+  });
+  renderPredictionRecall(dom.predictionRecall, prediction?.answer() ?? null);
+  if (report) path.mark('attempt');
+
   declareOverlays();
 
   if (!report) return;
@@ -1053,6 +1083,9 @@ function refreshRuns(rows = runs.load(EXERCISE), evicted = 0) {
   for (const button of [dom.exportCsv, dom.exportJson, dom.clearRuns])
     button.disabled = !rows.length;
   dom.compareJump.hidden = rows.length < 2;
+  if (selected.size >= 2) path.mark('compare');
+  if (!rows.length) dom.runsNote.textContent = t('runs.none');
+  else if (rows.length === 1) dom.runsNote.textContent += ` ${t('runs.one')}`;
 }
 
 /** Put a saved row's inputs back on the page. Does not re-solve: Run is still the visitor's. */
@@ -1122,7 +1155,13 @@ dom.field.addEventListener('change', () => {
 });
 dom.keep.addEventListener('click', () => {
   if (!report) return;
-  const { rows, evicted } = runs.save(EXERCISE, row());
+  // "Improve" is not "run it again". A second attempt at a finer grid is a numerical
+  // experiment and a worthwhile one, but it is not a second design — `changedTheDesign`
+  // compares the geometry and the physical conditions, and nothing else. See `journey.js`.
+  const kept = runs.load(EXERCISE);
+  const entry = row();
+  if (kept.length && changedTheDesign(kept[0], entry)) path.mark('improve');
+  const { rows, evicted } = runs.save(EXERCISE, entry);
   refreshRuns(rows, evicted);
   revealPanel(dom.runsPanel);
 });
@@ -1141,6 +1180,60 @@ dom.clearRuns.addEventListener('click', () => {
   refreshRuns();
 });
 
+/* ------------------------------------------------------------- one suggestion at a time */
+
+/** Editorial rules rather than generated prose (§13.7): one problem, one direction, no answer. */
+function suggestion() {
+  if (!report) return null;
+  const flux = Math.abs(report.metrics?.flux_core ?? 0);
+  const drive = report.metrics?.ampere_turns;
+  const leakage = report.metrics?.leakage_ratio;
+  if ((report.validity?.warnings ?? []).length) return t('solenoid.hint.outside');
+  if (flux < 0.0045) {
+    return typeof drive === 'number' && drive >= 3600
+      ? t('solenoid.hint.spent')
+      : t('solenoid.hint.lowFlux');
+  }
+  if (typeof drive === 'number' && drive > 3600) return t('solenoid.hint.overDrive');
+  if (typeof leakage === 'number' && leakage >= 0.01) return t('solenoid.hint.leakage');
+  return null;
+}
+
+/** Numbers the post-attempt cards may quote, so an explanation can be about *this* attempt. */
+function attemptFacts() {
+  if (!report) return {};
+  return {
+    leakage: (100 * (report.metrics?.leakage_ratio ?? 0)).toFixed(2),
+  };
+}
+
+/* ------------------------------------------------------------------- predict, try, compare */
+
+/**
+ * The loop the page is played in, mounted once.
+ *
+ * The prediction is asked before anything is computed and gates nothing; the path lights the
+ * steps that have been taken. Both live in `shared/journey.js` — see the note there about why
+ * neither is allowed to block a solve or to score an answer.
+ */
+const path = mountPath(dom.path, { exercise: EXERCISE });
+let prediction = null;
+
+function mountLoop() {
+  if (content?.prediction) {
+    prediction = mountPrediction(dom.prediction, {
+      exercise: EXERCISE,
+      prediction: content.prediction,
+      hasSolved: () => Boolean(report),
+      onAnswer: () => path.mark('predict'),
+    });
+  } else {
+    dom.predictPanel?.remove();
+  }
+  renderTeacher(dom.teacher, content?.teacher);
+  if (!content?.teacher) dom.teacherCard?.remove();
+}
+
 try {
   const [loaded, info, solvers] = await Promise.all([
     fetch(contentUrl(EXERCISE)).then((response) => response.json()),
@@ -1150,6 +1243,7 @@ try {
 
   content = loaded;
   catalogue = solvers;
+  mountLoop();
   renderLesson({ content, intro: null, lesson: dom.lesson, open: ['problem'] });
   present();
   refreshRuns();

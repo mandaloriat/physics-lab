@@ -85,20 +85,32 @@ jobs:
           REQUIRED_SECTIONS = [
               "Quick start",
               "Production",
-              "Current experiments",
+              # Renamed from "Current experiments" by ADR-022, which made the pages challenges
+              # rather than experiments and renamed them everywhere a reader meets them.
+              "Current challenges",
               "The pinned dependency",
               "Security and the limits of a public demo",
           ]
 
-          DISCLAIMER = "not a substitute for professional engineering verification"
+          # The wording changed with ADR-022 (§6.9 of the editorial review): the old sentence
+          # promised a substitute for professional verification and then withheld it, which is
+          # a longer way of saying less. What this check is for has not changed — no page ships
+          # without an educational disclaimer — so it follows the wording rather than pinning it.
+          DISCLAIMER = "not professional engineering tools"
           # Every experiment page carries it, not just the first one. Listed explicitly
           # rather than globbed: the point is that a *new* page cannot ship without the
           # disclaimer, and a glob would happily find nothing and pass.
+          #
+          # The bridge and the heat sink were missing from this list from the release that
+          # built them until ADR-022 — which is exactly the failure the sentence above warns
+          # about, arriving by the other door: the list is only explicit if somebody extends it.
           DISCLAIMER_FILES = [
               "README.md",
               "frontend/index.html",
               "frontend/experiments/airfoil/index.html",
               "frontend/experiments/solenoid/index.html",
+              "frontend/experiments/truss/index.html",
+              "frontend/experiments/heatsink/index.html",
           ]
 
           def rendered(path: str) -> str:

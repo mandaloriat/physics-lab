@@ -33,30 +33,34 @@ def test_pages_are_served(client, path):
     assert "text/html" in response.headers["content-type"]
 
 
+#: The three exercises the homepage presents as challenges.
+#:
+#: The magnetic circuit is deliberately not among them. It is a working page and it keeps its
+#: URL, but its mission is a flux in Wb/m on an ampere-turn budget — no outcome a student can
+#: picture and no trade-off they can feel — so it sits on the advanced shelf until the
+#: electromagnet that replaces it exists. See ADR-022.
+CHALLENGES = ["airfoil", "truss", "heatsink"]
+
+
 def test_homepage_names_the_experiments_and_carries_the_disclaimer(client):
     # Collapsed, because a line break inside a paragraph is formatting, not content —
     # asserting on the raw source would fail the next time the file is re-wrapped.
     body = re.sub(r"\s+", " ", client.get("/").text)
 
     assert "Spoon Physics" in body
-    # Every available experiment is linked from the homepage; an experiment that ships
-    # without a way in has not shipped.
+    # Every experiment is reachable from the homepage; one that ships without a way in has not
+    # shipped. That includes the advanced lab, which is listed rather than carded.
     for name in EXPERIMENTS:
         assert f"/experiments/{name}/" in body
-    # Each card leads with the question its exercise answers, and names the discipline
-    # underneath (ADR-021). This used to assert the *titles* — "The magnetic circuit", "Heat
-    # sink" — which the cards no longer lead with, because a title only tells you what the
-    # page is if you already know the subject. What has to hold is that a card still says
-    # which physics it is about, and that is the topic line.
-    assert "Why does a wing stay up?" in body
-    assert "Magnetostatics — the iron circuit" in body
-    assert "Heat transfer — the finned body" in body
+    # Each card leads with the question its exercise answers, and says how long it takes.
+    # It no longer names the discipline as a bare topic line: "Aerodynamics · 5–8 min" tells a
+    # visitor both of the things they are actually choosing between.
+    assert "How much tilt does a wing need?" in body
+    assert "Which bar gives way first?" in body
+    assert "Do more fins always cool better?" in body
     # What is still planned is listed honestly rather than linked to nothing — and *if* nothing
-    # is planned, the badge is simply absent. This used to assert the badge was present, which
-    # was a fact about the release that wrote it rather than about the page: the heat sink was
-    # the last card carrying it, and building that exercise made the assertion expire. What the
-    # page must never do is show a planned card that is also a link, and that is what is checked
-    # here instead.
+    # is planned, the badge is simply absent. What the page must never do is show a planned card
+    # that is also a link.
     planned = re.findall(r'<li class="card card--planned">.*?</li>', body)
     for card in planned:
         assert "In preparation" in card
@@ -64,10 +68,53 @@ def test_homepage_names_the_experiments_and_carries_the_disclaimer(client):
         # somewhere else is the same broken promise wearing a different href.
         assert "<a" not in card
         assert "href" not in card
-    # The tagline is the product's claim and is not negotiable wording (ADR-016).
-    assert "Interactive problems. Computed fields. Checkable answers." in body
-    assert "not a substitute for professional engineering verification" in body
+    # The tagline is the product's claim. ADR-016 fixed the old wording; ADR-022 replaced it,
+    # on the ground that the old one described the solver and this one describes what you do.
+    assert "Physics challenges. Real computation. Results worth arguing about." in body
+    assert "not professional engineering tools" in body
     assert "fenix-spoon" in body
+    # Three steps, and the one sentence that justifies two credibility indicators per attempt.
+    assert "How to play" in body
+    assert "computed well and still describe reality badly" in body
+
+
+def test_the_homepage_carries_no_formula_in_the_open_part_of_a_card(client):
+    """A symbol on a card is a gate in front of a choice, and the choice is which one to open.
+
+    The cards used to fold ``η < 1``, ``|C_m,c/4| < 0.08`` and ``4.5 mWb/m`` into a disclosure
+    under every one of them. None of that is deleted — the engineering statement of each target
+    is on its challenge page, where the vocabulary to read it is a paragraph away — but a
+    visitor deciding between three challenges is not helped by any of it. Editorial review §6.1
+    and §14.1.
+    """
+    body = client.get("/").text
+    cards = re.search(r'<ul class="card-grid">(.*?)</ul>', body, re.DOTALL)
+    assert cards, "the homepage has no card grid"
+    text = re.sub(r"<[^>]+>", " ", cards.group(1))
+
+    for symbol in ["η", "C_m", "mWb", "Wb/m", "±", "μᵣ", "L′", "T_max", "≤", "<"]:
+        assert symbol not in text, f"a card shows {symbol} before the visitor has chosen anything"
+
+
+def test_the_magnetic_circuit_is_not_presented_as_a_fourth_challenge(client):
+    """It keeps its URL and loses its card. §9.3, the recommended option.
+
+    Deleting the page would throw away a working solver; leaving it in the grid would tell a
+    visitor these four things are the same kind of thing, which is the claim ADR-022 rejects.
+    So it is on a shelf that says who it is for, and the page itself says so too.
+    """
+    body = client.get("/").text
+    grid = re.search(r'<ul class="card-grid">(.*?)</ul>', body, re.DOTALL).group(1)
+    assert "/experiments/solenoid/" not in grid, "the magnetic circuit is back in the card grid"
+    assert len(re.findall(r'<li class="card', grid)) == len(CHALLENGES)
+
+    shelf = re.search(r'<section class="shelf".*?</section>', body, re.DOTALL)
+    assert shelf, "the advanced shelf is missing, so the magnetic circuit has no way in"
+    assert "/experiments/solenoid/" in shelf.group(0)
+
+    # And the page does not go on calling itself an exercise with a mission like the others.
+    content = client.get("/experiments/solenoid/content.json").json()
+    assert "Magnetic field in a 2D section" == content["title"]
 
 
 def test_the_airfoil_page_uses_the_fenix_spoon_widgets(client):
@@ -138,16 +185,16 @@ def test_the_homepage_shows_a_real_field_for_every_experiment(client):
     """
     body = client.get("/").text
     sources = re.findall(r'src="(/assets/thumbnails/[^"]+)"', body)
-    assert len(sources) == 4, "each experiment card needs its own field thumbnail"
+    assert len(sources) == len(CHALLENGES), "each challenge card needs its own field thumbnail"
     for source in sources:
         response = client.get(source)
         assert response.status_code == 200, f"{source} is on the homepage but not served"
         assert response.content.startswith(b"\x89PNG"), f"{source} is not a PNG"
 
     # And a concrete invitation rather than "open the experiment".
-    assert "Design an airfoil" in body
-    assert "Design a magnetic circuit" in body
-    assert "Build a bridge" in body
+    assert "Try a wing" in body
+    assert "Build the bridge" in body
+    assert "Design the heat sink" in body
 
 
 def test_the_solenoid_page_renders_the_field_and_draws_its_own_cross_section(client):
@@ -170,9 +217,7 @@ def test_the_solenoid_page_renders_the_field_and_draws_its_own_cross_section(cli
     assert 'id="schematic"' in markup
     # Collapsed, because the disclaimer is line-wrapped in the source and a line break is
     # formatting rather than content.
-    assert "not a substitute for professional engineering verification" in re.sub(
-        r"\s+", " ", markup
-    )
+    assert "not professional engineering tools" in re.sub(r"\s+", " ", markup)
 
 
 @pytest.mark.parametrize(
@@ -257,6 +302,92 @@ def test_every_experiment_has_didactic_content_with_the_sections_the_page_render
     limits = next((s for s in content["sections"] if s["id"] == "limits"), None)
     assert limits, f"{name} must document the limits of its model"
     assert limits.get("caution") is True
+
+
+@pytest.mark.parametrize("suffix", LANGUAGES.values())
+@pytest.mark.parametrize("name", EXPERIMENTS)
+def test_every_exercise_asks_a_prediction_before_it_explains_anything(client, name, suffix):
+    """The four blocks §13.3 asks the schema to keep apart, present and separate.
+
+    The prediction is the one that carries the design: an exercise that hands over the
+    explanation first has taught a student to move a slider until a number agrees, which is a
+    search, not an experiment. So the question exists, it offers a way to say "not sure yet",
+    and it is phrased about something observable rather than about a formula.
+    """
+    content = client.get(f"/experiments/{name}/content{suffix}.json").json()
+
+    prediction = content["prediction"]
+    assert prediction["question"].endswith("?"), "a prediction is a question"
+    assert len(prediction["options"]) >= 2, "an opinion needs something to choose between"
+    assert prediction.get("allow_unknown") is True, "not knowing yet must be a real answer"
+    for option in prediction["options"]:
+        assert option["id"] and option["label"]
+        assert option["id"] != "unknown", "the renderer supplies the unknown option"
+    # No formula in the question. A prediction a student can only make by evaluating an
+    # expression is a calculation they have not been taught yet, not a prediction.
+    assert not re.search(r"[=<>]|\bC_[a-z]\b", prediction["question"])
+
+    # At most three cards, one heading each, and short enough to be read after a solve rather
+    # than instead of one.
+    assert 1 <= len(content["explain"]) <= 3
+    for card in content["explain"]:
+        assert card["id"] and card["heading"] and card["body"]
+        words = sum(len(paragraph.split()) for paragraph in card["body"])
+        assert words <= 90, f"{name}/{card['id']} is {words} words; §7.9 allows 40–70"
+
+    teacher = content["teacher"]
+    for field in ["objective", "misconception", "discussion", "prerequisites", "duration"]:
+        assert teacher[field], f"{name} teacher card has no {field}"
+
+
+@pytest.mark.parametrize("suffix", LANGUAGES.values())
+@pytest.mark.parametrize("name", EXPERIMENTS)
+def test_every_challenge_is_stated_twice_in_two_registers(client, name, suffix):
+    """Meaning first, symbols after — §2.4, the rule the whole review turns on.
+
+    ``plain_statement`` is the mission as a student reads it and is what the page shows;
+    ``statement`` is the same mission in the units an engineer would state it in and stays in
+    the model details. Both are required, and they may not be the same sentence: a file where
+    one was copied into the other has not made the distinction, it has recorded it.
+    """
+    challenge = client.get(f"/experiments/{name}/content{suffix}.json").json()["challenge"]
+
+    assert challenge["plain_statement"], f"{name} states its mission only in symbols"
+    assert challenge["plain_statement"] != challenge["statement"]
+    # The plain wording is the one a reader meets first, so it is the one that may not open
+    # with notation. `Wb/m` and `η` belong in the engineering statement below it.
+    for symbol in ["η", "δ/L", "C_m,c/4", "μᵣ"]:
+        assert symbol not in challenge["plain_statement"], f"{name} leads with {symbol}"
+
+
+@pytest.mark.parametrize("name", EXPERIMENTS)
+def test_every_page_asks_before_it_answers(client, name):
+    """The markup hooks the loop needs, in the order the loop happens.
+
+    A page that lost one of these fails quietly: the prediction simply never renders, the
+    verdict never appears, the credibility pair silently becomes a panel of residuals again.
+    Each is asserted by position as well as by presence, because "present somewhere on the
+    page" is not the claim — the prediction has to come before the bench, and the explanation
+    after the results.
+    """
+    markup = re.sub(r"<!--.*?-->", "", client.get(f"/experiments/{name}/").text, flags=re.DOTALL)
+
+    for hook in ['id="path"', 'id="prediction"', 'id="outcome"', 'id="hint"',
+                 'id="credibility"', 'id="explain"', 'id="teacher"']:
+        assert hook in markup, f"the {name} page is missing {hook}"
+
+    assert markup.index('id="prediction"') < markup.index('class="bench__layout"'), (
+        "the prediction must come before the instrument, or it is not a prediction"
+    )
+    assert markup.index('id="credibility"') < markup.index('id="verification"'), (
+        "the two indicators come first; the residuals are the detail behind them"
+    )
+    assert markup.index('id="explain"') > markup.index('id="kpis"'), (
+        "the explanation must follow the result it explains"
+    )
+    # The residuals and the model limits move behind a disclosure, and it ships closed.
+    checks = re.search(r'<details[^>]*id="checks"[^>]*>', markup)
+    assert checks and "open" not in checks.group(0)
 
 
 def test_the_shared_challenge_banner_speaks_no_exercise_s_vocabulary():

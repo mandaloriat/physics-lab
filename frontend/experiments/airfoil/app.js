@@ -29,7 +29,16 @@ import {
   renderMetrics,
   renderValidity,
   renderVerification,
+  attemptState,
+  renderAfterAttempt,
+  renderTeacher,
 } from '/shared/exercise.js';
+import {
+  changedTheDesign,
+  mountPath,
+  mountPrediction,
+  renderPredictionRecall,
+} from '/shared/journey.js';
 import {
   applyFieldView,
   applyMaintenance,
@@ -86,6 +95,17 @@ const dom = Object.fromEntries(
     'metrics',
     'verification',
     'validity',
+    'path',
+    'prediction',
+    'predictionRecall',
+    'outcome',
+    'hint',
+    'credibility',
+    'explain',
+    'teacher',
+    'whyPanel',
+    'predictPanel',
+    'teacherCard',
     'physical',
     'numerical',
     'study',
@@ -336,6 +356,7 @@ const METRICS = [
   },
   {
     key: 'l_prime',
+    goal: t('airfoil.goal.lift'),
     label: t('airfoil.metrics.lift'),
     symbol: 'L′',
     unit: 'N/m',
@@ -344,6 +365,7 @@ const METRICS = [
   },
   {
     key: 'c_m_c4',
+    goal: t('airfoil.goal.twist'),
     label: t('airfoil.metrics.moment'),
     symbol: 'C_m,c/4',
     unit: '1',
@@ -388,6 +410,21 @@ const METRICS = [
     digits: 3,
     hint: t('airfoil.metrics.incidenceHint'),
   },
+  // The aerodynamic centre was a headline tile until the row went to three, and it is here
+  // rather than deleted because of what it says when it is *absent*: this is a property of
+  // several incidences, so one solve cannot produce it. A quantity that says why it is missing
+  // is teaching something; one that quietly vanishes is not. `docs/exercise-contract.md` §7.
+  {
+    key: 'x_ac_over_c',
+    label: t('airfoil.metrics.aerodynamicCentre'),
+    symbol: 'x_ac/c',
+    unit: '1',
+    digits: 3,
+    from: (found) => found.sweep?.x_ac_over_c,
+    requires: 'sweep',
+    absent: t('airfoil.metrics.aerodynamicCentreAbsent'),
+    hint: t('airfoil.metrics.aerodynamicCentreHint'),
+  },
 ];
 
 /** The `key -> wording` table the challenge reads, built from the same list. */
@@ -395,29 +432,48 @@ const METRIC_LABELS = Object.fromEntries(METRICS.map((metric) => [metric.key, me
 
 /** The few numbers that answer the mission, shown before any table. */
 const KPIS = [
-  { key: 'c_l', label: t('airfoil.metrics.cl'), symbol: 'C_L', unit: '1', digits: 3 },
-  { key: 'l_prime', label: t('airfoil.metrics.liftShort'), symbol: 'L′', unit: 'N/m', digits: 0 },
-  { key: 'c_m_c4', label: t('airfoil.metrics.moment'), symbol: 'C_m,c/4', unit: '1', digits: 4 },
   {
-    key: 'x_cp_over_c',
-    label: t('airfoil.metrics.centre'),
-    symbol: 'x_cp/c',
-    unit: '1',
-    digits: 3,
-    absent: t('airfoil.metrics.centreAbsent'),
+    key: 'l_prime',
+    label: t('airfoil.headline.lift'),
+    symbol: 'L′',
+    unit: 'N/m',
+    plainUnit: t('airfoil.headline.perMetre'),
+    digits: 0,
+    goal: { value: 800, comparator: '==', tolerance: 0.02, tolerance_kind: 'relative' },
+    hint: t('airfoil.headline.liftHint'),
   },
-  { key: 'cp_min', label: t('airfoil.metrics.peak'), symbol: 'C_p,min', unit: '1', digits: 2 },
   {
-    key: 'x_ac_over_c',
-    label: t('airfoil.metrics.aerodynamicCentre'),
-    symbol: 'x_ac/c',
+    key: 'c_m_c4',
+    label: t('airfoil.headline.twist'),
+    symbol: 'C_m,c/4',
+    unit: '%',
+    plainUnit: '%',
+    digits: 0,
+    // As a percentage of the limit rather than a signed coefficient: −0.0731 says nothing to
+    // somebody meeting a pitching moment for the first time, and "91 % of the limit" says the
+    // one thing they need. The sign is not thrown away — it is the sentence underneath.
+    from: (found) =>
+      typeof found.metrics?.c_m_c4 === 'number'
+        ? (100 * Math.abs(found.metrics.c_m_c4)) / MOMENT_LIMIT
+        : null,
+    goal: { value: 100, comparator: '<' },
+    note: (value, found) =>
+      t(found.metrics?.c_m_c4 <= 0 ? 'airfoil.headline.noseDown' : 'airfoil.headline.noseUp'),
+    hint: t('airfoil.headline.twistHint'),
+  },
+  {
+    key: 'cp_min',
+    label: t('airfoil.headline.suction'),
+    symbol: 'C_p,min',
     unit: '1',
-    digits: 3,
-    from: (report) => report.sweep?.x_ac_over_c,
-    absent: t('airfoil.metrics.aerodynamicCentreAbsent'),
-    hint: t('airfoil.metrics.aerodynamicCentreHint'),
+    digits: 2,
+    note: () => t('airfoil.headline.suctionNote'),
+    hint: t('airfoil.headline.suctionHint'),
   },
 ];
+
+/** The moment ceiling the challenge is set against, read from the content rather than typed. */
+const MOMENT_LIMIT = 0.08;
 
 const CHECKS = [
   {
@@ -637,6 +693,18 @@ function present() {
   renderMetrics(dom.metrics, METRICS, report);
   renderVerification(dom.verification, CHECKS, report);
   renderValidity(dom.validity, report);
+  renderAfterAttempt(dom, {
+    challenge: content?.challenge,
+    explain: content?.explain,
+    report,
+    state: attemptState(content?.challenge, report),
+    checks: CHECKS,
+    hint: report ? suggestion() : null,
+    facts: attemptFacts(),
+  });
+  renderPredictionRecall(dom.predictionRecall, prediction?.answer() ?? null);
+  if (report) path.mark('attempt');
+
   describeGeometry(report);
   renderDerived();
   declareOverlays();
@@ -1070,6 +1138,9 @@ function refreshRuns(rows = runs.load(EXERCISE), evicted = 0) {
   for (const button of [dom.exportCsv, dom.exportJson, dom.clearRuns])
     button.disabled = !rows.length;
   dom.compareJump.hidden = rows.length < 2;
+  if (selected.size >= 2) path.mark('compare');
+  if (!rows.length) dom.runsNote.textContent = t('runs.none');
+  else if (rows.length === 1) dom.runsNote.textContent += ` ${t('runs.one')}`;
 }
 
 /** Put a saved row's inputs back on the page. Does not re-solve: Run is still the visitor's. */
@@ -1346,7 +1417,13 @@ dom.field.addEventListener('change', () => {
 });
 dom.keep.addEventListener('click', () => {
   if (!report) return;
-  const { rows, evicted } = runs.save(EXERCISE, row());
+  // "Improve" is not "run it again". A second attempt at a finer grid is a numerical
+  // experiment and a worthwhile one, but it is not a second design — `changedTheDesign`
+  // compares the geometry and the physical conditions, and nothing else. See `journey.js`.
+  const kept = runs.load(EXERCISE);
+  const entry = row();
+  if (kept.length && changedTheDesign(kept[0], entry)) path.mark('improve');
+  const { rows, evicted } = runs.save(EXERCISE, entry);
   refreshRuns(rows, evicted);
   revealPanel(dom.runsPanel);
 });
@@ -1365,6 +1442,65 @@ dom.clearRuns.addEventListener('click', () => {
   refreshRuns();
 });
 
+/* ------------------------------------------------------------- one suggestion at a time */
+
+/**
+ * What to say after an attempt that did not pass.
+ *
+ * Editorial rules rather than generated prose (§13.7): one problem named, one direction
+ * offered, and never the value that would end the exercise. The order is the order the
+ * constraints bind in — a run outside the model is not a lift problem, whatever the lift says.
+ */
+function suggestion() {
+  if (!report) return null;
+  const lift = report.metrics?.l_prime;
+  const moment = Math.abs(report.metrics?.c_m_c4 ?? 0);
+  const outside = (report.validity?.warnings ?? []).length > 0;
+
+  if (outside) return t('airfoil.hint.outside');
+  if (typeof lift !== 'number') return null;
+  if (lift < 800 * 0.98) return t('airfoil.hint.lowLift');
+  if (lift > 800 * 1.02) return t('airfoil.hint.highLift');
+  if (moment >= MOMENT_LIMIT) return t('airfoil.hint.moment');
+  return null;
+}
+
+/** Numbers the post-attempt cards may quote, so an explanation can be about *this* attempt. */
+function attemptFacts() {
+  if (!report) return {};
+  return {
+    lift: Math.round(report.metrics?.l_prime ?? 0),
+    alpha: Number(document.getElementById('param-alpha_deg')?.value ?? 0).toFixed(1),
+  };
+}
+
+/* ------------------------------------------------------------------- predict, try, compare */
+
+/**
+ * The loop the page is played in, mounted once.
+ *
+ * The prediction is asked before anything is computed and gates nothing; the path lights the
+ * steps that have been taken. Both live in `shared/journey.js` — see the note there about why
+ * neither is allowed to block a solve or to score an answer.
+ */
+const path = mountPath(dom.path, { exercise: EXERCISE });
+let prediction = null;
+
+function mountLoop() {
+  if (content?.prediction) {
+    prediction = mountPrediction(dom.prediction, {
+      exercise: EXERCISE,
+      prediction: content.prediction,
+      hasSolved: () => Boolean(report),
+      onAnswer: () => path.mark('predict'),
+    });
+  } else {
+    dom.predictPanel?.remove();
+  }
+  renderTeacher(dom.teacher, content?.teacher);
+  if (!content?.teacher) dom.teacherCard?.remove();
+}
+
 try {
   const [loaded, info, solvers] = await Promise.all([
     fetch(contentUrl(EXERCISE)).then((response) => response.json()),
@@ -1374,6 +1510,7 @@ try {
 
   content = loaded;
   catalogue = solvers;
+  mountLoop();
   renderLesson({ content, intro: null, lesson: dom.lesson, open: ['problem'] });
   mountGuide();
   present();

@@ -33,14 +33,17 @@ test('the homepage leads with the problems, and shows a real field for each', as
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
   // The educational disclaimer is a requirement, not decoration.
-  await expect(page.locator('.disclaimer')).toContainText('not a substitute for');
+  await expect(page.locator('.disclaimer')).toContainText('not professional engineering tools');
 
-  // Every available experiment is reachable from the homepage.
-  for (const experiment of ['airfoil', 'solenoid', 'truss', 'heatsink']) {
+  // Every challenge is reachable from the homepage as a card.
+  for (const experiment of ['airfoil', 'truss', 'heatsink']) {
     await expect(
       page.locator(`.card--available a[href="/experiments/${experiment}/"]`).first(),
     ).toBeVisible();
   }
+  // And the advanced lab is reachable too, from the shelf rather than the grid — a page that
+  // ships without a way in has not shipped, whatever shape its way in has. ADR-022.
+  await expect(page.locator('.shelf a[href="/experiments/solenoid/"]')).toBeVisible();
   // What is still planned must read as planned, not as a broken link. The count used to be
   // pinned at one, which was a fact about the release that wrote it rather than about the
   // page: the heat sink was the last planned card and building it made the assertion false.
@@ -49,26 +52,29 @@ test('the homepage leads with the problems, and shows a real field for each', as
 
   // Every card leads with the question it answers, so someone who does not know the subject
   // still knows whether they want it (ADR-021).
-  await expect(page.getByRole('link', { name: 'Why does a wing stay up?' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'How much tilt does a wing need?' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Which bar gives way first?' })).toBeVisible();
 
-  // And every card still carries its stated quantity — folded, not deleted. Asserting on the
-  // folded text alone would be worthless: a closed <details> keeps its content in
-  // `textContent`, so `toContainText` would pass whether or not the fold ever opens. Open it,
-  // then require the quantity to be *visible*, which is the thing that was meant all along.
-  const quantities = ['800 N/m', '4.5 mWb/m', '2400 kg', '170 g'];
+  // And every card states its mission in a sentence a person can picture — visible, not folded.
+  // The fold that used to hold `η < 1` and `4.5 mWb/m` is gone: the engineering statement of
+  // each target is on the challenge page, where the vocabulary to read it is a paragraph away,
+  // and a symbol on a card is a gate in front of a choice. ADR-022.
+  const quantities = ['80 kg', '2.4 tonnes', '170 g'];
   for (const [index, quantity] of quantities.entries()) {
-    const numbers = page.locator('.card--available .card__numbers').nth(index);
-    await expect(numbers.locator('.card__facts')).toBeHidden();
-    await numbers.locator('summary').click();
-    await expect(numbers.locator('.card__facts')).toContainText(quantity);
-    await expect(numbers.locator('.card__facts')).toBeVisible();
+    const mission = page.locator('.card--available .card__mission').nth(index);
+    await expect(mission).toBeVisible();
+    await expect(mission).toContainText(quantity);
   }
+  await expect(page.locator('.card-grid .card__numbers')).toHaveCount(0);
 
-  await expect(page.getByRole('link', { name: /Design an airfoil/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Design a magnetic circuit/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Build a bridge/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Cool a device/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Try a wing/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Build the bridge/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Design the heat sink/ })).toBeVisible();
+
+  // The magnetic circuit keeps its URL and loses its card: it is a working lab rather than a
+  // challenge with a target a student can picture, and the shelf says so. ADR-022, §9.3.
+  await expect(page.locator('.card-grid a[href="/experiments/solenoid/"]')).toHaveCount(0);
+  await expect(page.locator('.shelf a[href="/experiments/solenoid/"]')).toBeVisible();
 
   // The thumbnails are real solves committed by scripts/make-thumbnails.py, so they must
   // actually load — a broken one is a card that says nothing at all.
@@ -78,14 +84,17 @@ test('the homepage leads with the problems, and shows a real field for each', as
       loaded: img.complete && img.naturalWidth > 0,
     })),
   );
-  expect(shots.length).toBe(4);
+  expect(shots.length).toBe(3);
   for (const shot of shots) {
     expect(shot.src).toMatch(/^\/assets\/thumbnails\//);
     expect(shot.loaded).toBe(true);
   }
 
-  // The explanation of how it is built is still here, and is now underneath the invitation.
-  await expect(page.locator('#modes')).toContainText('Two ways to compute the same thing');
+  // The explanation of how it is built is still here, still underneath the invitation, and now
+  // in one block instead of a list of solver modes: which of two routes computed a field is a
+  // question for the exercise page that offers the choice, not for somebody deciding which
+  // challenge to open. ADR-022, §6.8.
+  await expect(page.locator('#modes')).toContainText('Method, code and data');
   const order = await page.evaluate(() => {
     const cards = document.querySelector('.card-grid').getBoundingClientRect().top;
     const about = document.querySelector('.about').getBoundingClientRect().top;
@@ -159,10 +168,10 @@ test('a server without FEniCSx is fully usable and says so', async ({ page }) =>
 
   await page.locator('#modes details').first().click();
   await expect(page.locator('#capability')).toContainText(
-    hasFenics ? 'Both modes are active' : 'no FEniCSx solver is installed',
+    hasFenics ? 'both the fast computation and the finite-element one' : 'no FEniCSx is installed',
   );
   if (!hasFenics) {
-    await expect(page.locator('#capability')).toContainText('remain fully usable');
+    await expect(page.locator('#capability')).toContainText('challenges all still work');
   }
 
   // And the exercise really runs on such a server, which is the claim that matters.
@@ -231,7 +240,7 @@ test('the magnetics page solves a solenoid and derives the field strength', asyn
   await page.locator('#param-cells_across').fill('40');
   await page.locator('#param-convergence_check').uncheck();
 
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   await expect(page.locator('#stats')).toContainText('duration');
@@ -275,9 +284,14 @@ test('the magnetics page is an exercise: a target, and what it costs to miss it'
   await expect(page.locator('.challenge__target')).toHaveCount(3);
   await expect(page.locator('.challenge__target.is-pending')).toHaveCount(3);
 
-  // Targets are stated in the metric's *symbol*, never in the key the report stores it under.
-  // This is the assertion that would catch `flux_core` reaching the screen.
-  await expect(page.locator('#challenge')).toContainText('|Φ′| >= 0.0045 Wb/m');
+  // Targets are stated in words, with the engineering statement in the tooltip beside them —
+  // meaning before symbol, ADR-022. This is still the assertion that would catch `flux_core`
+  // reaching the screen, and it now also catches the two registers being collapsed into one.
+  await expect(page.locator('#challenge')).toContainText('Flux: at least 4.5 mWb per metre');
+  await expect(page.locator('#challenge .challenge__target').first()).toHaveAttribute(
+    'title',
+    /\|Φ′\| >= 0\.0045 Wb\/m/,
+  );
   await expect(page.locator('#challenge')).not.toContainText('flux_core');
   await expect(page.locator('#challenge')).not.toContainText('leakage_ratio');
 
@@ -290,7 +304,7 @@ test('the magnetics page is an exercise: a target, and what it costs to miss it'
   await openAdvanced(page);
   await page.locator('#param-cells_across').fill('40');
   await page.locator('#param-convergence_check').uncheck();
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   await expect(page.locator('.challenge__target.is-missed')).toHaveCount(2);
@@ -330,7 +344,7 @@ test('the surfaces every reported number is measured on can be drawn', async ({ 
   await openAdvanced(page);
   await page.locator('#param-cells_across').fill('40');
   await page.locator('#param-convergence_check').uncheck();
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   for (const layer of ['plane', 'bundle', 'contour']) {
@@ -367,10 +381,10 @@ test('a kept magnetics run records enough to be recomputed, and reloads its geom
   // would be visible.
   await page.locator('#shape-coreHalfWidth').fill('6');
   await page.locator('#shape-gap').fill('2');
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
-  await page.getByRole('button', { name: 'Keep result' }).click();
+  await page.getByRole('button', { name: 'Keep attempt' }).click();
   await expect(page.locator('#runs-table tbody tr')).toHaveCount(1);
 
   const [row] = await page.evaluate(() =>
@@ -426,7 +440,7 @@ test('a leakage the run does not report is not printed as zero', async ({ page }
   await openAdvanced(page);
   await page.locator('#param-cells_across').fill('40');
   await page.locator('#param-convergence_check').uncheck();
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   await expect(page.locator('#plane-note')).not.toContainText('0.00 %');
@@ -441,7 +455,7 @@ test('the magnetics workspace keeps the cross-section and can be explored', asyn
   await openAdvanced(page);
   await page.locator('#param-cells_across').fill('40');
   await page.locator('#param-convergence_check').uncheck();
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   // The cross-section diagram survives the redesign — it is what tells a visitor what will be
@@ -469,7 +483,7 @@ test('H is B over mu, and only A is drawn with field lines', async ({ page }) =>
   await page.locator('#param-cells_across').fill('40');
   await page.locator('#param-convergence_check').uncheck();
 
-  await page.getByRole('button', { name: 'Run', exact: true }).click();
+  await page.getByRole('button', { name: 'Compute', exact: true }).click();
   await expect(page.locator('#status')).toContainText('Done.', { timeout: 60_000 });
 
   // H = |B| / (mu0 mu_r), reported in kA/m. Checked against the two fields it is built from
@@ -620,7 +634,7 @@ for (const experiment of ['airfoil', 'solenoid', 'truss', 'heatsink']) {
     release();
     // Once both answers are in, the button is offered and the status says so.
     await expect(page.locator('#run')).toBeEnabled();
-    await expect(page.locator('#status')).toContainText('Press Run');
+    await expect(page.locator('#status')).toContainText(/[Pp]ress Compute/);
     expect(submissions).toEqual([]);
   });
 

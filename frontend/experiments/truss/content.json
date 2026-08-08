@@ -1,8 +1,8 @@
 {
   "id": "truss",
-  "title": "The bridge",
-  "subtitle": "Statics of a pin-jointed lattice",
-  "intro": "A 24-metre gorge with a shipping channel under the middle of it, and a lattice of steel bars to get across. Lay out the joints and the bars yourself, put the supports where the ground can take them, load the deck, and find out which bar gives way first.",
+  "title": "Build a bridge that holds",
+  "subtitle": "Geometry, compression and how much steel it takes",
+  "intro": "A 24-metre deck has to carry about 10 tonnes spread along it. Draw the lattice, decide how stout the bars are, and find out which one gives way first.",
   "challenge": {
     "statement": "Carry 4 kN per metre along the 24 m deck with no bar past its capacity, no more than 2400 kg of steel, and a deflection under an eight-hundredth of the span. Runs that leave the model's domain of validity do not count — a lattice with a buckled member has already failed, whatever the rest of its numbers say.",
     "targets": [
@@ -30,7 +30,61 @@
       "metric": "joint_equilibrium_rel",
       "below": 1e-6
     },
-    "next_step": "a different lattice at a different section"
+    "next_step": "a different lattice on less steel",
+    "plain_statement": "Carry the traffic without pushing any bar past its capacity, use at most 2400 kg of steel, and keep the sag under 30 mm. The attempt only counts if the structure is stable and the model stays in its small-displacement range."
+  },
+  "prediction": {
+    "question": "Which bar do you think reaches its limit first?",
+    "options": [
+      {
+        "id": "long-diagonal",
+        "label": "A long diagonal"
+      },
+      {
+        "id": "bottom-chord",
+        "label": "The bottom chord"
+      },
+      {
+        "id": "top-chord",
+        "label": "The top chord"
+      },
+      {
+        "id": "short-vertical",
+        "label": "A short vertical"
+      }
+    ],
+    "allow_unknown": true
+  },
+  "explain": [
+    {
+      "id": "triangles",
+      "heading": "Triangles keep their shape",
+      "body": [
+        "A quadrilateral of pin-jointed bars can change shape without any bar changing length. A diagonal splits it into triangles, and a triangle cannot change shape unless at least one side gets longer or shorter."
+      ]
+    },
+    {
+      "id": "compression",
+      "heading": "Compression and length",
+      "body": [
+        "A bar in tension gives way when the material reaches its strength. A bar in compression can bow out long before that. For the same section, long bars are the ones buckling threatens."
+      ]
+    },
+    {
+      "id": "height",
+      "heading": "Height changes where the forces go",
+      "body": [
+        "A taller lattice can carry the same load with smaller forces in the top and bottom chords. In exchange its diagonals are longer and it may need more material. There is no height that is best everywhere."
+      ]
+    }
+  ],
+  "teacher": {
+    "objective": "Connect geometry, the path the load takes, and the buckling of bars in compression.",
+    "prediction": "Which bar will give way first?",
+    "misconception": "The bar carrying the largest force is always the one in danger.",
+    "discussion": "Why can shortening a bar in compression help more than adding steel everywhere?",
+    "prerequisites": "A qualitative feel for balance of forces, and proportion.",
+    "duration": "25–40 minutes, depending on how free the building is."
   },
   "sections": [
     {
@@ -108,7 +162,7 @@
       "heading": "What this model cannot tell you",
       "caution": true,
       "body": [
-        "**Pinned joints.** Real joints are gusseted and welded, and they carry moment: a real truss is stiffer than this one, and its chords carry bending this model has no way to report. For a fully triangulated lattice the axial forces are within a few per cent, which is why the model is worth using at all; for one that is not triangulated, the joints are the only thing holding it up and this model refuses it rather than reporting it.",
+        "**Pinned joints.** Real joints are gusseted and welded, and they carry moment: a real truss is stiffer than this one, and its chords carry bending this model has no way to report. For a fully triangulated lattice the axial forces are close enough to be worth having, which is why the model is used at all — how close depends on the joint detail, the eccentricities, the deck and the bracing, none of which are in this model to be measured against. For a lattice that is not triangulated, the joints are the only thing holding it up and this model refuses it rather than reporting it.",
         "**Small displacements.** Equilibrium is written on the undeformed lattice, so the answer belongs to a bridge that has not moved. Past about a hundredth of the span, the geometry carrying the load is no longer the geometry it was computed on, and the page says so on the run.",
         "**Euler buckling of a perfect solid bar.** Real members are imperfect and eccentrically loaded, and they go below the Euler load rather than at it; a design code handles this with a buckling curve, not a formula. The section shape is also fixed here at the conservative end — a tube of the same area buckles at a far higher load — and it is fixed rather than offered so that a compression member cannot be made safe by asserting a better section.",
         "**One load case, applied slowly.** No dynamics, no fatigue, no moving load, no wind that changes with time, no temperature. A lorry crossing is modelled by asking the question again with the load somewhere else — which the Load tool makes cheap, and which is a genuinely useful thing to do.",

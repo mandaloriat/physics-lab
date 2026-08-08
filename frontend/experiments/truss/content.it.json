@@ -1,8 +1,8 @@
 {
   "id": "truss",
-  "title": "Il ponte",
-  "subtitle": "Statica di una travatura reticolare",
-  "intro": "Una gola di 24 metri con un canale navigabile sotto la sua metà, e una travatura di aste d'acciaio per attraversarla. Disponi tu i nodi e le aste, metti i vincoli dove il terreno può reggerli, carica l'impalcato, e scopri quale asta cede per prima.",
+  "title": "Costruisci un ponte che regga",
+  "subtitle": "Geometria, compressione e uso dell'acciaio",
+  "intro": "Una carreggiata di 24 metri deve portare circa 10 tonnellate distribuite. Disegna il traliccio, scegli quanto sono robuste le aste e scopri quale cede per prima.",
   "challenge": {
     "statement": "Porta 4 kN per metro lungo i 24 m di impalcato senza che alcuna asta superi la propria capacità, con non più di 2400 kg di acciaio, e con una freccia sotto un ottocentesimo della luce. Le prove che escono dal campo di validità del modello non contano — una travatura con un'asta instabilizzata ha già ceduto, qualunque cosa dicano gli altri suoi numeri.",
     "targets": [
@@ -30,7 +30,61 @@
       "metric": "joint_equilibrium_rel",
       "below": 1e-6
     },
-    "next_step": "una travatura diversa con una sezione diversa"
+    "next_step": "un traliccio diverso con meno acciaio",
+    "plain_statement": "Porta il traffico senza superare la capacità di nessuna asta, usa al massimo 2400 kg di acciaio e limita l'abbassamento a 30 mm. Il tentativo vale soltanto se la struttura è stabile e il modello resta nel campo dei piccoli spostamenti."
+  },
+  "prediction": {
+    "question": "Quale asta pensi raggiungerà per prima il proprio limite?",
+    "options": [
+      {
+        "id": "long-diagonal",
+        "label": "Una diagonale lunga"
+      },
+      {
+        "id": "bottom-chord",
+        "label": "Il corrente inferiore"
+      },
+      {
+        "id": "top-chord",
+        "label": "Il corrente superiore"
+      },
+      {
+        "id": "short-vertical",
+        "label": "Un montante corto"
+      }
+    ],
+    "allow_unknown": true
+  },
+  "explain": [
+    {
+      "id": "triangles",
+      "heading": "I triangoli mantengono la forma",
+      "body": [
+        "Un quadrilatero di aste incernierate può deformarsi senza cambiare la lunghezza delle aste. Una diagonale lo divide in triangoli, che non possono cambiare forma senza allungare o accorciare almeno un lato."
+      ]
+    },
+    {
+      "id": "compression",
+      "heading": "Compressione e lunghezza",
+      "body": [
+        "Un'asta tesa tende a cedere quando il materiale raggiunge la propria resistenza. Un'asta compressa può invece incurvarsi molto prima. A parità di sezione, le aste lunghe sono particolarmente vulnerabili all'instabilità."
+      ]
+    },
+    {
+      "id": "height",
+      "heading": "L'altezza cambia il percorso delle forze",
+      "body": [
+        "Un traliccio più alto può portare lo stesso carico con forze minori nei correnti superiore e inferiore. In cambio usa diagonali più lunghe e può richiedere più materiale. Non esiste un'altezza migliore in ogni situazione."
+      ]
+    }
+  ],
+  "teacher": {
+    "objective": "Collegare geometria, percorso dei carichi e instabilità delle aste compresse.",
+    "prediction": "Quale asta cederà per prima?",
+    "misconception": "L'asta con la forza maggiore è sempre la più pericolosa.",
+    "discussion": "Perché accorciare un'asta compressa può aiutare più che aggiungere acciaio ovunque?",
+    "prerequisites": "Equilibrio qualitativo delle forze e proporzioni.",
+    "duration": "25–40 minuti, secondo quanto è libera la costruzione."
   },
   "sections": [
     {
@@ -108,7 +162,7 @@
       "heading": "Che cosa questo modello non può dirti",
       "caution": true,
       "body": [
-        "**Nodi a cerniera.** I nodi reali sono imbullonati o saldati con fazzoletti, e portano momento: una travatura reale è più rigida di questa, e i suoi correnti portano una flessione che questo modello non ha modo di riportare. Per una travatura completamente triangolata le forze assiali sono corrette entro qualche punto percentuale, ed è per questo che il modello vale la pena di essere usato; per una che non è triangolata, i nodi sono l'unica cosa che la tiene su e questo modello la rifiuta invece di dare un risultato.",
+        "**Nodi a cerniera.** I nodi reali sono imbullonati o saldati con fazzoletti, e portano momento: una travatura reale è più rigida di questa, e i suoi correnti portano una flessione che questo modello non ha modo di riportare. Per una travatura completamente triangolata le forze assiali sono abbastanza vicine da essere utili, ed è per questo che il modello vale la pena di essere usato — quanto vicine dipende dal dettaglio dei nodi, dalle eccentricità, dall'impalcato e dai controventi, e nessuno di questi è in questo modello per poterlo misurare. Per una travatura non triangolata, i nodi sono l'unica cosa che la tiene su e questo modello la rifiuta invece di dare un risultato.",
         "**Piccoli spostamenti.** L'equilibrio è scritto sulla travatura indeformata, quindi la risposta appartiene a un ponte che non si è mosso. Oltre circa un centesimo della luce, la geometria che porta il carico non è più quella su cui il carico è stato calcolato, e la pagina lo dice sulla prova.",
         "**Instabilità euleriana di un'asta piena perfetta.** Le aste reali sono imperfette e caricate eccentricamente, e cedono sotto il carico euleriano invece che a esso; una normativa affronta la cosa con una curva di instabilità, non con una formula. Anche la forma della sezione è qui fissata all'estremo conservativo — un tubo di pari area si instabilizza a un carico molto più alto — ed è fissata invece che offerta proprio perché un'asta compressa non possa essere resa sicura affermando una sezione migliore.",
         "**Una sola condizione di carico, applicata lentamente.** Niente dinamica, niente fatica, niente carico mobile, niente vento variabile nel tempo, niente temperatura. Un camion che attraversa si modella riponendo la domanda col carico da un'altra parte — cosa che lo strumento Carico rende rapida, e che è genuinamente utile fare.",

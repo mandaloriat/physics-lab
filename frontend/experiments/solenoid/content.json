@@ -1,8 +1,8 @@
 {
   "id": "solenoid",
-  "title": "The magnetic circuit",
-  "subtitle": "Magnetostatics of a solenoid cross-section",
-  "intro": "A slice through an electromagnet: an iron core down the middle, and either side of it the same winding cut twice by the plane — current into the page on one side and out of it on the other. Size the cross-section to carry a required flux without spending more copper than the budget allows.",
+  "title": "Magnetic field in a 2D section",
+  "subtitle": "Flux, leakage and the iron path",
+  "intro": "An advanced lab rather than a challenge. It assumes you already know what flux is, what a magnetic circuit is, and why iron carries one better than air. Carry a required flux through the core on an ampere-turn budget, and watch how much of it takes the air path instead.",
   "challenge": {
     "statement": "Size the cross-section to carry 4.5 mWb per metre of depth through the iron, using no more than 3600 ampere-turns in each side of the winding, and keeping less than 1 % of the flux out of the core. Runs that leave the model's domain of validity do not count.",
     "targets": [
@@ -31,7 +31,57 @@
       "metric": "energy_balance_rel",
       "below": 0.02
     },
-    "next_step": "a different cross-section on a different ampere-turn budget"
+    "next_step": "the same flux through a different core geometry",
+    "plain_statement": "Carry 4.5 mWb per metre of depth through the core on no more than 3600 A of ampere-turns, and keep the leakage under 1 %. The attempt only counts inside the model's stated limits."
+  },
+  "prediction": {
+    "question": "Which change do you think costs the most flux?",
+    "options": [
+      {
+        "id": "gap",
+        "label": "Widening the air gap"
+      },
+      {
+        "id": "turns",
+        "label": "Halving the ampere-turns"
+      },
+      {
+        "id": "core",
+        "label": "Narrowing the core"
+      }
+    ],
+    "allow_unknown": true
+  },
+  "explain": [
+    {
+      "id": "iron-path",
+      "heading": "The field prefers iron, but it has to cross the air",
+      "body": [
+        "Iron offers the flux a far easier path than air. In the gap, though, the field has no alternative. A few millimetres of air can therefore dominate the behaviour of the whole circuit."
+      ]
+    },
+    {
+      "id": "leakage",
+      "heading": "Leakage is not a defect in the computation",
+      "body": [
+        "Some of the flux closes through the air beside the core instead of through the gap. That is what the field does, not an error: the leakage number says how much of the winding's work is going somewhere the circuit was not designed to use."
+      ]
+    },
+    {
+      "id": "linearity",
+      "heading": "This core is linear, and a real one is not",
+      "body": [
+        "The model uses a constant relative permeability for the material you select. A real soft steel saturates: past a certain field, more current buys much less flux. Nothing in this page will show you that, which is a limit of the model rather than a property of the iron."
+      ]
+    }
+  ],
+  "teacher": {
+    "objective": "Read a magnetic circuit as a path with unequal reluctances, and locate where the field actually goes.",
+    "prediction": "How much flux does one more millimetre of air cost?",
+    "misconception": "Iron carries the field, so the air gap is a detail.",
+    "discussion": "Why is iron essential and yet the air the thing that usually decides the result?",
+    "prerequisites": "Magnetic flux, field, and the idea of a magnetic circuit.",
+    "duration": "20–30 minutes."
   },
   "sections": [
     {
@@ -40,7 +90,7 @@
       "lead": "Get 4.5 mWb per metre of depth up the core, on an ampere-turn budget, without leaking it.",
       "body": [
         "The default cross-section carries about 3.45 mWb/m at 3000 ampere-turns and leaks 1.7 % of its flux past the iron, so it misses two of the three targets. The budget is what makes this a design problem rather than a dial: **3600 ampere-turns** is close to the most this window can usefully be given, so the extra flux has to come out of the magnetic circuit and not out of the current.",
-        "Three things are worth knowing before you start. **The flux is limited by the air, not by the iron** — at μᵣ = 1000 the core is already a thousand times the easier path, so making it better buys almost nothing while shortening the *return* buys a lot. **Ampere-turns are winding thickness times half-height times current density**, so the same budget can be spent as a thin tall coil or a fat short one, and those are not equivalent. And **leakage is set by the air gap**: at 1 mm a tenth of a per cent of the flux misses the core, at 5 mm 1.7 %, at 10 mm over 6 %.",
+        "Three things are worth knowing before you start. **The flux is limited by the air, not by the iron** — at μᵣ = 1000 the core is already a thousand times the easier path, so making it better buys almost nothing while shortening the *return* buys a lot. **Ampere-turns are winding thickness times half-height times current density**, so the same budget can be spent as a thin tall coil or a fat short one, and those are not equivalent. And **leakage is set by the air gap**: widen it and a rapidly growing share of the flux misses the core entirely. How large a share is a question for the computation and for the geometry you have drawn, not for a table.",
         "There is more than one cross-section that passes. Find one, keep the run, then find a different one that also passes and compare the two — the run table exists to make that comparison, not to store screenshots."
       ]
     },

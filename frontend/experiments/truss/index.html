@@ -68,7 +68,20 @@
       <h2 id="challenge-heading" class="panel__title" data-i18n="bench.mission">The mission</h2>
       <div id="challenge"></div>
     </div>
+    <!-- Where you are in the loop, and nothing more. Not a wizard: no step is disabled, none
+         gates another, and a visitor who goes straight to the instrument simply leaves the
+         first one unlit. See `shared/journey.js` and ADR-022. -->
+    <div class="path" id="path" role="group" aria-label="The path through this challenge"
+         data-i18n-attr="aria-label: path.label"></div>
   </header>
+
+  <!-- The prediction, above the bench and before the first solve. It changes no input and
+       blocks nothing; "not sure yet" is a real answer. What it buys is the only thing an
+       exercise cannot supply afterwards — something of the visitor's own to be surprised by. -->
+  <section class="panel panel--predict" id="predict-panel" aria-labelledby="predict-heading">
+    <h2 id="predict-heading" class="panel__title" data-i18n="prediction.heading">Before you compute</h2>
+    <div id="prediction"></div>
+  </section>
 
   <p id="widgets-missing" class="notice notice--warn" hidden data-i18n-html="bench.widgetsMissing">
     The browser widgets have not been built. Run
@@ -211,9 +224,12 @@
 
     <section class="panel panel--answer" aria-labelledby="answer-heading">
       <h2 id="answer-heading" class="panel__title" data-i18n="bench.answer">The answer</h2>
+      <div id="prediction-recall"></div>
       <div class="kpis" id="kpis"></div>
+      <p class="outcome" id="outcome" hidden></p>
+      <p class="hint" id="hint" hidden></p>
       <details class="subpanel">
-        <summary data-i18n="bench.everyQuantity">Every reported quantity</summary>
+        <summary data-i18n="bench.everyQuantity">All results</summary>
         <div id="metrics"></div>
       </details>
       <p class="field__hint" data-i18n="truss.noBending">
@@ -225,11 +241,18 @@
     </section>
 
     <section class="panel" aria-labelledby="trust-heading">
-      <h2 id="trust-heading" class="panel__title" data-i18n="bench.trust">How far to trust it</h2>
-      <div id="verification"></div>
-      <div id="validity"></div>
+      <h2 id="trust-heading" class="panel__title" data-i18n="bench.trust">Is the result credible?</h2>
+      <!-- Two indicators, because they answer two different questions: whether the arithmetic
+           has settled, and whether the physics applies here. A solve can be impeccable on the
+           first and beside the point on the second, and one badge cannot say so. -->
+      <div id="credibility"></div>
+      <details class="subpanel" id="checks">
+        <summary data-i18n="bench.checks">Numerical checks and model limits</summary>
+        <div id="verification"></div>
+        <div id="validity"></div>
+      </details>
       <details class="subpanel">
-        <summary data-i18n="bench.cost">What the solve cost</summary>
+        <summary data-i18n="bench.cost">Computation details</summary>
         <dl class="stats" id="stats"></dl>
         <p class="artifacts" id="artifacts"></p>
       </details>
@@ -245,6 +268,14 @@
     </section>
 
   </div>
+
+  <!-- Unlocked by the first computation, not by a click. The explanation used to sit above
+       the controls, which meant a student read the answer and then moved a slider until the
+       number agreed — a prediction that can never be wrong. §7.9. -->
+  <section class="panel panel--wide" id="why-panel" aria-labelledby="why-heading">
+    <h2 id="why-heading" class="panel__title" data-i18n="bench.why">Why it happens</h2>
+    <div class="explain" id="explain"></div>
+  </section>
 
   <!-- ------------------------------------------------------------ 6. Keep and compare -->
   <section class="panel panel--runs" id="runs-panel" aria-labelledby="runs-heading">
@@ -267,12 +298,19 @@
       shortened — it has been moved out of the way of the experiment.
     </p>
     <div class="lesson__blocks" id="lesson"></div>
+    <!-- Addressed to somebody else entirely, which is why it is folded and why it is worth
+         having: the misconception a class arrives with and the question to end on are the two
+         things a teaching page usually leaves the teacher to invent. §4.4. -->
+    <details class="subpanel" id="teacher-card">
+      <summary data-i18n="teacher.summary">For teachers</summary>
+      <div id="teacher"></div>
+    </details>
   </section>
 
   <p class="disclaimer">
     <strong data-i18n="home.disclaimerLabel">Note.</strong>
-    <span data-i18n="home.disclaimer">The simulations are demonstrative and educational. They are not a substitute for
-    professional engineering verification.</span>
+    <span data-i18n="home.disclaimer">These models are for exploring ideas and comparing designs. They are not professional
+    engineering tools.</span>
   </p>
 
 </main>

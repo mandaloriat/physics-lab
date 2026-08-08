@@ -24,13 +24,16 @@ export default {
 
   brand: {
     name: 'Spoon Physics',
-    tagline: 'Problemi interattivi. Campi calcolati. Risposte verificabili.',
+    // ADR-016 fissava la vecchia tagline come affermazione non negoziabile del prodotto. La
+    // revisione editoriale la sostituisce di proposito: quella descriveva il solutore, questa
+    // descrive che cosa ci fai. Vedi ADR-022.
+    tagline: 'Sfide di fisica. Calcoli reali. Risultati da discutere.',
   },
 
   nav: {
     label: 'Sezioni del laboratorio',
-    experiments: 'Esperimenti',
-    how: 'Come funziona',
+    experiments: 'Sfide',
+    how: 'Come si gioca',
     code: 'Codice',
   },
 
@@ -92,64 +95,131 @@ export default {
     unreachable: 'Server irraggiungibile — {detail}',
     kept: '{count} prove su {capacity}, solo in questo browser.',
     evicted: '{count} tra le più vecchie eliminate per fare spazio.',
-    loaded: 'Caricati i dati della prova {label}. Premi Esegui per ricalcolarla.',
+    loaded: 'Caricati i dati del tentativo {label}. Premi Calcola per ricalcolarlo.',
   },
 
   /* -------------------------------------------------------------- i renderer condivisi */
 
   exercise: {
     notRunYet: 'non ancora calcolato',
-    notReported: 'questa prova non lo riporta',
-    reading: 'questa prova: {value}',
-    metButOutside:
-      'I numeri sono quelli giusti, ma il modello è fuori dal proprio campo di validità. ',
-    outside: 'Questa prova è fuori dal campo di validità del modello. ',
-    limitCrossedOne: 'Il limite superato è',
-    limitCrossedMany: 'I limiti superati sono',
-    limitCrossedTail:
-      ' elencato sotto “Quanto fidarsi”, e una prova che ne supera uno non può centrare l’obiettivo, per quanto buoni sembrino i suoi numeri.',
-    didNotVerify: 'Questa prova non ha superato la verifica. ',
+    notReported: 'questo tentativo non lo riporta',
+    reading: 'questo tentativo: {value}',
+    atMost: 'al massimo',
+    atLeast: 'almeno',
+    within: ' con uno scarto massimo del {amount}',
     verificationGap:
-      'Le due vie indipendenti alla risposta differiscono del {value} %, oltre il {limit} % che questo esercizio richiede. Raffina la discretizzazione ed esegui di nuovo.',
-    targetMet: 'Obiettivo centrato. ',
-    tryAnother:
-      'Salva la prova, poi prova a centrarlo in un altro modo — {next} — e confronta le due.',
-    tryAnotherPlain: 'Salva la prova, poi prova a centrarlo in un altro modo e confronta le due.',
+      'Le due vie indipendenti alla risposta differiscono del {value} %, oltre il {limit} % che questa sfida richiede. Raffina la discretizzazione e riprova.',
     notApplicable: 'non applicabile',
     needs: 'richiede {key}',
-    everySolve: 'Calcolato a ogni esecuzione.',
-    everyRun: 'Verificato a ogni esecuzione.',
+    everySolve: 'Calcolato a ogni tentativo.',
+    everyRun: 'Verificato a ogni tentativo.',
     notRun: 'non eseguito',
     inside: 'Dentro il campo di validità dichiarato. ',
     insideTail:
-      'Ogni limite che questo modello dichiara è stato confrontato con questa prova e nessuno è stato superato.',
+      'Ogni limite che questo modello dichiara è stato confrontato con questo tentativo e nessuno è stato superato.',
+    explainLocked: 'Disponibile dopo il primo calcolo: prima viene la tua previsione.',
+
+    /* L'esito, in una riga. I motivi stanno un pannello più sotto. */
+    outcome: {
+      metLead: 'Sfida riuscita.',
+      metTail:
+        'Salva il tentativo e cerca una soluzione diversa: {next}. Due risultati simili possono nascere da progetti molto diversi.',
+      metTailPlain:
+        'Salva il tentativo e cerca una soluzione diversa. Due risultati simili possono nascere da progetti molto diversi.',
+      missedLead: 'Non ancora.',
+      missedTail: 'Guarda quale limite è stato superato e cambia una scelta alla volta.',
+      outsideMetLead: 'I numeri centrano l’obiettivo, ma questo tentativo non conta.',
+      outsideMetTail: 'Il modello è fuori dal proprio campo di validità.',
+      outsideLead: 'Questo tentativo non conta.',
+      outsideTail: 'La configurazione è fuori dal campo di validità del modello.',
+      unverifiedLead: 'Il tentativo non è ancora giudicabile.',
+      unverifiedTail: 'Il controllo numerico non è superato.',
+      failedLead: 'Il calcolo non è arrivato in fondo.',
+      failedTail: 'Guarda il messaggio qui sopra e riprova.',
+    },
+
+    /* I due indicatori che non rispondono alla stessa domanda. */
+    credibility: {
+      numeric: 'Calcolo stabile',
+      physical: 'Modello applicabile',
+      yes: 'sì',
+      improve: 'da migliorare',
+      unchecked: 'non controllato',
+      caution: 'con cautela',
+      no: 'no',
+      numericWhat:
+        'Dice se il risultato cambia poco quando il calcolo viene raffinato o confrontato per una seconda via.',
+      physicalWhat:
+        'Dice se la configurazione resta dentro le ipotesi fisiche dichiarate dal modello.',
+      seeChecks: 'Vedi i controlli →',
+    },
+
+    /* La frase sotto ogni risultato principale. */
+    tile: {
+      within: 'Dentro la tolleranza.',
+      short: 'Mancano {delta}.',
+      over: 'Superi l’obiettivo di {delta}.',
+      spare: 'Ti restano {margin}.',
+      above: 'Sei oltre il limite di {delta}.',
+      below: 'Mancano {delta} al minimo.',
+      barAria: '{value} su un limite di {limit}',
+    },
+  },
+
+  path: {
+    label: 'Il percorso della sfida',
+    predict: 'Prevedi',
+    attempt: 'Prova',
+    improve: 'Migliora',
+    compare: 'Confronta',
+    done: 'fatto',
+  },
+
+  prediction: {
+    heading: 'Prima di calcolare',
+    unknown: 'Non so ancora',
+    note: 'La previsione non influisce sul calcolo. Serve soltanto per confrontare ciò che ti aspettavi con ciò che è successo.',
+    youSaid: 'Avevi previsto:',
+  },
+
+  teacher: {
+    summary: 'Per docenti',
+    objective: 'Obiettivo',
+    prediction: 'Previsione utile',
+    misconception: 'Errore comune',
+    discussion: 'Discussione finale',
+    prerequisites: 'Prerequisiti',
+    duration: 'Tempo',
   },
 
   runs: {
-    none: 'Nessuna prova salvata. Calcola qualcosa e premi Salva risultato — una prova salvata registra ogni dato in ingresso, così può essere ricalcolata e confrontata.',
-    select: 'Seleziona questa prova per il confronto',
+    none: 'Non hai ancora salvato tentativi. Calcola una configurazione, salvala, poi cambiane una scelta e riprova.',
+    one: 'Salva un secondo tentativo per vedere che cosa cambia davvero.',
+    select: 'Seleziona questo tentativo per il confronto',
     load: 'Carica',
     delete: 'Elimina',
+    rename: 'Dai un nome a questo tentativo',
+    namePlaceholder: 'per esempio “più curvo”',
     yes: 'sì',
     no: 'no',
-    selectTwo: 'Seleziona due o più prove per confrontarle.',
+    selectTwo: 'Seleziona due o più tentativi per confrontarli.',
     field: 'Grandezza',
-    run: 'Prova {index}',
+    run: 'Tentativo {index}',
     differOne: '{differ} grandezza differisce; {same} sono identiche e nascoste.',
     differMany: '{differ} grandezze differiscono; {same} sono identiche e nascoste.',
     blocks: {
-      exercise: 'Esercizio',
-      solver: 'Solutore',
+      exercise: 'Sfida',
+      solver: 'Calcolo',
       model: 'Modello',
       geometry: 'Geometria',
-      physical: 'Condizioni',
-      numerics: 'Numerica',
+      physical: 'Le tue scelte',
+      numerics: 'Impostazioni del calcolo',
       dimensionless: 'Adimensionali',
-      metrics: 'Risultato',
+      metrics: 'Risultati',
       sweep: 'Scansione',
-      verification: 'Verifica',
-      validity: 'Validità',
-      cost: 'Costo',
+      verification: 'Controlli numerici',
+      validity: 'Limiti del modello',
+      cost: 'Calcolo',
     },
   },
 
@@ -215,98 +285,97 @@ export default {
   /* -------------------------------------------------------------------------- la home page */
 
   home: {
-    title: 'Spoon Physics',
+    title: 'Spoon Physics — sfide di fisica interattiva',
     description:
-      'Gioca con la fisica, poi scopri perché funziona. Un laboratorio interattivo: una spiegazione breve che puoi saltare, un solutore vero che calcola il campo, i numeri ingegneristici che rispondono alla domanda, e a ogni esecuzione quanto ci si può fidare.',
-    heroHeading: 'Gioca con la fisica.<br>Poi scopri perché funziona.',
-    lede: 'Ogni esperimento parte da una domanda che si segue senza sapere niente, spiega quel tanto che basta perché i comandi vogliano dire qualcosa, e poi ti mette in mano un solutore vero: calcola il campo, dà i numeri ingegneristici e a ogni esecuzione dice fino a che punto ci si può fidare.',
-    experiments: 'Esperimenti',
-    badgeExercise: 'Esercizio',
+      'Piccole sfide di fisica interattiva: fai una previsione, cambia il progetto, calcola il risultato e confronta i tentativi con i limiti del modello.',
+    heroHeading: 'Fai una previsione. Mettila alla prova.',
+    lede: 'Scegli una sfida, cambia pochi parametri e guarda che cosa prevede il modello. Salva i tentativi, confrontali e scopri dove la simulazione smette di essere credibile.',
+    experiments: 'Sfide',
+    badgeExercise: 'Sfida',
     badgePlanned: 'In preparazione',
-    numbersSummary: 'I numeri che ci stanno sotto',
-    target: 'Obiettivo',
-    wouldTarget: 'Obiettivo previsto',
-    constraint: 'Vincolo',
-    youSet: 'Scegli tu',
-    checkedBy: 'Verificato da',
-    status: 'Stato',
+    missionSummary: 'La sfida',
+
     airfoil: {
-      name: 'Progetto di un profilo alare',
-      question: 'Perché un’ala sta su?',
-      topic: 'Aerodinamica — la sezione alare',
-      level: 'non serve saper niente · ~5 min',
+      name: 'Trova l’assetto dell’ala',
+      question: 'Quanta inclinazione serve a un’ala?',
+      topic: 'Aerodinamica · 5–8 min',
       problem:
-        'Inclina una sezione alare nel vento e guarda l’aria fare il lavoro. Poi vai a prenderti la cosa vera: <strong>800 N di portanza per metro di apertura</strong>, senza un momento di beccheggio che un piano di coda non riuscirebbe a equilibrare.',
-      target: 'L′ = 800 N/m ± 2 %',
-      constraint: '|C_m,c/4| < 0,08',
-      checked: 'portanza calcolata per due vie indipendenti',
-      cta: 'Progetta un profilo →',
-    },
-    solenoid: {
-      name: 'Il circuito magnetico',
-      question: 'Perché il ferro guida un campo magnetico?',
-      topic: 'Magnetostatica — il circuito di ferro',
-      level: 'un po’ di fisica aiuta · ~8 min',
-      problem:
-        'Porta il flusso richiesto attraverso un nucleo di ferro con un budget fisso di amperspire, senza lasciarlo disperdere nell’aria.',
-      target: '4,5 mWb/m con ≤ 3600 A',
-      youSet: 'nucleo, intercapedine, avvolgimento, lunghezza, μᵣ, densità di corrente',
-      checked: 'un bilancio energetico, la legge di Ampère e uno studio di mesh',
-      cta: 'Progetta un circuito magnetico →',
+        'Scegli un profilo e regola l’angolo per ottenere la portanza richiesta senza farlo ruotare troppo. Profili diversi possono arrivare allo stesso risultato in modi diversi.',
+      mission: 'Sostieni l’equivalente di circa 80 kg per ogni metro di ala.',
+      cta: 'Prova con un’ala →',
     },
     truss: {
-      name: 'Il ponte',
+      name: 'Costruisci un ponte che regga',
       question: 'Quale asta cede per prima?',
-      topic: 'Statica — la travatura reticolare',
-      level: 'questo lo disegni tu · ~10 min',
+      topic: 'Strutture · 8–12 min',
       problem:
-        'Costruisci una travatura reticolare su una gola di 24 m e porta il traffico entro un budget di acciaio — l’asta che cede per prima non è quasi mai quella che ti aspetti.',
-      target: 'η < 1 con ≤ 2400 kg',
-      youSet: 'ogni nodo, ogni asta, i vincoli, i carichi, la sezione',
-      checked: 'il metodo dei nodi, un equilibrio alla rotazione e un controllo energetico',
-      cta: 'Costruisci un ponte →',
+        'Disegna un ponte di 24 metri, porta il traffico e resta sotto il budget di acciaio. Prima del calcolo indica l’asta che pensi sia più fragile.',
+      mission: 'Circa 10 tonnellate distribuite, con al massimo 2,4 tonnellate di acciaio.',
+      cta: 'Costruisci il ponte →',
     },
     heatsink: {
-      name: 'Dissipatore',
-      question: 'Quando smettono di servire le alette?',
-      topic: 'Trasmissione del calore — il corpo alettato',
-      level: 'un po’ di fisica aiuta · ~10 min',
+      name: 'Quante alette servono davvero?',
+      question: 'Più alette raffreddano sempre meglio?',
+      topic: 'Calore · 6–10 min',
       problem:
-        'Smaltisci una potenza data restando sotto una temperatura massima, usando meno metallo. Quante alette servono davvero, e quando smettono di servire?',
-      target: 'T_max < 95 °C con ≤ 170 g',
-      youSet: 'numero, altezza e spessore delle alette, la base, la finitura, il raffreddamento',
-      checked:
-        'un bilancio energetico su entrambe le strade del calore, e identità sui fattori di vista che valgono esattamente',
-      cta: 'Raffredda un componente →',
+        'Prova a prevedere quante alette servono, poi lascia che il calcolo esplori le alternative. Troppo poche disperdono poco calore; troppe possono soffocare il passaggio dell’aria.',
+      mission: 'Tieni un componente da 30 W sotto 95 °C usando al massimo 170 g di alluminio.',
+      cta: 'Progetta il dissipatore →',
     },
+    solenoid: {
+      name: 'Campo magnetico in una sezione 2D',
+      question: 'Campo magnetico in una sezione 2D',
+      topic: 'Magnetostatica',
+      problem:
+        'Porta un flusso richiesto attraverso un nucleo di ferro con un budget di amperspire, e guarda quanto se ne disperde nell’aria.',
+      mission: 'Pensato per chi conosce già flusso, campo e circuiti magnetici.',
+      cta: 'Apri il laboratorio →',
+    },
+
+    howHeading: 'Come si gioca',
+    step1Heading: '1. Prevedi',
+    step1:
+      'Scegli che cosa pensi succederà. Non serve indovinare: la previsione serve per avere qualcosa da confrontare.',
+    step2Heading: '2. Calcola',
+    step2:
+      'Cambia pochi parametri e avvia il calcolo. Il campo e i numeri vengono ricavati dalla configurazione che hai scelto.',
+    step3Heading: '3. Confronta',
+    step3:
+      'Salva almeno due tentativi. Cerca che cosa è cambiato, quale vincolo decide il risultato e dove il modello non basta più.',
+    howNote:
+      '<strong>Un numero può essere calcolato bene e descrivere male la realtà.</strong> Per questo ogni tentativo distingue la stabilità del calcolo dai limiti del modello.',
+
+    advancedHeading: 'Laboratori avanzati',
+    advancedLead:
+      'Pagine costruite per chi conosce già il tema. Non sono sfide con una missione da centrare.',
+
     disclaimerLabel: 'Nota.',
     disclaimer:
-      'Le simulazioni sono dimostrative e didattiche. Non sostituiscono una verifica ingegneristica professionale.',
-    aboutHeading: 'Come funziona',
-    modesSummary: 'Due modi di calcolare la stessa cosa',
-    modesLead:
-      'Lo stesso problema si può risolvere in fretta e per approssimazione, oppure lentamente e più fedelmente. Il laboratorio offre entrambe le strade e dice sempre quale si sta guardando — perché la differenza tra le due <em>fa parte</em> di ciò che c’è da imparare.',
-    modeFast:
-      '<strong>Anteprima rapida</strong> — una griglia cartesiana regolare risolta in NumPy. Quasi istantanea, e approssimata per costruzione: la griglia non segue il contorno del corpo.',
-    modeFenics:
-      '<strong>Calcolo FEniCSx</strong> — una mesh triangolare non strutturata generata con Gmsh, risolta con elementi finiti P1. Più lenta, più fedele vicino al corpo, e produce un file VTK che si apre in ParaView.',
-    modePanel:
-      '<strong>Metodo a pannelli</strong> — per il profilo alare, nessuno dei due: sorgenti e vortici distribuiti sul corpo stesso, così il contorno è esatto invece che discretizzato. Non è l’anteprima di qualcosa di meglio: è la soluzione di superficie più accurata che c’è qui.',
+      'Questi modelli servono per esplorare idee e confrontare soluzioni. Non sono strumenti di progetto professionale.',
+
+    aboutHeading: 'Come si gioca',
+    methodSummary: 'Metodo, codice e dati',
+    methodBody:
+      'Le risposte non sono animazioni predefinite: vengono calcolate dalla configurazione corrente. Ogni sfida usa il modello più adatto e rende disponibili controlli numerici, grandezze complete ed esportazione dei dati. Il codice del laboratorio è open source.',
+    methodAirfoil: '<strong>Ala</strong> — un metodo a pannelli sulla superficie del profilo.',
+    methodTruss: '<strong>Ponte</strong> — un elemento di asta per ogni asta, risolto una volta.',
+    methodHeatsink:
+      '<strong>Dissipatore</strong> — conduzione nel metallo, con convezione e irraggiamento sulle superfici.',
+    methodSolenoid: '<strong>Magnetostatica</strong> — il campo in una sezione bidimensionale.',
     capabilityChecking: 'Verifica di che cosa è installato su questo server…',
-    capabilityBoth: 'Entrambe le modalità sono attive su questo server.',
+    capabilityBoth:
+      'Su questo server sono attivi sia il calcolo rapido sia quello a elementi finiti.',
     capabilityPreviewOnly:
-      'Su questo server è attiva solo l’anteprima rapida: non è installato alcun solutore FEniCSx. Gli esperimenti restano pienamente utilizzabili, e l’esercizio sul profilo alare non ne ha bisogno.',
-    capabilityPaused: 'Le nuove simulazioni sono temporaneamente sospese per manutenzione.',
+      'Su questo server è attivo solo il calcolo rapido: non è installato FEniCSx. Le sfide restano utilizzabili, e quella sull’ala non ne ha bisogno.',
+    capabilityPaused: 'I nuovi calcoli sono temporaneamente sospesi per manutenzione.',
     capabilityUnreachable:
-      'Al momento il server non è raggiungibile; gli esperimenti potrebbero non essere disponibili.',
+      'Al momento il server non è raggiungibile; le sfide potrebbero non essere disponibili.',
     madeSummary: 'Com’è fatto',
     madeBody:
-      'Il laboratorio è un’applicazione costruita su <a href="https://github.com/mandaloriat/fenix-spoon">Fenix Spoon</a>, un toolkit open source che mette un solutore agli elementi finiti dietro una pagina web: il protocollo, la gestione dei job, i solutori e i widget del browser vengono tutti da lì. Quello che trovi qui è l’esperienza didattica costruita sopra — i problemi, le spiegazioni, il design e il deployment pubblico.',
+      'Il laboratorio è un’applicazione costruita su <a href="https://github.com/mandaloriat/fenix-spoon">Fenix Spoon</a>, un toolkit open source che mette un solutore agli elementi finiti dietro una pagina web. Quello che trovi qui è l’esperienza didattica costruita sopra — i problemi, le spiegazioni, il design e il deployment pubblico.',
     madeLicence:
-      'Il codice di questo laboratorio è su <a href="https://github.com/mandaloriat/physics-lab">GitHub</a> con licenza MIT. I calcoli veri sono svolti da <a href="https://fenicsproject.org/">FEniCSx</a>, e le anteprime rapide e il metodo a pannelli da <a href="https://numpy.org/">NumPy</a>.',
+      'Il codice di questo laboratorio è su <a href="https://github.com/mandaloriat/spoon-physics">GitHub</a> con licenza MIT. I calcoli a elementi finiti sono svolti da <a href="https://fenicsproject.org/">FEniCSx</a>, il resto da <a href="https://numpy.org/">NumPy</a>.',
   },
-
-  /* ----------------------------------------------------- il guscio comune alle pagine banco */
 
   guide: {
     heading: 'Prima di cominciare',
@@ -324,45 +393,74 @@ export default {
   },
 
   bench: {
-    mission: 'La missione',
+    mission: 'La sfida',
     widgetsMissing:
       'I widget del browser non sono stati costruiti. Esegui <code>./scripts/fetch-widgets.sh</code> e ricarica la pagina.',
-    workspace: 'Banco di lavoro',
+    workspace: 'Banco di prova',
     visualisationTools: 'Strumenti di visualizzazione',
     stageAria: 'Campo calcolato. Trascina per spostare, più e meno per ingrandire.',
     field: 'Campo',
     fieldShown: 'Campo mostrato',
-    configure: 'Configura',
-    design: 'Progetto',
-    conditions: 'Condizioni',
-    whatFollows: 'Che cosa ne consegue',
-    advanced: 'Avanzate',
+    configure: 'Cambia il progetto',
+    design: 'Le tue scelte',
+    conditions: 'Condizioni della prova',
+    whatFollows: 'Valori ricavati',
+    advanced: 'Altri controlli',
     advancedError:
-      'Queste cambiano l’errore, non la risposta. Di quanto la cambiano è ciò che misura il pannello di verifica.',
-    solverLabel: 'Solutore',
+      'Queste cambiano l’errore, non la risposta. Di quanto la cambiano è ciò che misura il pannello dei controlli.',
+    solverLabel: 'Calcolo',
     checkingServer: 'Verifica di che cosa sa fare questo server…',
-    run: 'Esegui',
+    run: 'Calcola',
     cancel: 'Annulla',
-    keep: 'Salva risultato',
-    compare: 'Confronta',
-    answer: 'Il risultato',
-    everyQuantity: 'Tutte le grandezze riportate',
-    trust: 'Quanto fidarsi',
-    cost: 'Quanto è costato il calcolo',
-    keptRuns: 'Prove salvate',
+    keep: 'Salva tentativo',
+    compare: 'Confronta tentativi',
+    answer: 'Com’è andata',
+    everyQuantity: 'Tutti i risultati',
+    trust: 'Il risultato è credibile?',
+    checks: 'Controlli numerici e limiti',
+    cost: 'Dettagli del calcolo',
+    keptRuns: 'I tuoi tentativi',
     exportCsv: 'Esporta CSV',
     exportJson: 'Esporta JSON',
     deleteAll: 'Elimina tutto',
-    lesson: 'Capire il modello',
+    why: 'Perché succede',
+    lesson: 'Dettagli del modello',
     lessonLead:
-      'Tutto ciò su cui l’esercizio si regge, nell’ordine in cui conta. Nulla di ciò che segue è stato accorciato — è stato tolto di mezzo all’esperimento.',
+      'Formule, condizioni al contorno, controlli ed esportazione. Non serve leggerli per giocare: servono quando vuoi sapere come è stato calcolato.',
     maintenance:
-      'Il laboratorio non accetta nuove simulazioni in questo momento. Puoi comunque leggere il problema, {alternative} e guardare le prove che hai salvato.',
+      'Il laboratorio non accetta nuove simulazioni in questo momento. Puoi comunque leggere la sfida, {alternative} e guardare i tentativi che hai salvato.',
   },
 
   /* -------------------------------------------------------------------- il profilo alare */
 
   airfoil: {
+    /* Gli obiettivi come li legge uno studente. §2.4: prima il significato, poi il simbolo. */
+    goal: {
+      lift: 'Portanza: 800 N per metro, con uno scarto del 2 %',
+      twist: 'Tendenza a ruotare: sotto il limite',
+    },
+    /* I tre risultati principali (§7.5) e i suggerimenti dopo un tentativo fallito (§7.7). */
+    headline: {
+      lift: 'Portanza',
+      perMetre: 'N per metro',
+      liftHint: 'Portanza per metro di apertura, dalla pressione integrata su tutta la superficie.',
+      twist: 'Tendenza a ruotare',
+      twistHint:
+        'Momento di beccheggio rispetto al quarto di corda, rispetto al limite della sfida.',
+      noseDown: 'Tende a ruotare verso il basso.',
+      noseUp: 'Tende a ruotare verso l’alto.',
+      suction: 'Pressione più severa',
+      suctionNote: 'Non è un obiettivo. Dice quanto sono concentrate le variazioni di pressione.',
+      suctionHint: 'Il coefficiente di pressione più basso su tutta la superficie.',
+    },
+    hint: {
+      lowLift: 'La portanza è bassa. Cambia prima l’angolo e lascia fermo il profilo.',
+      highLift:
+        'La portanza è oltre l’obiettivo. Riduci l’angolo e osserva come cambia la pressione.',
+      moment:
+        'La portanza va bene, ma il profilo tende a ruotare troppo. Prova una forma meno curva.',
+      outside: 'Il calcolo continua, ma a questo angolo un flusso reale potrebbe separarsi.',
+    },
     figures: {
       flowAria: 'Una sezione alare con l’aria che le scorre attorno',
       sliceAria: 'Una fetta tagliata da un’ala, che lascia una sezione',
@@ -378,11 +476,11 @@ export default {
       nose: 'naso',
       tail: 'coda',
     },
-    title: 'Progetto di un profilo alare — Spoon Physics',
+    title: 'Trova l’assetto dell’ala — Spoon Physics',
     description:
-      'Un esercizio di progetto di un profilo alare: centra un obiettivo di portanza sotto un vincolo sul momento di beccheggio, con campi calcolati, grandezze ingegneristiche e un residuo di verifica a ogni esecuzione.',
-    eyebrow: 'Esercizio 1 · flusso ideale con condizione di Kutta',
-    heading: 'Progetto di un profilo alare',
+      'Una sfida di fisica: scegli il profilo, regola l’angolo e fai sostenere all’ala la portanza richiesta senza farla ruotare troppo. Prima prevedi, poi calcola e confronta i tentativi.',
+    eyebrow: 'Profilo, angolo e distribuzione di pressione',
+    heading: 'Trova l’assetto dell’ala',
     editorAria: 'Profilo alare: punti di controllo trascinabili',
     profile: 'Profilo',
     editShape: 'Modifica forma',
@@ -405,7 +503,7 @@ export default {
     noSolver: 'Questo server non ha alcun solutore capace di imporre una condizione di Kutta.',
     noSolverHere:
       'Questo server non ha alcun solutore che imponga una condizione di Kutta, quindi questo esercizio non può essere eseguito qui.',
-    ready: 'Premi Esegui per risolvere la sezione così com’è.',
+    ready: 'Scegli un profilo, fai una previsione e premi Calcola.',
     edited: 'Modificato a mano: il menu dei profili non descrive più questa forma.',
     described:
       '{label} — curvatura {camber} %, al {position} % della corda, spessore {thickness} %.',
@@ -563,11 +661,36 @@ export default {
   /* ------------------------------------------------------------------ il circuito magnetico */
 
   solenoid: {
-    title: 'Il circuito magnetico — Spoon Physics',
+    /* Gli obiettivi come li enuncia chi legge questo laboratorio. */
+    goal: {
+      flux: 'Flusso: almeno 4,5 mWb per metro',
+      drive: 'Amperspire: al massimo 3600',
+      leakage: 'Flusso che manca il nucleo: sotto l’1 %',
+    },
+    /* I tre risultati principali (§7.5) e i suggerimenti dopo un tentativo fallito (§7.7). */
+    headline: {
+      flux: 'Flusso nel nucleo',
+      drive: 'Amperspire',
+      driveHint:
+        'L’azione magnetomotrice fornita dall’avvolgimento, rispetto al budget di questo laboratorio.',
+      leakage: 'Flusso che manca il nucleo',
+      leakageHint: 'La quota di flusso che si richiude nell’aria invece che nel ferro.',
+    },
+    hint: {
+      lowFlux:
+        'Il flusso è insufficiente e hai ancora margine di amperspire. Guarda quanta parte del percorso è nell’aria.',
+      spent:
+        'Il budget di amperspire è esaurito. Aggiungere azione magnetomotrice non è più la mossa economica: guarda la geometria.',
+      overDrive: 'Il flusso c’è, ma costa più amperspire di quante il budget ne consenta.',
+      leakage:
+        'Troppa parte del flusso si richiude nell’aria accanto al nucleo invece che attraversarlo.',
+      outside: 'Questa configurazione è fuori dai limiti dichiarati dal modello.',
+    },
+    title: 'Campo magnetico in una sezione 2D — Spoon Physics',
     description:
-      'Un esercizio di progetto magnetico: porta il flusso richiesto attraverso un nucleo di ferro con un budget di amperspire, con campi calcolati, grandezze ingegneristiche e un residuo di verifica a ogni esecuzione.',
-    eyebrow: 'Esercizio 3 · magnetostatica lineare di una sezione',
-    heading: 'Il circuito magnetico',
+      'Un laboratorio avanzato: porta il flusso richiesto attraverso un nucleo di ferro con un budget di amperspire, e guarda quanto se ne disperde nell’aria. Pensato per chi conosce già flusso e circuiti magnetici.',
+    eyebrow: 'Laboratorio avanzato · flusso, dispersione e percorso nel ferro',
+    heading: 'Campo magnetico in una sezione 2D',
     schematicTitle: 'Sezione del solenoide: nucleo di ferro fra due avvolgimenti',
     legendCore: 'nucleo di ferro',
     legendWinding: 'avvolgimento',
@@ -584,7 +707,7 @@ export default {
     noSolver: 'Questo server non ha alcun solutore che riporti grandezze magnetiche.',
     noSolverHere:
       'Questo server non ha alcun solutore che riporti grandezze magnetiche, quindi questo esercizio non può essere eseguito qui.',
-    ready: 'Premi Esegui per risolvere la sezione così com’è.',
+    ready: 'Premi Calcola per risolvere la sezione così com’è.',
     described:
       'Nucleo da {core} mm in un alesaggio da {bore} mm, {winding} mm di avvolgimento, lungo {length} mm. μᵣ = {permeability}, e {turns} amperspire per lato. Risolto in una finestra da {window} mm, troppo grande per essere disegnata qui.',
     shapeLabel: 'nucleo {core}×{length}, avvolgimento {winding} mm a {gap} mm',
@@ -734,11 +857,36 @@ export default {
   /* ------------------------------------------------------------------------------ il ponte */
 
   truss: {
-    title: 'Il ponte — Spoon Physics',
+    /* Gli obiettivi come li legge uno studente. §2.4: prima il significato, poi il simbolo. */
+    goal: {
+      capacity: 'Nessuna asta oltre il 100 % della propria capacità',
+      steel: 'Acciaio: al massimo 2400 kg',
+      sag: 'Abbassamento: al massimo 30 mm',
+    },
+    /* I tre risultati principali (§7.5) e i suggerimenti dopo un tentativo fallito (§7.7). */
+    headline: {
+      worst: 'Asta più impegnata',
+      worstHint: 'L’asta più sollecitata, come quota di ciò che quell’asta può portare.',
+      steel: 'Acciaio usato',
+      steelHint: 'Massa totale del traliccio, peso proprio compreso.',
+      sag: 'Abbassamento massimo',
+      sagHint: 'Detto anche freccia: lo spostamento verticale massimo di un nodo.',
+    },
+    hint: {
+      compression:
+        'La prima asta a cedere è lunga e compressa. Accorciarla può valere più che rendere tutto il ponte più pesante.',
+      tension:
+        'Questa asta supera la capacità a trazione. Aumenta la sezione o ridistribuisci il percorso del carico.',
+      mass: 'Il ponte regge, ma usa {excess} kg di acciaio oltre il budget. Cerca aste poco impegnate.',
+      sag: 'Non cede, ma si abbassa troppo. Aumentare l’altezza del traliccio può ridurre le forze nei correnti.',
+      outside:
+        'O la struttura può muoversi senza allungare le aste, oppure è uscita dal campo dei piccoli spostamenti.',
+    },
+    title: 'Costruisci un ponte che regga — Spoon Physics',
     description:
-      'Un esercizio di strutture: costruisci una travatura reticolare su una gola, caricala sui nodi o lungo l’impalcato, e porta il traffico entro un budget di massa senza che un’asta si instabilizzi — con forze calcolate, grandezze ingegneristiche e un residuo di verifica a ogni esecuzione.',
-    eyebrow: 'Esercizio 4 · statica di una travatura reticolare',
-    heading: 'Il ponte',
+      'Una sfida di fisica: disegna un ponte di 24 metri, porta il traffico entro un budget di acciaio e scopri quale asta cede per prima. Provaci a indovinare prima di calcolare.',
+    eyebrow: 'Geometria, compressione e uso dell’acciaio',
+    heading: 'Costruisci un ponte che regga',
     buildTools: 'Strumenti di costruzione',
     stageAria: 'La travatura e ciò che porta. Trascina per spostare, più e meno per ingrandire.',
     builderAria: 'Costruttore di ponti. Aggiungi nodi e aste, posiziona vincoli e carichi.',
@@ -761,7 +909,7 @@ export default {
     noSolver: 'Questo server non ha alcun solutore che risolva una travatura reticolare.',
     noSolverHere:
       'Questo server non ha alcun solutore che risolva una travatura reticolare, quindi questo esercizio non può essere eseguito qui.',
-    ready: 'Premi Esegui per risolvere la travatura così com’è.',
+    ready: 'Premi Calcola per risolvere la travatura così com’è.',
     presets: {
       'warren-8': 'Warren, 8 campi, 3 m di altezza',
       'warren-10': 'Warren, 10 campi, 3 m di altezza',
@@ -941,7 +1089,7 @@ export default {
       note: 'Le otto aste più impegnate. L’asta {index} è quella da cui dipende la missione, ed è segnata sul campo dal livello Asta più sollecitata. Un’asta limitata dall’instabilità è quella il cui carico euleriano sta sotto il suo carico di schiacciamento — accorciarla aiuta col quadrato della lunghezza, dove ispessirla aiuta col quadrato dell’area.',
     },
     shapeLabel: '{bars} aste, {depth} m di altezza',
-    loadedRun: 'Caricata la prova {label}. Premi Esegui per ricalcolarla.',
+    loadedRun: 'Caricato il tentativo {label}. Premi Calcola per ricalcolarlo.',
     columns: {
       lattice: 'Travatura',
       mass: 'massa kg',
@@ -951,11 +1099,38 @@ export default {
     },
   },
   heatsink: {
-    title: 'Il dissipatore — Spoon Physics',
+    /* Gli obiettivi come li legge uno studente. §2.4: prima il significato, poi il simbolo. */
+    goal: {
+      temperature: 'Temperatura: al massimo 95 °C',
+      aluminium: 'Alluminio: al massimo 170 g',
+    },
+    /* I tre risultati principali (§7.5) e i suggerimenti dopo un tentativo fallito (§7.7). */
+    headline: {
+      temperature: 'Temperatura massima',
+      temperatureHint:
+        'Il punto più caldo del metallo — il numero su cui si legge la specifica di un componente.',
+      aluminium: 'Alluminio usato',
+      aluminiumHint: 'Massa dell’intera estrusione sulla lunghezza dichiarata.',
+      channel: 'Spazio fra le alette',
+      channelNote: 'Non è un obiettivo. Canali stretti rendono più difficile la salita dell’aria.',
+      channelHint:
+        'Larghezza libera di un canale, ed è su questa che viene valutata la correlazione di convezione.',
+    },
+    hint: {
+      choked:
+        'Hai aggiunto superficie, ma lo spazio per l’aria è sceso a {channel} mm. Prova a togliere qualche aletta.',
+      room: 'Hai ancora {margin} g disponibili. Prova ad aumentare una sola dimensione delle alette.',
+      hot: 'La temperatura è troppo alta e non resta massa. Deve cambiare qualcosa di diverso da altro metallo.',
+      heavy:
+        'La temperatura va bene, ma usi {excess} g oltre il budget. Cerca alette che aggiungono massa più rapidamente di quanto riducano la temperatura.',
+      outside:
+        'La geometria è fuori dall’intervallo su cui è tarata la correlazione di convezione.',
+    },
+    title: 'Quante alette servono davvero? — Spoon Physics',
     description:
-      'Un esercizio di progetto termico: tieni un componente di potenza sotto la sua temperatura limite con un budget di massa, fra conduzione, convezione ricavata dal canale fra le alette e irraggiamento scambiato attraverso di esso — e trova il numero di alette oltre il quale aggiungerne peggiora le cose.',
-    eyebrow: 'Esercizio 5 · conduzione stazionaria con convezione e irraggiamento',
-    heading: 'Il dissipatore',
+      'Una sfida di fisica: tieni fresco un componente da 30 W con un budget di massa, e trova il numero di alette oltre il quale aggiungerne peggiora le cose. Prova a prevedere dove sta l’ottimo prima di calcolarlo.',
+    eyebrow: 'Superficie, passaggio dell’aria e massa',
+    heading: 'Quante alette servono davvero?',
     schematicTitle: "Sezione del dissipatore: base alettata con sotto l'impronta del componente",
     legendMetal: 'alluminio',
     legendAir: 'aria',
@@ -979,7 +1154,7 @@ export default {
     shapeNote: 'Canale {channel} mm · circa {mass} g di alluminio.',
     shapeOverlap:
       '{count} alette di questo spessore non ci stanno sui 60 mm di base — si sovrapporrebbero. Assottigliale o riducine il numero.',
-    ready: 'Pronto. Premi Esegui.',
+    ready: 'Pronto. Premi Calcola.',
     noSolver: 'Su questo server non è disponibile nessun solutore per dissipatori.',
     noSolverHere:
       'Questo server non ha un solutore per dissipatori, quindi qui non si può eseguire nulla.',

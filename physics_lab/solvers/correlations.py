@@ -11,12 +11,29 @@ better — right down to fins of zero thickness. The home page asks *when do the
 a constant coefficient the honest answer is "never", which is false. This module is what makes
 the question answerable without solving the fluid (§2.1 records why the fluid is not solved).
 
-**Status of the coefficients, stated plainly.** §11.2 of the exercise says these correlations
-must be pinned to a citable source before the page ships, and that is still outstanding. The
-forms below are the standard ones and are used here because the exercise needs *a* defensible
-``h(s)``; the numbers a visitor is shown must not rest on that being remembered correctly. What
-does **not** depend on the coefficients is the shape of the answer — that `h` falls as the
-channel narrows, and therefore that an optimum exists — and that is what §10 teaches.
+**Where each correlation comes from.** Every expression below is a published one and is cited
+here, which is where a citation belongs — beside the coefficients rather than in prose a reader
+has to take on trust. The editorial review §12.3 made this binding: a page may not state a
+correlation as fact and admit in the next paragraph that its source is remembered.
+
+- ``natural_convection`` — Bar-Cohen, A. and Rohsenow, W. M. (1984), "Thermally Optimum Spacing
+  of Vertical, Natural Convection Cooled, Parallel Plates", *Journal of Heat Transfer* **106**(1),
+  116–123. The composite relation, eq. (11), for isothermal symmetric plates. Its narrow-channel
+  limit is Elenbaas, W. (1942), "Heat dissipation of parallel plates by free convection",
+  *Physica* **9**(1), 1–28.
+- ``isolated_plate`` — the laminar McAdams constant for a vertical plate,
+  ``Nu = 0.59 Ra^(1/4)`` over ``1e4 < Ra < 1e9``: McAdams, W. H. (1954), *Heat Transmission*,
+  3rd ed., McGraw-Hill, ch. 7. Churchill, S. W. and Chu, H. H. S. (1975), *Int. J. Heat Mass
+  Transfer* **18**(11), 1323–1329, is the wider-range alternative and agrees with this one to a
+  few per cent across the band used here.
+- ``flat_plate_forced`` — the Blasius/Pohlhausen laminar similarity result,
+  ``Nu_L = 0.664 Re_L^(1/2) Pr^(1/3)``, standard and given in Incropera, F. P. and DeWitt, D. P.,
+  *Fundamentals of Heat and Mass Transfer*, ch. 7.
+- ``forced_convection`` — the laminar duct limit with a Nusselt number constant in ``Re``; see
+  Shah, R. K. and London, A. L. (1978), *Laminar Flow Forced Convection in Ducts*, ch. VI.
+
+What does **not** depend on the coefficients is the shape of the answer — that `h` falls as the
+channel narrows, and therefore that an optimum exists — and that is what the exercise teaches.
 
 Every correlation here reports its own validity, so the page can show the range beside the
 number rather than in a footnote nobody opens.

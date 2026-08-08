@@ -1,8 +1,8 @@
 {
   "id": "airfoil",
-  "title": "Progetto di un profilo alare",
-  "subtitle": "Flusso ideale con condizione di Kutta",
-  "intro": "Una sezione alare in una corrente uniforme. Scegli un profilo, scegli un'incidenza, e centra un obiettivo di portanza senza violare il vincolo che lo accompagna. Il solutore riporta che cosa fa davvero la sezione — distribuzione di pressione, portanza, momento di beccheggio, centro di pressione — e, a ogni esecuzione, fino a che punto ci si può fidare di quei numeri.",
+  "title": "Trova l'assetto dell'ala",
+  "subtitle": "Profilo, angolo e distribuzione di pressione",
+  "intro": "Il vento scorre a 40 m/s su una sezione larga un metro. Scegli il profilo e regola l'angolo: deve sostenere l'equivalente di circa 80 kg per ogni metro di ala senza tendere a ruotare troppo.",
   "challenge": {
     "statement": "Scegli un profilo e un angolo d'attacco che generino 800 N/m di portanza per unità di apertura a 40 m/s e a livello del mare, mantenendo piccolo il momento di beccheggio: |C_m,c/4| sotto 0,08. Le prove che escono dal campo di validità del modello non contano.",
     "targets": [
@@ -27,7 +27,75 @@
       "metric": "cl_consistency_rel",
       "below": 0.02
     },
-    "next_step": "un profilo diverso a un'incidenza diversa"
+    "next_step": "la stessa portanza con un profilo diverso",
+    "plain_statement": "Ottieni 800 N di portanza per metro, con uno scarto massimo del 2 %, e mantieni bassa la tendenza del profilo a ruotare. Il tentativo vale soltanto se resta dentro i limiti del modello e supera il controllo numerico."
+  },
+  "prediction": {
+    "question": "A parità di angolo, quale profilo pensi produca più portanza?",
+    "options": [
+      {
+        "id": "symmetric",
+        "label": "Simmetrico"
+      },
+      {
+        "id": "slight",
+        "label": "Poco curvo"
+      },
+      {
+        "id": "strong",
+        "label": "Molto curvo"
+      }
+    ],
+    "allow_unknown": true,
+    "follow_up": {
+      "question": "E quale pensi abbia più tendenza a ruotare?",
+      "options": [
+        {
+          "id": "symmetric",
+          "label": "Simmetrico"
+        },
+        {
+          "id": "slight",
+          "label": "Poco curvo"
+        },
+        {
+          "id": "strong",
+          "label": "Molto curvo"
+        }
+      ],
+      "allow_unknown": true
+    }
+  },
+  "explain": [
+    {
+      "id": "pressure",
+      "heading": "La forza nasce dalla pressione",
+      "body": [
+        "Il calcolo somma la pressione su tutta la superficie. Nel tuo tentativo la distribuzione non è uguale sopra e sotto il profilo: la risultante ha una componente verso l'alto. Lo stesso fenomeno si può leggere anche osservando come il flusso viene deviato."
+      ]
+    },
+    {
+      "id": "angle-camber",
+      "heading": "Angolo e curvatura non fanno la stessa cosa",
+      "body": [
+        "Aumentare l'angolo modifica l'intero campo attorno allo stesso profilo. Aumentare la curvatura cambia invece la forma che guida il flusso. Entrambe le scelte possono aumentare la portanza, ma non producono la stessa tendenza a ruotare."
+      ]
+    },
+    {
+      "id": "no-stall",
+      "heading": "Il modello non mostra lo stallo",
+      "body": [
+        "Questo modello non include viscosità e separazione del flusso. Può quindi continuare ad aumentare la portanza anche dove un profilo reale inizierebbe a stallare. Un risultato numericamente stabile non rende valida quella previsione."
+      ]
+    }
+  ],
+  "teacher": {
+    "objective": "Distinguere fra variabili che possono produrre la stessa portanza e osservare un compromesso di progetto.",
+    "prediction": "Il profilo più curvo produrrà più portanza allo stesso angolo?",
+    "misconception": "Più portanza significa automaticamente profilo migliore.",
+    "discussion": "Due configurazioni centrano lo stesso obiettivo. Quale dato impedisce di dire che una è sempre migliore?",
+    "prerequisites": "Forza, pressione e lettura di un grafico semplice.",
+    "duration": "15–25 minuti con confronto scritto."
   },
   "guide": [
     {
@@ -69,12 +137,30 @@
         "L'esercizio chiede 800 newton al metro. Nessuno di questi sei pulsanti ci arriva: la risposta sta fra due di loro, e trovarla è l'esercizio."
       ],
       "presets": [
-        { "alpha": -2, "note": "quasi niente: 16 N/m" },
-        { "alpha": 0, "note": "porta comunque: 253 N/m" },
-        { "alpha": 2, "note": "491 N/m" },
-        { "alpha": 4, "note": "728 N/m — vicino" },
-        { "alpha": 6, "note": "964 N/m — troppo" },
-        { "alpha": 8, "note": "1199 N/m, e una depressione feroce" }
+        {
+          "alpha": -2,
+          "note": "quasi niente: 16 N/m"
+        },
+        {
+          "alpha": 0,
+          "note": "porta comunque: 253 N/m"
+        },
+        {
+          "alpha": 2,
+          "note": "491 N/m"
+        },
+        {
+          "alpha": 4,
+          "note": "728 N/m — vicino"
+        },
+        {
+          "alpha": 6,
+          "note": "964 N/m — troppo"
+        },
+        {
+          "alpha": 8,
+          "note": "1199 N/m, e una depressione feroce"
+        }
       ]
     }
   ],
@@ -85,7 +171,7 @@
       "lead": "Ricava 800 N/m di portanza da un metro di corda, e tieni sotto controllo il momento di beccheggio.",
       "body": [
         "A 40 m/s e a livello del mare la pressione dinamica è 980 Pa, quindi su una corda di un metro l'obiettivo chiede un coefficiente di portanza di 0,816. Quasi ogni sezione lo raggiunge a una qualche incidenza. È il vincolo a farne un problema di progetto: **|C_m,c/4| < 0,08**, perché il momento di beccheggio è ciò che un piano di coda deve equilibrare, e una sezione che richiede una coda grande non è gratis.",
-        "La curvatura compra portanza a bassa incidenza e la fa pagare in momento di beccheggio. Un NACA 4412 raggiunge l'obiettivo a 2,5° ed è **squalificato** con |C_m| ≈ 0,11. Un 0009 simmetrico non ha quasi momento, e paga invece in incidenza — 6,9° — e in depressione: il suo C_p,min è circa −4,8, un picco di pressione a cui uno strato limite reale non sopravvivrebbe. Niente in questo modello ti impedirà di sceglierlo, ed è esattamente per questo che quel numero è sullo schermo.",
+        "La curvatura compra portanza a bassa incidenza e la fa pagare in momento di beccheggio; un profilo simmetrico non ha quasi momento, e paga invece in angolo e in quanto diventa severo il suo picco di depressione. Quale dei due costi conti di più si scopre calcolando, non leggendo — per questo i numeri arrivano sullo schermo dopo un tentativo e non in questo paragrafo prima.",
         "Non esiste un profilo che vinca su tutti i fronti. Trovane uno che passi, salva la prova, poi trovane un altro che passi anch'esso e confronta i due."
       ]
     },
@@ -161,7 +247,7 @@
       "heading": "Limiti del modello",
       "caution": true,
       "body": [
-        "**Niente viscosità, quindi niente resistenza e niente stallo.** Non c'è strato limite, non c'è attrito a parete e non c'è separazione. Qui la portanza cresce con l'incidenza all'infinito; una sezione reale si ferma fra i 10° e i 16° e poi ne perde la maggior parte. La pagina avvisa quando una prova è oltre l'intervallo in cui il confronto ha senso, ma non può dirti che cosa farebbe la sezione reale.",
+        "**Niente viscosità, quindi niente resistenza e niente stallo.** Non c'è strato limite, non c'è attrito a parete e non c'è separazione. Qui la portanza cresce con l'incidenza all'infinito; una sezione reale a un certo punto si ferma e poi ne perde la maggior parte, a un angolo che dipende dal profilo, dal numero di Reynolds, dalla superficie e dalla turbolenza che incontra. La pagina avvisa quando una prova è oltre l'intervallo in cui il confronto ha senso, ma non può dirti che cosa farebbe la sezione reale.",
         "**Incomprimibile.** Valido fino a circa Mach 0,3. Oltre, la pagina avvisa, e le pressioni sono sbagliate di più della differenza fra due profili.",
         "**Un picco di depressione non è gratis.** C_p,min è riportato proprio perché questo modello produrrà volentieri un −5 senza dire nulla della separazione che ne seguirebbe.",
         "**Bidimensionale.** Tutto è per unità di apertura. Non c'è ala finita, non c'è downwash e non c'è resistenza indotta; l'apertura non è un dato in ingresso perché implicherebbe un modello che qui non esiste.",

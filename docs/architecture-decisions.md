@@ -1059,6 +1059,67 @@ path exists for one exercise out of four, so the other three currently open the 
 did. That is honest rather than tidy: their chapters are physics prose to be written, not
 scaffolding to be reused.
 
+
+## ADR-022 — The lab is a set of challenges, and the explanation comes after the attempt
+
+**Decision.** Every page is reorganised around one loop — **predict, try, improve, compare** —
+and the material that used to precede it is moved rather than deleted. Concretely:
+
+- Each exercise asks a **prediction** before the first solve. It gates nothing, changes no
+  input, is never marked, and always offers *not sure yet*. `frontend/shared/journey.js`.
+- The explanation of the phenomenon is **withheld until the first computation** and arrives as
+  at most three short cards under *Why it happens*, which may quote the attempt that unlocked
+  them. `content.json` gains an `explain` block.
+- The headline row is **three results, never more**, and a tile reads *784 / 800 N per metre*
+  with a bar and one sentence, not a bare number. Everything else moves to *All results*.
+- *How far to trust it* becomes **two indicators** — is the computation settled, does the model
+  apply — with the residuals and the validity warnings behind a closed disclosure.
+- The mission is stated **twice**: `challenge.plain_statement` in words, which the page shows,
+  and `challenge.statement` in the units an engineer would use, which stays in the model
+  details and in the tooltip on each target.
+- Each exercise carries a folded **teacher's card**: objective, useful prediction, common
+  misconception, closing question, prerequisites, time.
+- The homepage leads with three cards, each a question plus a mission a person can picture, and
+  carries no formula in its open text. *How to play* is three steps. Methods, solver names and
+  server capability are one closed block.
+- The magnetic circuit **leaves the card grid** and keeps its URL on an advanced shelf, renamed
+  to what it is.
+
+**Why.** The lab had four real qualities — the answers are computed, the targets are
+quantitative, the model declares its limits, and runs can be compared — and it led with none of
+them. It led with an argument that the solver was real. A student arriving at the airfoil page
+met *800 N/m of sectional lift, keeping |C_m,c/4| below 0.08* before they had a reason to care
+about either quantity; [ADR-021](#adr-021--an-exercise-page-opens-with-a-lesson-and-the-lesson-can-be-skipped)
+built a way past that wall for one exercise out of four, which was the right first move and not
+the whole fix. The wall was the ordering, not the wording.
+
+Two orderings in particular were doing damage. **Explanation before attempt**: the airfoil page
+listed the lift at −2°, 0°, 2°, 4°, 6° and 8° and said which two buttons the answer lay between,
+which turns a prediction that can be wrong into a search that cannot. And **rigour before
+purpose**: three panels of residuals said, correctly and unreadably, the one genuinely important
+thing this lab teaches — that a number can be computed well and describe reality badly. Two
+indicators say it; a table of tolerances buries it.
+
+**What this costs, stated plainly.** The tagline [ADR-016](#adr-016--the-product-is-called-spoon-physics)
+fixed as non-negotiable is replaced. That decision was about *having* a fixed claim rather than
+about those particular six words, and the old ones described the solver where the new ones
+describe what a visitor does. The homepage cards no longer state their target in symbols at all,
+not even folded — a step further than ADR-021 went, on the ground that a symbol on a card is a
+gate in front of a choice, and the only choice there is which challenge to open. Six headline
+tiles become three, so three quantities per page moved one disclosure down. And a returning
+visitor now meets a question before the instrument, which is the thing ADR-017 fought against;
+it is accepted because it is one radio group, answering is optional, and *not sure yet* is one
+click.
+
+**What is not built.** The editorial review that prompted this specifies a replacement for the
+magnetic circuit — an electromagnet that has to pull a plate on a power budget, with a
+non-linear B–H curve, a force from Maxwell stress verified a second way, and a mesh study in the
+gap. Its own acceptance criteria forbid publishing it before that verification exists, so it is
+not published and not half-built: the current page is on the shelf, honestly labelled, and the
+grid shows three. Also unbuilt: the bridge's three stages, and the heat sink's fin-count sweep
+as a first phase. Both are interaction work on top of this hierarchy rather than changes to it,
+which is why the hierarchy went first.
+
 ---
 
 ## Deferred

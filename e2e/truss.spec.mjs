@@ -53,7 +53,7 @@ async function solve(page) {
 test('the exercise states a problem before it offers a solver', async ({ page }) => {
   await ready(page);
   // The mission is above everything, and it is quantitative: three targets with numbers.
-  await expect(page.locator('#challenge .challenge__statement')).toContainText('24 m deck');
+  await expect(page.locator('#challenge .challenge__statement')).toContainText('2400 kg');
   await expect(page.locator('#challenge .challenge__target')).toHaveCount(3);
   // Before a run every target reads as unanswered rather than as failed.
   await expect(page.locator('#challenge .challenge__target.is-pending')).toHaveCount(3);
@@ -69,9 +69,13 @@ test('no internal identifier reaches the screen, before or after a run', async (
   for (const key of keys) expect(await shown()).not.toContain(key);
   await solve(page);
   for (const key of keys) expect(await shown()).not.toContain(key);
-  // The quantities are all there — under the names a person reads.
-  await expect(page.locator('#kpis')).toContainText('Worst member');
-  await expect(page.locator('#kpis')).toContainText('Carried per kg');
+  // The quantities are all there — under the names a person reads. The headline row carries the
+  // three the challenge is set on, in plain words and against their goals; everything else,
+  // including the carried-per-kilogram figure of merit, is one disclosure down in All results.
+  await expect(page.locator('#kpis')).toContainText('Bar closest to failure');
+  await expect(page.locator('#kpis')).toContainText('Steel used');
+  await expect(page.locator('#kpis')).toContainText('Largest sag');
+  await expect(page.locator('#metrics')).toContainText('Carried per kilogram');
 });
 
 test('the default lattice carries the load and misses the mission', async ({ page }) => {
@@ -82,7 +86,13 @@ test('the default lattice carries the load and misses the mission', async ({ pag
   // default that already passed would leave nothing to do.
   await expect(page.locator('#challenge .challenge__target.is-missed')).toHaveCount(1);
   await expect(page.locator('#challenge .challenge__target.is-met')).toHaveCount(2);
-  await expect(page.locator('.challenge__blocked--validity')).toBeVisible();
+  // The disqualification is one line of verdict now, and the reason behind it is one of two
+  // indicators — settled arithmetic, applicable physics — with the warning itself beside the
+  // one it belongs to. The residuals and the full validity panel are behind the fold. ADR-022.
+  await expect(page.locator('#outcome')).toContainText('does not count');
+  await expect(page.locator('.credibility--no')).toContainText('Model applies here');
+  await expect(page.locator('.credibility__warnings')).toContainText('Euler critical load');
+  await page.locator('#checks summary').click();
   await expect(page.locator('#validity')).toContainText('Euler critical load');
 
   // Every declared check ran, and every one passed: this method does not approximate a
@@ -240,5 +250,5 @@ test('a kept run records the lattice it was computed on, and reloads it', async 
   await expect(page.locator('#lattice-note')).toContainText('17 joints');
   await page.locator('#runs-table button', { hasText: 'Load' }).first().click();
   await expect(page.locator('#lattice-note')).toContainText('21 joints');
-  await expect(page.locator('#status')).toContainText('Press Run to recompute it');
+  await expect(page.locator('#status')).toContainText('Press Compute to run it again');
 });

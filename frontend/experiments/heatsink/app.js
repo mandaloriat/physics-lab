@@ -33,7 +33,16 @@ import {
   renderMetrics,
   renderValidity,
   renderVerification,
+  attemptState,
+  renderAfterAttempt,
+  renderTeacher,
 } from '/shared/exercise.js';
+import {
+  changedTheDesign,
+  mountPath,
+  mountPrediction,
+  renderPredictionRecall,
+} from '/shared/journey.js';
 import {
   applyFieldView,
   applyMaintenance,
@@ -117,6 +126,17 @@ const dom = Object.fromEntries(
     'exportJson',
     'clearRuns',
     'maintenance',
+    'path',
+    'prediction',
+    'predictionRecall',
+    'outcome',
+    'hint',
+    'credibility',
+    'explain',
+    'teacher',
+    'whyPanel',
+    'predictPanel',
+    'teacherCard',
   ].map((key) => [
     key,
     document.getElementById(key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)),
@@ -525,10 +545,22 @@ const PARAM_UI = [
 ];
 
 const METRICS = [
-  { key: 't_max', label: t('heatsink.metrics.tMax'), unit: '°C', digits: 1 },
+  {
+    key: 't_max',
+    goal: t('heatsink.goal.temperature'),
+    label: t('heatsink.metrics.tMax'),
+    unit: '°C',
+    digits: 1,
+  },
   { key: 't_rise', label: t('heatsink.metrics.tRise'), unit: 'K', digits: 1 },
   { key: 'thermal_resistance', label: t('heatsink.metrics.resistance'), unit: 'K/W', digits: 3 },
-  { key: 'mass', label: t('heatsink.metrics.mass'), unit: 'kg', digits: 3 },
+  {
+    key: 'mass',
+    goal: t('heatsink.goal.aluminium'),
+    label: t('heatsink.metrics.mass'),
+    unit: 'kg',
+    digits: 3,
+  },
   { key: 'score', label: t('heatsink.metrics.score'), unit: 'K·kg/W', digits: 4 },
   { key: 'fin_efficiency', label: t('heatsink.metrics.efficiency'), unit: '1', digits: 3 },
   { key: 'radiative_fraction', label: t('heatsink.metrics.radiative'), unit: '1', digits: 3 },
@@ -540,10 +572,41 @@ const METRICS = [
 const METRIC_LABELS = Object.fromEntries(METRICS.map((metric) => [metric.key, metric]));
 
 const KPIS = [
-  { key: 't_max', label: t('heatsink.metrics.tMax'), unit: '°C', digits: 1 },
-  { key: 'thermal_resistance', label: t('heatsink.metrics.resistance'), unit: 'K/W', digits: 3 },
-  { key: 'mass', label: t('heatsink.metrics.mass'), unit: 'kg', digits: 3 },
-  { key: 'score', label: t('heatsink.metrics.score'), unit: 'K·kg/W', digits: 4 },
+  {
+    key: 't_max',
+    label: t('heatsink.headline.temperature'),
+    symbol: 'T_max',
+    unit: '°C',
+    plainUnit: '°C',
+    digits: 1,
+    goal: { value: 95, comparator: '<' },
+    hint: t('heatsink.headline.temperatureHint'),
+  },
+  {
+    key: 'mass',
+    label: t('heatsink.headline.aluminium'),
+    symbol: 'm',
+    unit: 'g',
+    plainUnit: 'g',
+    digits: 0,
+    from: (found) => (typeof found.metrics?.mass === 'number' ? 1000 * found.metrics.mass : null),
+    goal: { value: 170, comparator: '<' },
+    hint: t('heatsink.headline.aluminiumHint'),
+  },
+  {
+    key: 'channel',
+    label: t('heatsink.headline.channel'),
+    symbol: 's',
+    unit: 'mm',
+    plainUnit: 'mm',
+    digits: 1,
+    // Not a target and deliberately shown beside two that are: it is the quantity that makes
+    // the surprise legible. More fins raise the area and narrow this, and the exercise is
+    // about which of the two wins.
+    from: () => channelWidth(),
+    note: () => t('heatsink.headline.channelNote'),
+    hint: t('heatsink.headline.channelHint'),
+  },
 ];
 
 /**
@@ -714,6 +777,18 @@ function present() {
   renderMetrics(dom.metrics, METRICS, report);
   renderVerification(dom.verification, CHECKS, report);
   renderValidity(dom.validity, report);
+  renderAfterAttempt(dom, {
+    challenge: content?.challenge,
+    explain: content?.explain,
+    report,
+    state: attemptState(content?.challenge, report),
+    checks: CHECKS,
+    hint: report ? suggestion() : null,
+    facts: attemptFacts(),
+  });
+  renderPredictionRecall(dom.predictionRecall, prediction?.answer() ?? null);
+  if (report) path.mark('attempt');
+
   drawSweep();
 }
 
@@ -843,6 +918,9 @@ function refreshRuns(rows = runs.load(EXERCISE), evicted = 0) {
   for (const button of [dom.exportCsv, dom.exportJson, dom.clearRuns])
     button.disabled = !rows.length;
   dom.compareJump.hidden = rows.length < 2;
+  if (selected.size >= 2) path.mark('compare');
+  if (!rows.length) dom.runsNote.textContent = t('runs.none');
+  else if (rows.length === 1) dom.runsNote.textContent += ` ${t('runs.one')}`;
 }
 
 function buildForms() {
@@ -896,7 +974,13 @@ dom.field.addEventListener('change', () => {
 });
 dom.keep.addEventListener('click', () => {
   if (!report) return;
-  const { rows, evicted } = runs.save(EXERCISE, row());
+  // "Improve" is not "run it again". A second attempt at a finer grid is a numerical
+  // experiment and a worthwhile one, but it is not a second design — `changedTheDesign`
+  // compares the geometry and the physical conditions, and nothing else. See `journey.js`.
+  const kept = runs.load(EXERCISE);
+  const entry = row();
+  if (kept.length && changedTheDesign(kept[0], entry)) path.mark('improve');
+  const { rows, evicted } = runs.save(EXERCISE, entry);
   refreshRuns(rows, evicted);
   revealPanel(dom.runsPanel);
 });
@@ -912,6 +996,68 @@ dom.clearRuns.addEventListener('click', () => {
   refreshRuns();
 });
 
+/* ------------------------------------------------------------- one suggestion at a time */
+
+/**
+ * What to say after an attempt that did not pass.
+ *
+ * Editorial rules rather than generated prose (§13.7). "Hot with mass to spare" and "hot with
+ * the channel already closing" are the two halves of the exercise's whole point, and they are
+ * told apart here rather than merged into one sentence about adding fins.
+ */
+function suggestion() {
+  if (!report) return null;
+  const temperature = report.metrics?.t_max;
+  const mass = 1000 * (report.metrics?.mass ?? 0);
+  const channel = channelWidth();
+  if ((report.validity?.warnings ?? []).length) return t('heatsink.hint.outside');
+  if (typeof temperature === 'number' && temperature >= 95) {
+    if (channel > 0 && channel < 3) {
+      return t('heatsink.hint.choked', { channel: channel.toFixed(1) });
+    }
+    if (mass < 170) return t('heatsink.hint.room', { margin: Math.round(170 - mass) });
+    return t('heatsink.hint.hot');
+  }
+  if (mass >= 170) return t('heatsink.hint.heavy', { excess: Math.round(mass - 170) });
+  return null;
+}
+
+/** Numbers the post-attempt cards may quote, so an explanation can be about *this* attempt. */
+function attemptFacts() {
+  if (!report) return {};
+  return {
+    channel: channelWidth().toFixed(1),
+    temperature: (report.metrics?.t_max ?? 0).toFixed(0),
+  };
+}
+
+/* ------------------------------------------------------------------- predict, try, compare */
+
+/**
+ * The loop the page is played in, mounted once.
+ *
+ * The prediction is asked before anything is computed and gates nothing; the path lights the
+ * steps that have been taken. Both live in `shared/journey.js` — see the note there about why
+ * neither is allowed to block a solve or to score an answer.
+ */
+const path = mountPath(dom.path, { exercise: EXERCISE });
+let prediction = null;
+
+function mountLoop() {
+  if (content?.prediction) {
+    prediction = mountPrediction(dom.prediction, {
+      exercise: EXERCISE,
+      prediction: content.prediction,
+      hasSolved: () => Boolean(report),
+      onAnswer: () => path.mark('predict'),
+    });
+  } else {
+    dom.predictPanel?.remove();
+  }
+  renderTeacher(dom.teacher, content?.teacher);
+  if (!content?.teacher) dom.teacherCard?.remove();
+}
+
 try {
   const [loaded, info, solvers] = await Promise.all([
     fetch(contentUrl(EXERCISE)).then((response) => response.json()),
@@ -921,6 +1067,7 @@ try {
 
   content = loaded;
   catalogue = solvers;
+  mountLoop();
   renderLesson({ content, intro: null, lesson: dom.lesson, open: ['problem'] });
   present();
   refreshRuns();

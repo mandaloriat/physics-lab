@@ -1,8 +1,8 @@
 {
   "id": "solenoid",
-  "title": "Il circuito magnetico",
-  "subtitle": "Magnetostatica della sezione di un solenoide",
-  "intro": "Una sezione di un elettromagnete: un nucleo di ferro al centro, e ai suoi lati lo stesso avvolgimento tagliato due volte dal piano — corrente entrante nella pagina da un lato e uscente dall'altro. Dimensiona la sezione perché porti il flusso richiesto senza spendere più rame di quanto il budget consenta.",
+  "title": "Campo magnetico in una sezione 2D",
+  "subtitle": "Flusso, dispersione e percorso nel ferro",
+  "intro": "Un laboratorio avanzato, non una sfida. Presuppone che tu sappia già che cosa sia il flusso, che cosa sia un circuito magnetico e perché il ferro lo porti meglio dell'aria. Porta il flusso richiesto attraverso il nucleo con un budget di amperspire, e guarda quanto se ne va invece per la via dell'aria.",
   "challenge": {
     "statement": "Dimensiona la sezione perché porti 4,5 mWb per metro di profondità attraverso il ferro, usando non più di 3600 amperspire in ciascun lato dell'avvolgimento, e tenendo fuori dal nucleo meno dell'1 % del flusso. Le prove che escono dal campo di validità del modello non contano.",
     "targets": [
@@ -31,7 +31,57 @@
       "metric": "energy_balance_rel",
       "below": 0.02
     },
-    "next_step": "una sezione diversa con un budget di amperspire diverso"
+    "next_step": "lo stesso flusso con una geometria di nucleo diversa",
+    "plain_statement": "Porta 4,5 mWb per metro di profondità attraverso il nucleo con non più di 3600 A di amperspire, e tieni la dispersione sotto l'1 %. Il tentativo vale soltanto dentro i limiti dichiarati dal modello."
+  },
+  "prediction": {
+    "question": "Quale modifica pensi costi più flusso?",
+    "options": [
+      {
+        "id": "gap",
+        "label": "Allargare il traferro"
+      },
+      {
+        "id": "turns",
+        "label": "Dimezzare le amperspire"
+      },
+      {
+        "id": "core",
+        "label": "Restringere il nucleo"
+      }
+    ],
+    "allow_unknown": true
+  },
+  "explain": [
+    {
+      "id": "iron-path",
+      "heading": "Il campo preferisce il ferro, ma deve attraversare l'aria",
+      "body": [
+        "Il ferro offre al flusso magnetico un percorso molto più favorevole dell'aria. Nel traferro, però, il campo non ha alternativa. Anche pochi millimetri possono quindi dominare il comportamento dell'intero circuito."
+      ]
+    },
+    {
+      "id": "leakage",
+      "heading": "La dispersione non è un difetto del calcolo",
+      "body": [
+        "Una parte del flusso si richiude nell'aria accanto al nucleo invece che attraverso il traferro. È quello che fa il campo, non un errore: il valore di dispersione dice quanta parte del lavoro dell'avvolgimento sta andando dove il circuito non era stato progettato per usarla."
+      ]
+    },
+    {
+      "id": "linearity",
+      "heading": "Questo nucleo è lineare, uno reale no",
+      "body": [
+        "Il modello usa una permeabilità relativa costante per il materiale che selezioni. Un acciaio dolce reale satura: oltre un certo campo, più corrente compra molto meno flusso. Niente in questa pagina te lo mostrerà, ed è un limite del modello, non una proprietà del ferro."
+      ]
+    }
+  ],
+  "teacher": {
+    "objective": "Leggere un circuito magnetico come un percorso a riluttanze diverse, e capire dove va davvero il campo.",
+    "prediction": "Quanto flusso costa un millimetro d'aria in più?",
+    "misconception": "Il ferro porta il campo, quindi il traferro è un dettaglio.",
+    "discussion": "Perché il ferro è indispensabile e tuttavia è quasi sempre l'aria a decidere il risultato?",
+    "prerequisites": "Flusso magnetico, campo e l'idea di circuito magnetico.",
+    "duration": "20–30 minuti."
   },
   "sections": [
     {
@@ -40,7 +90,7 @@
       "lead": "Porta 4,5 mWb per metro di profondità su per il nucleo, con un budget di amperspire, senza disperderlo.",
       "body": [
         "La sezione predefinita porta circa 3,45 mWb/m con 3000 amperspire e disperde l'1,7 % del suo flusso fuori dal ferro, quindi manca due dei tre obiettivi. È il budget a farne un problema di progetto invece che una manopola: **3600 amperspire** è quasi il massimo che questa finestra possa utilmente ricevere, quindi il flusso in più deve venire dal circuito magnetico e non dalla corrente.",
-        "Tre cose vale la pena sapere prima di cominciare. **Il flusso è limitato dall'aria, non dal ferro** — a μᵣ = 1000 il nucleo è già mille volte il percorso più facile, quindi migliorarlo compra quasi nulla mentre accorciare il *ritorno* compra molto. **Le amperspire sono spessore dell'avvolgimento per semialtezza per densità di corrente**, quindi lo stesso budget si può spendere come una bobina alta e sottile o come una bassa e grassa, e le due cose non sono equivalenti. E **la dispersione è fissata dall'intercapedine d'aria**: a 1 mm un decimo di punto percentuale del flusso manca il nucleo, a 5 mm l'1,7 %, a 10 mm oltre il 6 %.",
+        "Tre cose vale la pena sapere prima di cominciare. **Il flusso è limitato dall'aria, non dal ferro** — a μᵣ = 1000 il nucleo è già mille volte il percorso più facile, quindi migliorarlo compra quasi nulla mentre accorciare il *ritorno* compra molto. **Le amperspire sono spessore dell'avvolgimento per semialtezza per densità di corrente**, quindi lo stesso budget si può spendere come una bobina alta e sottile o come una bassa e grassa, e le due cose non sono equivalenti. E **la dispersione è fissata dall'intercapedine d'aria**: allargala e una quota rapidamente crescente del flusso manca del tutto il nucleo. Quanto grande sia quella quota è una domanda per il calcolo e per la geometria che hai disegnato, non per una tabella.",
         "C'è più di una sezione che passa. Trovane una, salva la prova, poi trovane un'altra che passi anch'essa e confronta le due — la tabella delle prove esiste per rendere possibile quel confronto, non per conservare schermate."
       ]
     },
